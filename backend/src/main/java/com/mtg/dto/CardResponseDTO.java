@@ -7,6 +7,7 @@ public record CardResponseDTO(
         String name,
         String manaCost,
         String typeLine,
-        String oracleText
+        String oracleText,
+        Double cmc
 ) {
 }

@@ -3,6 +3,8 @@ package com.mtg.controller;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
 import com.mtg.service.DeckService;
+import com.mtg.service.DeckAnalysisService;
+import com.mtg.domain.DeckAnalysis;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -23,6 +25,9 @@ public class DeckController {
 
     @Inject
     DeckService deckService;
+
+    @Inject
+    DeckAnalysisService deckAnalysisService;
 
     @POST
     @Operation(summary = "Create a new deck")
@@ -84,5 +89,18 @@ public class DeckController {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
         return Response.ok(exported).type("text/plain;charset=UTF-8").build();
+    }
+
+    @GET
+    @Path("{id}/analysis")
+    @Operation(summary = "Analyze deck")
+    @APIResponse(responseCode = "200", description = "Deck analysis")
+    public Response analyzeDeck(@Parameter(description = "Deck id") @PathParam("id") Long id) {
+        try {
+            DeckAnalysis analysis = deckAnalysisService.analyzeDeck(id);
+            return Response.ok(analysis).build();
+        } catch (jakarta.ws.rs.NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
     }
 }

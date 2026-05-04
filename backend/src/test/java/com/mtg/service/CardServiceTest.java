@@ -35,10 +35,11 @@ class CardServiceTest {
     void shouldTransformScryfallResponseIntoInternalDto() {
         when(scryfallClient.searchByName("\"Sol Ring\"")).thenReturn(
                 new ScryfallResponseDTO(List.of(new ScryfallCardDTO(
-                        "Sol Ring",
-                        "{1}",
-                        "Artifact",
-                        "{T}: Add {C}{C}."
+                    "Sol Ring",
+                    "{1}",
+                    1.0,
+                    "Artifact",
+                    "{T}: Add {C}{C}."
                 )))
         );
 
@@ -77,10 +78,11 @@ class CardServiceTest {
     void shouldUseCacheForRepeatedSearches() {
         when(scryfallClient.searchByName("\"Arcane Signet\"")).thenReturn(
                 new ScryfallResponseDTO(List.of(new ScryfallCardDTO(
-                        "Arcane Signet",
-                        "{2}",
-                        "Artifact",
-                        "{T}: Add one mana of any color in your commander's color identity."
+                    "Arcane Signet",
+                    "{2}",
+                    2.0,
+                    "Artifact",
+                    "{T}: Add one mana of any color in your commander's color identity."
                 )))
         );
 

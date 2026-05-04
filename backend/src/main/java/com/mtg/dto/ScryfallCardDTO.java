@@ -9,6 +9,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 public record ScryfallCardDTO(
         String name,
         @JsonProperty("mana_cost") String manaCost,
+        @JsonProperty("cmc") Double cmc,
         @JsonProperty("type_line") String typeLine,
         @JsonProperty("oracle_text") String oracleText
 ) {

@@ -81,7 +81,8 @@ public class CardService {
                 card.name(),
                 card.manaCost(),
                 card.typeLine(),
-                card.oracleText()
+                card.oracleText(),
+                card.cmc()
         );
     }
 }
