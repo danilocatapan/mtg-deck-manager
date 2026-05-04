@@ -73,4 +73,16 @@ public class DeckController {
         }
         return Response.noContent().build();
     }
+
+    @GET
+    @Path("{id}/export")
+    @Produces(MediaType.TEXT_PLAIN)
+    @Operation(summary = "Export deck in text format")
+    public Response exportDeck(@PathParam("id") Long id) {
+        String exported = deckService.exportDeck(id);
+        if (exported == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        return Response.ok(exported).type("text/plain;charset=UTF-8").build();
+    }
 }

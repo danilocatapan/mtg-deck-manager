@@ -36,4 +36,26 @@ class DeckControllerTest {
     void getNotFound() {
         given().when().get("/decks/999999").then().statusCode(404);
     }
+
+    @Test
+    void exportDeck_returnsTextPlain() {
+        DeckRequestDTO request = new DeckRequestDTO("MyDeck","Cmd", List.of(new DeckCardDTO("Sol Ring",1)));
+
+        Response r = given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when().post("/decks")
+                .then().statusCode(201)
+                .extract().response();
+
+        String location = r.getHeader("Location");
+        Response exp = given().when().get(location + "/export").then().statusCode(200).extract().response();
+        assertThat(exp.getHeader("Content-Type"), is("text/plain;charset=UTF-8"));
+        assertThat(exp.asString().contains("Sol Ring"), is(true));
+    }
+
+    @Test
+    void exportDeck_notFound() {
+        given().when().get("/decks/999999/export").then().statusCode(404);
+    }
 }

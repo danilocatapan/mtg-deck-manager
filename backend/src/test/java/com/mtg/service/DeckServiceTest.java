@@ -57,4 +57,30 @@ class DeckServiceTest {
         DeckRequestDTO request = new DeckRequestDTO("Name","Cmd", List.of(new DeckCardDTO("Sol Ring",1)));
         assertNull(deckService.updateDeck(id, request));
     }
+
+    @Test
+    void exportDeck_withCards() {
+        Deck deck = new Deck("My Deck", "Cmd", List.of(new DeckCard("Sol Ring",1), new DeckCard("Command Tower",1)));
+        when(deckRepository.findById(1L)).thenReturn(deck);
+
+        String exported = deckService.exportDeck(1L);
+
+        assertEquals("1 Sol Ring\n1 Command Tower", exported);
+    }
+
+    @Test
+    void exportDeck_empty() {
+        Deck deck = new Deck("Empty", "Cmd", List.of());
+        when(deckRepository.findById(2L)).thenReturn(deck);
+
+        String exported = deckService.exportDeck(2L);
+
+        assertEquals("", exported);
+    }
+
+    @Test
+    void exportDeck_notFound() {
+        when(deckRepository.findById(999L)).thenReturn(null);
+        assertNull(deckService.exportDeck(999L));
+    }
 }

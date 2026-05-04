@@ -13,6 +13,7 @@ import org.jboss.logging.Logger;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Comparator;
 
 @ApplicationScoped
 public class DeckService {
@@ -71,6 +72,24 @@ public class DeckService {
     public boolean deleteDeck(Long id) {
         LOG.info("Deleting deck: " + id);
         return deckRepository.deleteById(id);
+    }
+
+    public String exportDeck(Long id) {
+        LOG.info("Export requested: " + id);
+        Deck deck = deckRepository.findById(id);
+        if (deck == null) {
+            LOG.error("Export failed: deck not found " + id);
+            return null;
+        }
+        List<DeckCard> cards = deck.getCards();
+        LOG.debug("Exporting deck " + id + ", card count=" + (cards == null ? 0 : cards.size()));
+        if (cards == null || cards.isEmpty()) {
+            return "";
+        }
+
+        return cards.stream()
+                .map(c -> c.getQuantity() + " " + c.getName())
+                .collect(Collectors.joining("\n"));
     }
 
     private void validateRequest(DeckRequestDTO request) {
