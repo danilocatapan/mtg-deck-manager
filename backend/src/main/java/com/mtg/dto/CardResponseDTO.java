@@ -1,9 +1,12 @@
 package com.mtg.dto;
 
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
+@Schema(name = "CardResponse")
 public record CardResponseDTO(
         String name,
-        double cmc,
         String manaCost,
-        String type
+        String typeLine,
+        String oracleText
 ) {
 }
