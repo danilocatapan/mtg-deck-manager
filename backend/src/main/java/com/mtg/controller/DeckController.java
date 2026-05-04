@@ -5,6 +5,9 @@ import com.mtg.dto.DeckResponseDTO;
 import com.mtg.service.DeckService;
 import com.mtg.service.DeckAnalysisService;
 import com.mtg.domain.DeckAnalysis;
+import com.mtg.service.RecommendationService;
+import com.mtg.dto.RecommendationParamsDTO;
+import com.mtg.domain.DeckRecommendations;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -28,6 +31,9 @@ public class DeckController {
 
     @Inject
     DeckAnalysisService deckAnalysisService;
+
+    @Inject
+    RecommendationService recommendationService;
 
     @POST
     @Operation(summary = "Create a new deck")
@@ -99,6 +105,19 @@ public class DeckController {
         try {
             DeckAnalysis analysis = deckAnalysisService.analyzeDeck(id);
             return Response.ok(analysis).build();
+        } catch (jakarta.ws.rs.NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+    }
+
+    @POST
+    @Path("{id}/recommendations")
+    @Operation(summary = "Recommend deck improvements")
+    @APIResponse(responseCode = "200", description = "Recommendations generated")
+    public Response recommend(@PathParam("id") Long id, RecommendationParamsDTO params) {
+        try {
+            DeckRecommendations recs = recommendationService.recommend(id, params);
+            return Response.ok(recs).build();
         } catch (jakarta.ws.rs.NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }

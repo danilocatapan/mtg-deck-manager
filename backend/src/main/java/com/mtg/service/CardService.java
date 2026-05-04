@@ -54,6 +54,29 @@ public class CardService {
         }
     }
 
+    @CacheResult(cacheName = "cards-by-query")
+    public List<CardResponseDTO> searchByQuery(String query) {
+        if (query == null || query.isBlank()) return List.of();
+
+        LOG.infov("event=cards.search.request query={0}", query);
+        LOG.infov("event=scryfall.url base={0}", scryfallApiUrl);
+        LOG.infov("event=scryfall.query value={0}", query);
+        LOG.debugv("event=scryfall.search.start query={0}", query);
+
+        try {
+            ScryfallResponseDTO response = scryfallClient.searchByName(query);
+            List<CardResponseDTO> cards = mapResponse(response);
+            LOG.debugv("event=scryfall.search.success query={0} resultCount={1}", query, cards.size());
+            return cards;
+        } catch (NotFoundException exception) {
+            LOG.debugv("event=scryfall.search.empty query={0}", query);
+            return List.of();
+        } catch (WebApplicationException | ProcessingException exception) {
+            LOG.errorv(exception, "event=scryfall.search.failure query={0}", query);
+            throw new ExternalServiceException("Failed to fetch cards from Scryfall", exception);
+        }
+    }
+
     private String validateName(String name) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("The card name must be provided");
