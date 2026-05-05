@@ -36,6 +36,9 @@ public class RecommendationService {
     @Inject
     com.mtg.service.meta.MetaProvider metaProvider;
 
+    @Inject
+    com.mtg.service.synergy.SynergyEngine synergyEngine;
+
     public DeckRecommendations recommend(Long deckId, RecommendationParamsDTO params) {
         LOG.infov("recommendation.started deckId={0} params={1}", deckId, params);
 
@@ -59,16 +62,37 @@ public class RecommendationService {
         // pool of candidates collected across gap roles (deduped and ranked later)
         List<RecommendationItem> candidatePool = new ArrayList<>();
 
-        // Determine commander color identity
+        // Determine commander color identity and tags
         Set<String> commanderColors = new HashSet<>();
+        Set<String> commanderTags = new HashSet<>();
+        CardResponseDTO commanderCard = null;
         try {
             List<CardResponseDTO> cmdInfo = cardService.searchByName(deck.getCommander());
-            if (!cmdInfo.isEmpty() && cmdInfo.get(0).colorIdentity() != null) {
-                commanderColors.addAll(cmdInfo.get(0).colorIdentity());
+            if (!cmdInfo.isEmpty()) {
+                commanderCard = cmdInfo.get(0);
+                if (commanderCard.colorIdentity() != null) commanderColors.addAll(commanderCard.colorIdentity());
+                commanderTags = synergyEngine.tagsForCard(commanderCard);
             }
         } catch (Exception e) {
             LOG.debugv("event=recommendation.commander.color.lookup.failed {0}", deck.getCommander());
         }
+
+        // Aggregate tags from existing deck cards for synergy context
+        Set<String> deckTags = new HashSet<>();
+        for (DeckCard dc : deck.getCards()) {
+            try {
+                List<CardResponseDTO> infos = cardService.searchByName(dc.getName());
+                if (!infos.isEmpty()) {
+                    deckTags.addAll(synergyEngine.tagsForCard(infos.get(0)));
+                }
+            } catch (Exception e) {
+                // ignore individual lookup failures
+            }
+        }
+
+        // Make final snapshots of tags for use inside stream lambdas
+        final Set<String> finalCommanderTags = new HashSet<>(commanderTags);
+        final Set<String> finalDeckTags = new HashSet<>(deckTags);
 
         // For each gap role, attempt to fetch candidates from EDHREC first, fallback to Scryfall
         for (Map.Entry<String, Integer> gap : gaps.entrySet()) {
@@ -118,15 +142,23 @@ public class RecommendationService {
             }
 
             // Score candidates using available meta popularity and heuristics, add to pool
+            final List<com.mtg.service.meta.MetaCard> metaForLookup = metaCards == null ? List.of() : metaCards;
             List<RecommendationItem> scored = candidates.stream()
                     .map(c -> {
                         double popularity = 0.0;
-                        if (!metaCards.isEmpty()) {
-                            for (com.mtg.service.meta.MetaCard cu : metaCards) {
+                        if (!metaForLookup.isEmpty()) {
+                            for (com.mtg.service.meta.MetaCard cu : metaForLookup) {
                                 if (cu.getName().equalsIgnoreCase(c.name())) { popularity = cu.getInclusion(); break; }
                             }
                         }
-                        double synergy = 0.0; // placeholder for future synergy calc
+                        // compute tag-based synergy between candidate and deck+commander
+                        double synergy = 0.0;
+                        try {
+                            Set<String> cardTags = synergyEngine.tagsForCard(c);
+                            synergy = synergyEngine.computeSynergy(cardTags, finalDeckTags, finalCommanderTags);
+                        } catch (Exception e) {
+                            synergy = 0.0;
+                        }
                         double s = RecommendationScoring.score(c, role, popularity, synergy);
                         return new RecommendationItem(c.name(), role, "gap " + role, s, 0.0);
                     })

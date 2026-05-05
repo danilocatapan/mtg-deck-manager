@@ -21,6 +21,8 @@ class RecommendationServiceTest {
     DeckAnalysisService analysisService = Mockito.mock(DeckAnalysisService.class);
     CardService cardService = Mockito.mock(CardService.class);
     EdhrecService edhrecService = Mockito.mock(EdhrecService.class);
+    com.mtg.service.meta.MetaProvider metaProvider = Mockito.mock(com.mtg.service.meta.MetaProvider.class);
+    com.mtg.service.synergy.SynergyEngine synergyEngine = Mockito.mock(com.mtg.service.synergy.SynergyEngine.class);
 
     RecommendationService sut;
 
@@ -31,6 +33,13 @@ class RecommendationServiceTest {
         sut.deckAnalysisService = analysisService;
         sut.cardService = cardService;
         sut.edhrecService = edhrecService;
+        sut.metaProvider = metaProvider;
+        sut.synergyEngine = synergyEngine;
+
+        // default metaProvider and synergyEngine behavior for unit tests
+        when(metaProvider.getTopCards(org.mockito.ArgumentMatchers.anyString())).thenReturn(java.util.List.of());
+        when(synergyEngine.tagsForCard(org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Set.of());
+        when(synergyEngine.computeSynergy(org.mockito.ArgumentMatchers.anySet(), org.mockito.ArgumentMatchers.anySet(), org.mockito.ArgumentMatchers.anySet())).thenReturn(0.0);
     }
 
     @Test
