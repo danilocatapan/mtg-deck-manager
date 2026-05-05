@@ -179,6 +179,7 @@ public class RecommendationService {
             }
 
             if (candidates.isEmpty()) {
+                LOG.infov("event=recommendation.meta.miss commander={0} role={1} fallback=scryfall", deck.getCommander(), role);
                 String query = switch (role) {
                     case "ramp" -> "oracle:\"add {\"";
                     case "draw" -> "oracle:draw";

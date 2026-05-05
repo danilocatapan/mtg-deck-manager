@@ -1,0 +1,10 @@
+{
+  "commander": "Xenagos, God of Revels",
+  "colors": ["R", "G"],
+  "cards": [
+    { "name": "Sol Ring", "inclusion": 0.92, "role": "ramp", "avgCmc": 1.0 },
+    { "name": "Cultivate", "inclusion": 0.81, "role": "ramp", "avgCmc": 3.0 },
+    { "name": "Beast Within", "inclusion": 0.63, "role": "removal", "avgCmc": 3.0 },
+    { "name": "Return of the Wildspeaker", "inclusion": 0.58, "role": "draw", "avgCmc": 5.0 }
+  ]
+}
