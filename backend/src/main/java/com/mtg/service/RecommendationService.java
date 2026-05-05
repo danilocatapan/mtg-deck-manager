@@ -39,6 +39,9 @@ public class RecommendationService {
     @Inject
     com.mtg.service.synergy.SynergyEngine synergyEngine;
 
+    @Inject
+    DeckCompleter deckCompleter;
+
     public DeckRecommendations recommend(Long deckId, RecommendationParamsDTO params) {
         LOG.infov("recommendation.started deckId={0} params={1}", deckId, params);
 
@@ -160,7 +163,16 @@ public class RecommendationService {
                             synergy = 0.0;
                         }
                         double s = RecommendationScoring.score(c, role, popularity, synergy);
-                        return new RecommendationItem(c.name(), role, "gap " + role, s, 0.0);
+                        // compute a simple efficiency score based on cmc
+                        double efficiencyScore = 0.0;
+                        try {
+                            Double cmcVal = c.cmc();
+                            if (cmcVal != null) {
+                                if (cmcVal <= 2.0) efficiencyScore = 0.5;
+                                else if (cmcVal == 3.0) efficiencyScore = 0.2;
+                            }
+                        } catch (Exception ignored) {}
+                        return new RecommendationItem(c.name(), role, "gap " + role, s, popularity, synergy, efficiencyScore, 0.0);
                     })
                     .limit(500)
                     .collect(Collectors.toList());
@@ -198,15 +210,8 @@ public class RecommendationService {
 
         int missing = 99 - deck.getCards().size();
         if (missing > 0) {
-            List<RecommendationItem> finalAdds = rankedCandidates.stream().limit(missing).collect(Collectors.toList());
-            // ensure no duplicates in adds
-            Set<String> seen = new HashSet<>();
-            for (RecommendationItem ai : finalAdds) {
-                if (!seen.contains(ai.name())) {
-                    adds.add(ai);
-                    seen.add(ai.name());
-                }
-            }
+            List<RecommendationItem> finalAdds = deckCompleter.complete(deck, rankedCandidates, missing);
+            adds.addAll(finalAdds);
         }
 
         // Simple cut suggestions: high CMC cards
@@ -214,12 +219,12 @@ public class RecommendationService {
                 .sorted(Comparator.comparingInt(DeckCard::getQuantity).reversed())
                 .collect(Collectors.toList());
 
-        for (DeckCard dc : sortedByCmcDesc) {
+            for (DeckCard dc : sortedByCmcDesc) {
             List<CardResponseDTO> info = cardService.searchByName(dc.getName());
             CardResponseDTO card = info.isEmpty() ? null : info.get(0);
             double cmc = card != null && card.cmc() != null ? card.cmc() : 0.0;
             if (cmc >= 5.0) {
-                cuts.add(new RecommendationItem(dc.getName(), "high_cmc", "reduce curve", 0.1, 0.0));
+                cuts.add(new RecommendationItem(dc.getName(), "high_cmc", "reduce curve", 0.1, 0.0, 0.0, 0.0, 0.0));
             }
             if (cuts.size() >= 5) break;
         }

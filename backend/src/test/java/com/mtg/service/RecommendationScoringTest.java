@@ -9,8 +9,8 @@ class RecommendationScoringTest {
 
     @Test
     void lowCmcBonusApplied() {
-        CardResponseDTO low = new CardResponseDTO("Cheap","{1}","Instant","Draw a card.",1.0, java.util.List.of());
-        CardResponseDTO high = new CardResponseDTO("Expensive","{6}","Creature","Big effect.",6.0, java.util.List.of());
+        CardResponseDTO low = new CardResponseDTO("Cheap","{1}","Instant","Draw a card.",1.0, java.util.List.of(), java.util.List.of());
+        CardResponseDTO high = new CardResponseDTO("Expensive","{6}","Creature","Big effect.",6.0, java.util.List.of(), java.util.List.of());
 
         double sLow = RecommendationScoring.score(low, "draw");
         double sHigh = RecommendationScoring.score(high, "draw");

@@ -15,6 +15,8 @@ public class Deck {
     private String name;
 
     private String commander;
+    @Column(name = "color_identity")
+    private String colorIdentity;
 
     @OneToMany(mappedBy = "deck", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<DeckCard> cards = new ArrayList<>();
@@ -54,6 +56,10 @@ public class Deck {
     public void setCommander(String commander) {
         this.commander = commander;
     }
+
+    public String getColorIdentity() { return colorIdentity; }
+
+    public void setColorIdentity(String colorIdentity) { this.colorIdentity = colorIdentity; }
 
     public List<DeckCard> getCards() {
         return cards;

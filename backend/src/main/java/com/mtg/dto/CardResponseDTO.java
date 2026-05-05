@@ -9,6 +9,7 @@ public record CardResponseDTO(
         String typeLine,
         String oracleText,
         Double cmc,
-        java.util.List<String> colorIdentity
+        java.util.List<String> colorIdentity,
+        java.util.List<String> keywords
 ) {
 }

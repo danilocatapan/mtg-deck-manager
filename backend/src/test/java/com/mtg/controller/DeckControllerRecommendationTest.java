@@ -22,7 +22,7 @@ class DeckControllerRecommendationTest {
 
     @Test
     void postRecommendations() {
-        DeckRecommendations rec = new DeckRecommendations(List.of(new RecommendationItem("Arcane Signet","ramp","gap ramp",1.2,10.0)), List.of(), java.util.Map.of("ramp",3));
+        DeckRecommendations rec = new DeckRecommendations(List.of(new RecommendationItem("Arcane Signet","ramp","gap ramp",0.8,0.5,0.2,0.1,10.0)), List.of(), java.util.Map.of("ramp",3));
         when(recommendationService.recommend(1L, new RecommendationParamsDTO(null,null,null,null))).thenReturn(rec);
 
         given().contentType(ContentType.JSON).body(new RecommendationParamsDTO(null,null,null,null)).when().post("/decks/1/recommendations")

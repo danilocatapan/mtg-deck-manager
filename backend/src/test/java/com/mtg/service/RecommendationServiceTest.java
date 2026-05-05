@@ -21,6 +21,7 @@ class RecommendationServiceTest {
     DeckAnalysisService analysisService = Mockito.mock(DeckAnalysisService.class);
     CardService cardService = Mockito.mock(CardService.class);
     EdhrecService edhrecService = Mockito.mock(EdhrecService.class);
+    DeckCompleter deckCompleter = Mockito.mock(DeckCompleter.class);
     com.mtg.service.meta.MetaProvider metaProvider = Mockito.mock(com.mtg.service.meta.MetaProvider.class);
     com.mtg.service.synergy.SynergyEngine synergyEngine = Mockito.mock(com.mtg.service.synergy.SynergyEngine.class);
 
@@ -35,11 +36,13 @@ class RecommendationServiceTest {
         sut.edhrecService = edhrecService;
         sut.metaProvider = metaProvider;
         sut.synergyEngine = synergyEngine;
+        sut.deckCompleter = deckCompleter;
 
         // default metaProvider and synergyEngine behavior for unit tests
         when(metaProvider.getTopCards(org.mockito.ArgumentMatchers.anyString())).thenReturn(java.util.List.of());
         when(synergyEngine.tagsForCard(org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Set.of());
         when(synergyEngine.computeSynergy(org.mockito.ArgumentMatchers.anySet(), org.mockito.ArgumentMatchers.anySet(), org.mockito.ArgumentMatchers.anySet())).thenReturn(0.0);
+        when(deckCompleter.complete(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyList(), org.mockito.ArgumentMatchers.anyInt())).thenReturn(java.util.List.of());
     }
 
     @Test
@@ -55,8 +58,8 @@ class RecommendationServiceTest {
         when(analysisService.analyzeDeck(1L)).thenReturn(analysis);
 
         // cardService query returns some candidates
-        when(cardService.searchByQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Arcane Signet","{2}","Artifact","{T}: Add {C}",2.0, java.util.List.of())));
-        when(cardService.searchByName(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Sol Ring","{1}","Artifact","{T}: Add {C}{C}.",1.0, java.util.List.of())));
+        when(cardService.searchByQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Arcane Signet","{2}","Artifact","{T}: Add {C}",2.0, java.util.List.of(), java.util.List.of())));
+        when(cardService.searchByName(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Sol Ring","{1}","Artifact","{T}: Add {C}{C}.",1.0, java.util.List.of(), java.util.List.of())));
 
         DeckRecommendations recs = sut.recommend(1L, new RecommendationParamsDTO(200.0,"casual","aggro",null));
         assertNotNull(recs);

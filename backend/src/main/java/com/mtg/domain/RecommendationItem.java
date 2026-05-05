@@ -8,6 +8,9 @@ public record RecommendationItem(
         String role,
         String reason,
         double score,
+        double metaScore,
+        double synergyScore,
+        double efficiencyScore,
         double estimatedPrice
 ) {
 }

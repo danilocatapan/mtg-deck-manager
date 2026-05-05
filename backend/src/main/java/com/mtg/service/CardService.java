@@ -106,7 +106,8 @@ public class CardService {
                 card.typeLine(),
                 card.oracleText(),
                 card.cmc(),
-                card.colorIdentity()
+                card.colorIdentity(),
+                java.util.List.of()
         );
     }
 }

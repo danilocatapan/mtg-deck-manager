@@ -37,8 +37,8 @@ class DeckAnalysisServiceTest {
 
         when(deckRepository.findById(1L)).thenReturn(deck);
 
-        when(cardService.searchByName("Sol Ring")).thenReturn(List.of(new CardResponseDTO("Sol Ring","{1}","Artifact","{T}: Add {C}{C}.",1.0, java.util.List.of())));
-        when(cardService.searchByName("Opt")).thenReturn(List.of(new CardResponseDTO("Opt","{U}","Instant","Draw a card.",1.0, java.util.List.of())));
+        when(cardService.searchByName("Sol Ring")).thenReturn(List.of(new CardResponseDTO("Sol Ring","{1}","Artifact","{T}: Add {C}{C}.",1.0, java.util.List.of(), java.util.List.of())));
+        when(cardService.searchByName("Opt")).thenReturn(List.of(new CardResponseDTO("Opt","{U}","Instant","Draw a card.",1.0, java.util.List.of(), java.util.List.of())));
 
         var analysis = sut.analyzeDeck(1L);
 
