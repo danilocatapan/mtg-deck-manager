@@ -8,6 +8,7 @@ public record CardResponseDTO(
         String manaCost,
         String typeLine,
         String oracleText,
-        Double cmc
+        Double cmc,
+        java.util.List<String> colorIdentity
 ) {
 }

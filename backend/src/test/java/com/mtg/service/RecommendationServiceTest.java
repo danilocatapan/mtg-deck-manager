@@ -20,6 +20,7 @@ class RecommendationServiceTest {
     DeckRepository deckRepository = Mockito.mock(DeckRepository.class);
     DeckAnalysisService analysisService = Mockito.mock(DeckAnalysisService.class);
     CardService cardService = Mockito.mock(CardService.class);
+    EdhrecService edhrecService = Mockito.mock(EdhrecService.class);
 
     RecommendationService sut;
 
@@ -29,6 +30,7 @@ class RecommendationServiceTest {
         sut.deckRepository = deckRepository;
         sut.deckAnalysisService = analysisService;
         sut.cardService = cardService;
+        sut.edhrecService = edhrecService;
     }
 
     @Test
@@ -44,8 +46,8 @@ class RecommendationServiceTest {
         when(analysisService.analyzeDeck(1L)).thenReturn(analysis);
 
         // cardService query returns some candidates
-        when(cardService.searchByQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Arcane Signet","{2}","Artifact","{T}: Add {C}",2.0)));
-        when(cardService.searchByName(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Sol Ring","{1}","Artifact","{T}: Add {C}{C}.",1.0)));
+        when(cardService.searchByQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Arcane Signet","{2}","Artifact","{T}: Add {C}",2.0, java.util.List.of())));
+        when(cardService.searchByName(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Sol Ring","{1}","Artifact","{T}: Add {C}{C}.",1.0, java.util.List.of())));
 
         DeckRecommendations recs = sut.recommend(1L, new RecommendationParamsDTO(200.0,"casual","aggro",null));
         assertNotNull(recs);

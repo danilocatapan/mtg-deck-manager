@@ -22,7 +22,7 @@ class CardControllerTest {
     @Test
     void shouldReturnCardsForAValidName() {
         when(cardService.searchByName("Sol Ring")).thenReturn(List.of(
-                new CardResponseDTO("Sol Ring", "{1}", "Artifact", "{T}: Add {C}{C}.", 1.0)
+                new CardResponseDTO("Sol Ring", "{1}", "Artifact", "{T}: Add {C}{C}.", 1.0, java.util.List.of())
         ));
 
         given()

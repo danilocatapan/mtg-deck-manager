@@ -105,7 +105,8 @@ public class CardService {
                 card.manaCost(),
                 card.typeLine(),
                 card.oracleText(),
-                card.cmc()
+                card.cmc(),
+                card.colorIdentity()
         );
     }
 }

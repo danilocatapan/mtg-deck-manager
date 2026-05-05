@@ -39,7 +39,8 @@ class CardServiceTest {
                     "{1}",
                     1.0,
                     "Artifact",
-                    "{T}: Add {C}{C}."
+                    "{T}: Add {C}{C}.",
+                    java.util.List.of()
                 )))
         );
 
@@ -82,7 +83,8 @@ class CardServiceTest {
                     "{2}",
                     2.0,
                     "Artifact",
-                    "{T}: Add one mana of any color in your commander's color identity."
+                    "{T}: Add one mana of any color in your commander's color identity.",
+                    java.util.List.of()
                 )))
         );
 

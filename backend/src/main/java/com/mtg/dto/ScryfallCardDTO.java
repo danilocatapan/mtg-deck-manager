@@ -11,7 +11,8 @@ public record ScryfallCardDTO(
         @JsonProperty("mana_cost") String manaCost,
         @JsonProperty("cmc") Double cmc,
         @JsonProperty("type_line") String typeLine,
-        @JsonProperty("oracle_text") String oracleText
+        @JsonProperty("oracle_text") String oracleText,
+        @JsonProperty("color_identity") java.util.List<String> colorIdentity
 ) {
 }
 
