@@ -66,6 +66,71 @@ body {
   box-sizing: border-box;
 }
 
+/* New layout and UI utilities */
+.app-header {
+  background: var(--accent-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+.app-header h1 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text-h);
+}
+.container {
+  width: 1126px;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 16px;
+  box-sizing: border-box;
+  text-align: left;
+}
+.app-main {
+  padding-top: 20px;
+}
+.card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: var(--shadow);
+  margin-bottom: 12px;
+}
+.deck-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn.secondary {
+  background: transparent;
+  color: var(--text-h);
+  border: 1px solid var(--border);
+}
+input, select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.list-item-hover:hover {
+  background: var(--accent-bg);
+}
+.loading {
+  font-style: italic;
+  color: var(--text);
+}
+
 h1,
 h2 {
   font-family: var(--heading);

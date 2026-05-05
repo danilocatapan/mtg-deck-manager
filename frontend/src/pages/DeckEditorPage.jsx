@@ -67,22 +67,33 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
   }
 
   return (
-    <section style={{ padding: 20 }}>
-      <h2>{mode === 'create' ? 'Create Deck' : 'Edit Deck'}</h2>
-      <DeckForm initial={initial} onCancel={onDone} onSave={handleSave} />
+    <section>
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ margin: 0 }}>{mode === 'create' ? 'Create Deck' : 'Edit Deck'}</h2>
+          <div>
+            <button className="btn secondary" onClick={onDone} style={{ marginRight: 8 }}>Back</button>
+            <button className="btn" onClick={() => document.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))}>Save</button>
+          </div>
+        </div>
 
-      <div style={{ marginTop: 20 }}>
-        <button onClick={handleAnalyze} disabled={loadingAnalysis || mode !== 'edit'}>
-          {loadingAnalysis ? 'Analyzing...' : 'Analyze Deck'}
-        </button>
+        <div style={{ marginTop: 12 }}>
+          <DeckForm initial={initial} onCancel={onDone} onSave={handleSave} />
+        </div>
+
+        <div style={{ marginTop: 20 }}>
+          <button className="btn" onClick={handleAnalyze} disabled={loadingAnalysis || mode !== 'edit'}>
+            {loadingAnalysis ? 'Analyzing...' : 'Analyze Deck'}
+          </button>
+        </div>
       </div>
 
-      {analysis && <DeckAnalysis analysis={analysis} />}
+      {analysis && <div className="card"><DeckAnalysis analysis={analysis} /></div>}
 
-      <div style={{ marginTop: 20 }}>
+      <div className="card">
         <h3>Recommendations</h3>
         <RecommendationForm onSubmit={handleRecommend} />
-        {loadingRec && <div>Loading recommendations...</div>}
+        {loadingRec && <div className="loading">Loading recommendations...</div>}
         {rec && <Recommendations rec={rec} />}
       </div>
     </section>
