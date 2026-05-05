@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { importDeck } from '../services/api'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
+import importIcon from '../assets/icons/import.png'
 
 const SAMPLE_DECK = `1 Sol Ring
 1 Arcane Signet
@@ -130,7 +131,10 @@ export default function ImportDeckPage({ onDone }) {
           </label>
 
           <div className="form-actions">
-            <Button onClick={handleSubmit} disabled={loading || !canImport}>{loading ? 'Importing...' : 'Import Deck'}</Button>
+            <Button onClick={handleSubmit} disabled={loading || !canImport}>
+              <img className="btn-icon" src={importIcon} alt="" aria-hidden="true" />
+              {loading ? 'Importing...' : 'Import Deck'}
+            </Button>
             <Button variant="secondary" onClick={() => setContent(SAMPLE_DECK)}>Use Example</Button>
           </div>
         </Card>

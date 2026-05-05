@@ -5,6 +5,8 @@ import Recommendations from '../components/Recommendations'
 import RecommendationForm from '../components/RecommendationForm'
 import { createDeck, getDeckAnalysis, getRecommendations, updateDeck } from '../services/api'
 import Button from '../components/ui/Button'
+import analyzeIcon from '../assets/icons/analyze.png'
+import recommendIcon from '../assets/icons/recommend.png'
 
 export default function DeckEditorPage({ mode = 'create', deck = null, onDone }) {
   const [initial, setInitial] = useState(null)
@@ -116,6 +118,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
               <p>Structural metrics that guide deck decisions.</p>
             </div>
             <Button onClick={handleAnalyze} disabled={!canAnalyze || loadingAnalysis}>
+              <img className="btn-icon" src={analyzeIcon} alt="" aria-hidden="true" />
               {loadingAnalysis ? 'Analyzing...' : 'Refresh Analysis'}
             </Button>
           </div>
@@ -144,9 +147,11 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
         </div>
         <div className="actions-row">
           <Button onClick={handleAnalyze} disabled={!canAnalyze || loadingAnalysis}>
+            <img className="btn-icon" src={analyzeIcon} alt="" aria-hidden="true" />
             {loadingAnalysis ? 'Analyzing...' : 'Analyze Deck'}
           </Button>
           <Button variant="secondary" onClick={() => setActivePanel('recommendations')} disabled={!canAnalyze}>
+            <img className="btn-icon" src={recommendIcon} alt="" aria-hidden="true" />
             Open Recommendations
           </Button>
         </div>

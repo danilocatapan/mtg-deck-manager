@@ -1,5 +1,7 @@
 import React from 'react'
 import Button from './ui/Button'
+import createIcon from '../assets/icons/create.png'
+import importIcon from '../assets/icons/import.png'
 
 export default function DeckList({ decks = [], onEdit, onDelete, onCreate, onImport }) {
   if (!decks || decks.length === 0) {
@@ -8,8 +10,14 @@ export default function DeckList({ decks = [], onEdit, onDelete, onCreate, onImp
         <h3>No decks yet</h3>
         <p>Create a new Commander deck from scratch or import a text list to start analyzing and optimizing.</p>
         <div className="actions-row">
-          <Button onClick={onCreate}>Create Deck</Button>
-          <Button variant="secondary" onClick={onImport}>Import Deck</Button>
+          <Button onClick={onCreate}>
+            <img className="btn-icon" src={createIcon} alt="" aria-hidden="true" />
+            Create Deck
+          </Button>
+          <Button variant="secondary" onClick={onImport}>
+            <img className="btn-icon" src={importIcon} alt="" aria-hidden="true" />
+            Import Deck
+          </Button>
         </div>
       </div>
     )

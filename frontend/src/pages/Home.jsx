@@ -5,6 +5,8 @@ import DeckEditorPage from './DeckEditorPage'
 import ImportDeckPage from './ImportDeckPage'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
+import createIcon from '../assets/icons/create.png'
+import importIcon from '../assets/icons/import.png'
 
 export default function Home() {
   const [decks, setDecks] = useState([])
@@ -86,8 +88,14 @@ export default function Home() {
           <p className="page-description">Create or import a deck, tune the list, analyze structure, then request explainable recommendations.</p>
         </div>
         <div className="actions-row">
-          <Button onClick={handleCreate}>Create Deck</Button>
-          <Button variant="secondary" onClick={handleImport}>Import Deck</Button>
+          <Button onClick={handleCreate}>
+            <img className="btn-icon" src={createIcon} alt="" aria-hidden="true" />
+            Create Deck
+          </Button>
+          <Button variant="secondary" onClick={handleImport}>
+            <img className="btn-icon" src={importIcon} alt="" aria-hidden="true" />
+            Import Deck
+          </Button>
         </div>
       </section>
 

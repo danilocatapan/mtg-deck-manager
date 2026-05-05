@@ -1,4 +1,15 @@
 :root{
+  --color-bg: #07110C;
+  --color-surface: #101A13;
+  --color-surface-alt: #1A2419;
+  --color-gold: #D6A84F;
+  --color-gold-soft: #E8D7A0;
+  --color-green: #2F6B3F;
+  --color-green-dark: #16351F;
+  --color-copper: #A9522D;
+  --color-text: #F5E8C7;
+  --color-muted: #B9A987;
+  --color-border: #6E5528;
   --spacing-xxs:4px;
   --spacing-xs:8px;
   --spacing-sm:12px;
