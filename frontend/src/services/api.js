@@ -48,6 +48,9 @@ export async function createDeck(data) {
 
 export async function updateDeck(id, data) {
   try {
+    if (id === undefined || id === null || isNaN(Number(id))) {
+      throw new Error('Invalid deck id')
+    }
     console.log('updateDeck', id, data)
     const res = await fetch(`${BASE_URL}/decks/${id}`, {
       method: 'PUT',
@@ -66,6 +69,9 @@ export async function updateDeck(id, data) {
 
 export async function deleteDeck(id) {
   try {
+    if (id === undefined || id === null || isNaN(Number(id))) {
+      throw new Error('Invalid deck id')
+    }
     console.log('deleteDeck', id)
     await fetch(`${BASE_URL}/decks/${id}`, { method: 'DELETE' })
   } catch (e) {
@@ -76,6 +82,9 @@ export async function deleteDeck(id) {
 
 export async function getDeckAnalysis(id) {
   try {
+    if (id === undefined || id === null || isNaN(Number(id))) {
+      throw new Error('Invalid deck id')
+    }
     console.log('getDeckAnalysis', id)
     const res = await fetch(`${BASE_URL}/decks/${id}/analysis`)
     if (!res.ok) throw new Error('Failed to get analysis')
@@ -90,6 +99,9 @@ export async function getDeckAnalysis(id) {
 
 export async function getRecommendations(id, params) {
   try {
+    if (id === undefined || id === null || isNaN(Number(id))) {
+      throw new Error('Invalid deck id')
+    }
     console.log('getRecommendations', id, params)
     const res = await fetch(`${BASE_URL}/decks/${id}/recommendations`, {
       method: 'POST',
@@ -102,6 +114,27 @@ export async function getRecommendations(id, params) {
     return json
   } catch (e) {
     console.error('getRecommendations error', e)
+    throw e
+  }
+}
+
+export async function importDeck(data) {
+  try {
+    console.log('importDeck', data)
+    const res = await fetch(`${BASE_URL}/decks/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error('Failed to import deck: ' + text)
+    }
+    const json = await res.json()
+    console.log('importDeck result', json)
+    return json
+  } catch (e) {
+    console.error('importDeck error', e)
     throw e
   }
 }

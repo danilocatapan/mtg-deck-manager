@@ -58,3 +58,17 @@ Guia rápido de roteamento
 - Bug/Regressão funcional → `analysis.md` (siga checklist).  
 - Mudar implementação de endpoint / service → `backend-quarkus.md` + `testing.md`.  
 - Ajuste de algoritmo de recomendação → `backend-quarkus.md` (scorer) + `workflow-graph.md` (pipeline).  
+
+Execução local (desenvolvimento)
+--------------------------------
+
+- Frontend: para iniciar o frontend em modo de desenvolvimento, navegue até a pasta `frontend` e execute `npm run dev`.
+- Backend (Windows / PowerShell): antes de executar comandos Maven locais (ex.: testes), defina `JAVA_HOME` e atualize o `Path` no PowerShell com o JDK do desenvolvedor. Exemplo:
+
+```powershell
+$env:JAVA_HOME = "C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2";
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+```
+
+Depois disso execute `./mvnw.cmd test` ou `./mvnw.cmd clean install` conforme necessário.
+

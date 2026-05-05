@@ -15,12 +15,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Comparator;
 
+import jakarta.inject.Inject;
+import com.mtg.dto.DeckImportDTO;
+
+
 @ApplicationScoped
 public class DeckService {
 
     private static final Logger LOG = Logger.getLogger(DeckService.class);
 
     private final DeckRepository deckRepository;
+
+    @Inject
+    DeckImportService importService;
 
     @Inject
     public DeckService(DeckRepository deckRepository) {
@@ -37,6 +44,24 @@ public class DeckService {
         deckRepository.persist(deck);
         LOG.info("Deck created: " + deck.getId());
 
+        return toDto(deck);
+    }
+
+    @Transactional
+    public DeckResponseDTO importDeck(DeckImportDTO dto) {
+        if (dto == null) throw new IllegalArgumentException("Import payload required");
+        if (dto.name() == null || dto.name().isBlank()) throw new IllegalArgumentException("Deck name required");
+        if (dto.commander() == null || dto.commander().isBlank()) throw new IllegalArgumentException("Commander is required");
+
+        var cards = importService.parse(dto.content());
+        int total = cards.stream().mapToInt(c -> c.getQuantity()).sum();
+        if (total > 99) throw new IllegalArgumentException("Imported deck exceeds 99 cards");
+
+        Deck deck = new Deck();
+        deck.setName(dto.name());
+        deck.setCommander(dto.commander());
+        deck.setCards(cards);
+        deckRepository.persist(deck);
         return toDto(deck);
     }
 

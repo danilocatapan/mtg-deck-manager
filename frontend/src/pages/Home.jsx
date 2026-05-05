@@ -29,6 +29,11 @@ export default function Home() {
     setView('create')
   }
 
+  function handleImport() {
+    setEditingDeck(null)
+    setView('import')
+  }
+
   function handleEdit(deck) {
     setEditingDeck(deck)
     setView('edit')
@@ -54,12 +59,18 @@ export default function Home() {
     return <DeckEditorPage mode={view === 'create' ? 'create' : 'edit'} deck={editingDeck} onDone={handleDone} />
   }
 
+  if (view === 'import') {
+    const ImportDeckPage = require('./ImportDeckPage').default
+    return <ImportDeckPage onDone={handleDone} />
+  }
+
   return (
     <main>
       <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 style={{ margin: 0 }}>Decks</h1>
         <div>
           <Button onClick={handleCreate}>Create Deck</Button>
+          <Button onClick={handleImport} style={{ marginLeft: 8 }}>Import Deck</Button>
         </div>
       </div>
 

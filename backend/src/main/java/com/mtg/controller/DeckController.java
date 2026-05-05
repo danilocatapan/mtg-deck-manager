@@ -46,6 +46,19 @@ public class DeckController {
         return Response.created(location).entity(created).build();
     }
 
+    @POST
+    @Path("/import")
+    @Operation(summary = "Import deck from text")
+    public Response importDeck(com.mtg.dto.DeckImportDTO dto) {
+        try {
+            DeckResponseDTO created = deckService.importDeck(dto);
+            URI location = URI.create("/decks/" + created.id());
+            return Response.created(location).entity(created).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+        }
+    }
+
     @GET
     @Operation(summary = "List decks")
     public List<DeckResponseDTO> listDecks() {
@@ -55,7 +68,13 @@ public class DeckController {
     @GET
     @Path("{id}")
     @Operation(summary = "Get deck by id")
-    public Response getDeck(@Parameter(description = "Deck id") @PathParam("id") Long id) {
+    public Response getDeck(@Parameter(description = "Deck id") @PathParam("id") String idStr) {
+        long id;
+        try {
+            id = Long.parseLong(idStr);
+        } catch (NumberFormatException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
+        }
         DeckResponseDTO dto = deckService.getDeckById(id);
         if (dto == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -66,7 +85,13 @@ public class DeckController {
     @PUT
     @Path("{id}")
     @Operation(summary = "Update a deck")
-    public Response updateDeck(@PathParam("id") Long id, DeckRequestDTO request) {
+    public Response updateDeck(@PathParam("id") String idStr, DeckRequestDTO request) {
+        long id;
+        try {
+            id = Long.parseLong(idStr);
+        } catch (NumberFormatException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
+        }
         DeckResponseDTO updated = deckService.updateDeck(id, request);
         if (updated == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -77,7 +102,13 @@ public class DeckController {
     @DELETE
     @Path("{id}")
     @Operation(summary = "Delete a deck")
-    public Response deleteDeck(@PathParam("id") Long id) {
+    public Response deleteDeck(@PathParam("id") String idStr) {
+        long id;
+        try {
+            id = Long.parseLong(idStr);
+        } catch (NumberFormatException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
+        }
         boolean deleted = deckService.deleteDeck(id);
         if (!deleted) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -89,7 +120,13 @@ public class DeckController {
     @Path("{id}/export")
     @Produces(MediaType.TEXT_PLAIN)
     @Operation(summary = "Export deck in text format")
-    public Response exportDeck(@PathParam("id") Long id) {
+    public Response exportDeck(@PathParam("id") String idStr) {
+        long id;
+        try {
+            id = Long.parseLong(idStr);
+        } catch (NumberFormatException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
+        }
         String exported = deckService.exportDeck(id);
         if (exported == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -101,7 +138,13 @@ public class DeckController {
     @Path("{id}/analysis")
     @Operation(summary = "Analyze deck")
     @APIResponse(responseCode = "200", description = "Deck analysis")
-    public Response analyzeDeck(@Parameter(description = "Deck id") @PathParam("id") Long id) {
+    public Response analyzeDeck(@Parameter(description = "Deck id") @PathParam("id") String idStr) {
+        long id;
+        try {
+            id = Long.parseLong(idStr);
+        } catch (NumberFormatException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
+        }
         try {
             DeckAnalysis analysis = deckAnalysisService.analyzeDeck(id);
             return Response.ok(analysis).build();
@@ -114,7 +157,13 @@ public class DeckController {
     @Path("{id}/recommendations")
     @Operation(summary = "Recommend deck improvements")
     @APIResponse(responseCode = "200", description = "Recommendations generated")
-    public Response recommend(@PathParam("id") Long id, RecommendationParamsDTO params) {
+    public Response recommend(@PathParam("id") String idStr, RecommendationParamsDTO params) {
+        long id;
+        try {
+            id = Long.parseLong(idStr);
+        } catch (NumberFormatException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
+        }
         try {
             DeckRecommendations recs = recommendationService.recommend(id, params);
             return Response.ok(recs).build();
