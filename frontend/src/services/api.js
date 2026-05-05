@@ -28,4 +28,50 @@ export async function searchCards(name) {
   }
 }
 
-export default { fetchDecks, searchCards }
+export async function createDeck(data) {
+  try {
+    console.log('createDeck', data)
+    const res = await fetch(`${BASE_URL}/decks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) throw new Error('Failed to create deck')
+    const json = await res.json()
+    console.log('createDeck result', json)
+    return json
+  } catch (e) {
+    console.error('createDeck error', e)
+    throw e
+  }
+}
+
+export async function updateDeck(id, data) {
+  try {
+    console.log('updateDeck', id, data)
+    const res = await fetch(`${BASE_URL}/decks/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) throw new Error('Failed to update deck')
+    const json = await res.json()
+    console.log('updateDeck result', json)
+    return json
+  } catch (e) {
+    console.error('updateDeck error', e)
+    throw e
+  }
+}
+
+export async function deleteDeck(id) {
+  try {
+    console.log('deleteDeck', id)
+    await fetch(`${BASE_URL}/decks/${id}`, { method: 'DELETE' })
+  } catch (e) {
+    console.error('deleteDeck error', e)
+    throw e
+  }
+}
+
+export default { fetchDecks, searchCards, createDeck, updateDeck, deleteDeck }
