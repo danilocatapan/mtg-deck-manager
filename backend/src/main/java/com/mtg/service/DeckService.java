@@ -11,13 +11,10 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.Comparator;
-
-import jakarta.inject.Inject;
 import com.mtg.dto.DeckImportDTO;
 
+import java.util.List;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class DeckService {
@@ -54,8 +51,10 @@ public class DeckService {
         if (dto.commander() == null || dto.commander().isBlank()) throw new IllegalArgumentException("Commander is required");
 
         var cards = importService.parse(dto.content());
-        int total = cards.stream().mapToInt(c -> c.getQuantity()).sum();
-        if (total > 99) throw new IllegalArgumentException("Imported deck exceeds 99 cards");
+        int total = cards.stream().mapToInt(DeckCard::getQuantity).sum();
+        if (total > 99) {
+            throw new IllegalArgumentException("Imported deck has " + total + " cards; maximum is 99.");
+        }
 
         Deck deck = new Deck();
         deck.setName(dto.name());

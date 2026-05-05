@@ -69,6 +69,35 @@ class CardServiceTest {
     }
 
     @Test
+    void shouldDeduplicateCardsByName() {
+        when(scryfallClient.searchByName("\"Mountain\"")).thenReturn(
+                new ScryfallResponseDTO(List.of(
+                        new ScryfallCardDTO(
+                                "Mountain",
+                                "",
+                                0.0,
+                                "Basic Land - Mountain",
+                                "({T}: Add {R}.)",
+                                java.util.List.of("R")
+                        ),
+                        new ScryfallCardDTO(
+                                "Mountain",
+                                "",
+                                0.0,
+                                "Basic Land - Mountain",
+                                "({T}: Add {R}.)",
+                                java.util.List.of("R")
+                        )
+                ))
+        );
+
+        List<CardResponseDTO> cards = cardService.searchByName("Mountain");
+
+        assertEquals(1, cards.size());
+        assertEquals("Mountain", cards.get(0).name());
+    }
+
+    @Test
     void shouldWrapExternalFailures() {
         when(scryfallClient.searchByName(anyString())).thenThrow(new jakarta.ws.rs.ProcessingException("timeout"));
 

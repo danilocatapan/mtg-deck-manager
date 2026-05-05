@@ -10,7 +10,10 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -94,9 +97,12 @@ public class CardService {
             return List.of();
         }
 
-        return response.data().stream()
+        Map<String, CardResponseDTO> cardsByName = new LinkedHashMap<>();
+        response.data().stream()
                 .map(this::toCardResponse)
-                .toList();
+                .forEach(card -> cardsByName.putIfAbsent(card.name().toLowerCase(Locale.ROOT), card));
+
+        return List.copyOf(cardsByName.values());
     }
 
     private CardResponseDTO toCardResponse(ScryfallCardDTO card) {

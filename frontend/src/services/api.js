@@ -1,4 +1,5 @@
-const BASE_URL = 'http://localhost:8080'
+const API_ORIGIN = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const BASE_URL = API_ORIGIN.replace(/\/$/, '')
 
 export async function fetchDecks() {
   try {
@@ -128,7 +129,7 @@ export async function importDeck(data) {
     })
     if (!res.ok) {
       const text = await res.text()
-      throw new Error('Failed to import deck: ' + text)
+      throw new Error(text || 'Failed to import deck')
     }
     const json = await res.json()
     console.log('importDeck result', json)

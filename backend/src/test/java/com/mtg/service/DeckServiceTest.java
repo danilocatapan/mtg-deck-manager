@@ -26,8 +26,16 @@ class DeckServiceTest {
     @Mock
     DeckRepository deckRepository;
 
+    @Mock
+    DeckImportService importService;
+
     @InjectMocks
     DeckService deckService;
+
+    @BeforeEach
+    void setup() {
+        deckService.importService = importService;
+    }
 
     @Test
     void createDeck_success() {
@@ -82,5 +90,20 @@ class DeckServiceTest {
     void exportDeck_notFound() {
         when(deckRepository.findById(999L)).thenReturn(null);
         assertNull(deckService.exportDeck(999L));
+    }
+
+    @Test
+    void importDeck_reportsActualCardCountWhenTooLarge() {
+        when(importService.parse(any())).thenReturn(List.of(
+                new DeckCard("Mountain", 60),
+                new DeckCard("Forest", 45)
+        ));
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> deckService.importDeck(new com.mtg.dto.DeckImportDTO("Big Deck", "Cmd", "60 Mountain\n45 Forest"))
+        );
+
+        assertEquals("Imported deck has 105 cards; maximum is 99.", exception.getMessage());
     }
 }

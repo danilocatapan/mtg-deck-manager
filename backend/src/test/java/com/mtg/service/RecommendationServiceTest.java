@@ -12,6 +12,7 @@ import org.mockito.Mockito;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 
@@ -61,5 +62,24 @@ class RecommendationServiceTest {
 
         DeckRecommendations recs = sut.recommend(1L, new RecommendationParamsDTO(200.0,"casual","aggro",null));
         assertNotNull(recs);
+    }
+
+    @Test
+    void shouldAggregateBaselineLandRecommendations() {
+        Deck deck = new Deck();
+        deck.setId(1L);
+        deck.setColorIdentity("RG");
+        deck.setCards(List.of(new DeckCard("Sol Ring", 1)));
+
+        when(deckRepository.findById(1L)).thenReturn(deck);
+        when(analysisService.analyzeDeck(1L)).thenReturn(new com.mtg.domain.DeckAnalysis(1.0, 1, 0, 0, 0, java.util.Map.of()));
+        when(cardService.searchByQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of());
+        when(cardService.searchByName(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Sol Ring", "{1}", "Artifact", "{T}: Add {C}{C}.", 1.0, java.util.List.of(), java.util.List.of())));
+
+        DeckRecommendations recs = sut.recommend(1L, new RecommendationParamsDTO(200.0, "casual", "aggro", null));
+
+        assertEquals(2, recs.add().size());
+        assertEquals(18, recs.add().stream().filter(item -> item.name().equals("Mountain")).findFirst().orElseThrow().quantity());
+        assertEquals(18, recs.add().stream().filter(item -> item.name().equals("Forest")).findFirst().orElseThrow().quantity());
     }
 }

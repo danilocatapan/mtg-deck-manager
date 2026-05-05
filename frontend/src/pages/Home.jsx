@@ -3,6 +3,7 @@ import { fetchDecks, deleteDeck } from '../services/api'
 import DeckList from '../components/DeckList'
 import CardSearch from '../components/CardSearch'
 import DeckEditorPage from './DeckEditorPage'
+import ImportDeckPage from './ImportDeckPage'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 
@@ -60,7 +61,6 @@ export default function Home() {
   }
 
   if (view === 'import') {
-    const ImportDeckPage = require('./ImportDeckPage').default
     return <ImportDeckPage onDone={handleDone} />
   }
 

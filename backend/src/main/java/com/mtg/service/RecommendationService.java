@@ -146,9 +146,14 @@ public class RecommendationService {
                 }
             }
 
+            Map<String, Integer> basicLandQuantities = new LinkedHashMap<>();
             for (int i = 0; i < missingLands; i++) {
                 String pick = basics.get(i % basics.size());
-                adds.add(new RecommendationItem(pick, "land", "baseline land", 100.0, 0.0, 0.0, 0.0, 0.0));
+                basicLandQuantities.merge(pick, 1, Integer::sum);
+            }
+
+            for (Map.Entry<String, Integer> entry : basicLandQuantities.entrySet()) {
+                adds.add(new RecommendationItem(entry.getKey(), "land", "baseline land", 100.0, 0.0, 0.0, 0.0, 0.0, entry.getValue()));
             }
         }
 
@@ -262,7 +267,7 @@ public class RecommendationService {
                 .sorted(rankingComparator)
                 .collect(Collectors.toList());
 
-        int missing = 99 - deck.getCards().size() - adds.size();
+        int missing = 99 - deck.getCards().size() - totalQuantity(adds);
         if (missing > 0) {
             List<RecommendationItem> finalAdds = deckCompleter.complete(deck, rankedCandidates, missing);
             adds.addAll(finalAdds);
@@ -282,8 +287,39 @@ public class RecommendationService {
                 if (cuts.size() >= 5) break;
             }
 
-        DeckRecommendations recommendations = new DeckRecommendations(adds, cuts, gaps);
+        DeckRecommendations recommendations = new DeckRecommendations(mergeQuantities(adds), mergeQuantities(cuts), gaps);
         LOG.debugv("recommendation.result deckId={0} adds={1} cuts={2}", deckId, adds.size(), cuts.size());
         return recommendations;
+    }
+
+    private List<RecommendationItem> mergeQuantities(List<RecommendationItem> items) {
+        Map<String, RecommendationItem> merged = new LinkedHashMap<>();
+
+        for (RecommendationItem item : items) {
+            String key = item.name() + "\u0000" + item.role() + "\u0000" + item.reason();
+            RecommendationItem existing = merged.get(key);
+            if (existing == null) {
+                merged.put(key, item);
+                continue;
+            }
+
+            merged.put(key, new RecommendationItem(
+                    existing.name(),
+                    existing.role(),
+                    existing.reason(),
+                    Math.max(existing.score(), item.score()),
+                    Math.max(existing.metaScore(), item.metaScore()),
+                    Math.max(existing.synergyScore(), item.synergyScore()),
+                    Math.max(existing.efficiencyScore(), item.efficiencyScore()),
+                    Math.max(existing.estimatedPrice(), item.estimatedPrice()),
+                    existing.quantity() + item.quantity()
+            ));
+        }
+
+        return new ArrayList<>(merged.values());
+    }
+
+    private int totalQuantity(List<RecommendationItem> items) {
+        return items.stream().mapToInt(RecommendationItem::quantity).sum();
     }
 }

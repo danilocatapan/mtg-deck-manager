@@ -3,6 +3,9 @@ import React from 'react'
 export default function Recommendations({ rec }) {
   if (!rec) return null
 
+  const recommendationKey = (item, index) => `${item.name}-${item.role || 'unknown'}-${item.reason || 'none'}-${index}`
+  const quantity = (item) => item.quantity ?? 1
+
   return (
     <div style={{ textAlign: 'left', marginTop: 12 }}>
       <h3>Recommendations</h3>
@@ -22,8 +25,8 @@ export default function Recommendations({ rec }) {
         <div>
           <h4>Add</h4>
           <ul>
-            {rec.add.map((i) => (
-              <li key={i.name}>{i.quantity} x {i.name} — score: {i.score} — {i.reason}</li>
+            {rec.add.map((i, index) => (
+              <li key={recommendationKey(i, index)}>{quantity(i)} x {i.name} - score: {i.score} - {i.reason}</li>
             ))}
           </ul>
         </div>
@@ -33,8 +36,8 @@ export default function Recommendations({ rec }) {
         <div>
           <h4>Cut</h4>
           <ul>
-            {rec.cut.map((i) => (
-              <li key={i.name}>{i.name} — reason: {i.reason}</li>
+            {rec.cut.map((i, index) => (
+              <li key={recommendationKey(i, index)}>{quantity(i)} x {i.name} - reason: {i.reason}</li>
             ))}
           </ul>
         </div>

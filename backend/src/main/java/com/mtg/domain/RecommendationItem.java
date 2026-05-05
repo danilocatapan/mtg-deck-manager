@@ -11,6 +11,19 @@ public record RecommendationItem(
         double metaScore,
         double synergyScore,
         double efficiencyScore,
-        double estimatedPrice
+        double estimatedPrice,
+        int quantity
 ) {
+    public RecommendationItem(
+            String name,
+            String role,
+            String reason,
+            double score,
+            double metaScore,
+            double synergyScore,
+            double efficiencyScore,
+            double estimatedPrice
+    ) {
+        this(name, role, reason, score, metaScore, synergyScore, efficiencyScore, estimatedPrice, 1);
+    }
 }
