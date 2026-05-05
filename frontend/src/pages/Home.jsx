@@ -3,6 +3,8 @@ import { fetchDecks, deleteDeck } from '../services/api'
 import DeckList from '../components/DeckList'
 import CardSearch from '../components/CardSearch'
 import DeckEditorPage from './DeckEditorPage'
+import Button from '../components/ui/Button'
+import Card from '../components/ui/Card'
 
 export default function Home() {
   const [decks, setDecks] = useState([])
@@ -53,15 +55,22 @@ export default function Home() {
   }
 
   return (
-    <main style={{ padding: 20 }}>
-      <h1>Decks</h1>
-      <div style={{ marginBottom: 12 }}>
-        <button onClick={handleCreate}>Create Deck</button>
+    <main>
+      <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ margin: 0 }}>Decks</h1>
+        <div>
+          <Button onClick={handleCreate}>Create Deck</Button>
+        </div>
       </div>
-      <DeckList decks={decks} onEdit={handleEdit} onDelete={handleDelete} />
 
-      <h2 style={{ marginTop: 40 }}>Search Cards</h2>
-      <CardSearch />
+      <Card>
+        <DeckList decks={decks} onEdit={handleEdit} onDelete={handleDelete} />
+      </Card>
+
+      <h2 style={{ marginTop: 24 }}>Search Cards</h2>
+      <Card>
+        <CardSearch />
+      </Card>
     </main>
   )
 }
