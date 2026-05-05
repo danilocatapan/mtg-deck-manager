@@ -23,10 +23,17 @@ public class DeckCompleter {
         Map<String, Integer> addedByRole = new HashMap<>();
         List<RecommendationItem> picks = new ArrayList<>();
 
-        // iterate in order and respect per-role caps and dedupe
-        Set<String> seen = new HashSet<>();
+        // determine available candidates per role (excluding existing) to avoid blocking fills
         Set<String> existing = deck.getCards().stream().map(DeckCard::getName).collect(Collectors.toSet());
+        Map<String, Integer> availableByRole = new HashMap<>();
+        for (RecommendationItem rc : rankedCandidates) {
+            if (existing.contains(rc.name())) continue;
+            String r = rc.role() != null ? rc.role().toLowerCase() : "";
+            availableByRole.put(r, availableByRole.getOrDefault(r, 0) + 1);
+        }
 
+        // iterate in order and respect per-role caps only if there is excess
+        Set<String> seen = new HashSet<>();
         for (RecommendationItem cand : rankedCandidates) {
             if (picks.size() >= missing) break;
             String name = cand.name();
@@ -40,8 +47,12 @@ public class DeckCompleter {
                 default -> DEFAULT_ROLE_MAX;
             };
 
+            int available = availableByRole.getOrDefault(role, 0);
+            // if available is less than roleMax, relax limit so we can fill
+            int effectiveMax = available > 0 && available < roleMax ? available : roleMax;
+
             int currentlyAddedForRole = addedByRole.getOrDefault(role, 0);
-            if (currentlyAddedForRole >= roleMax) continue;
+            if (currentlyAddedForRole >= effectiveMax) continue;
 
             picks.add(cand);
             seen.add(name);

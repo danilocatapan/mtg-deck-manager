@@ -30,8 +30,6 @@ public class RecommendationService {
 
     @Inject
     CardService cardService;
-    @Inject
-    EdhrecService edhrecService;
 
     @Inject
     com.mtg.service.meta.MetaProvider metaProvider;
@@ -65,14 +63,29 @@ public class RecommendationService {
         // pool of candidates collected across gap roles (deduped and ranked later)
         List<RecommendationItem> candidatePool = new ArrayList<>();
 
-        // Determine commander color identity and tags
+        // per-execution card lookup cache to avoid N+1 lookups
+        final Map<String, CardResponseDTO> cardCache = new HashMap<>();
+        java.util.function.Function<String, CardResponseDTO> lookupCard = name ->
+                cardCache.computeIfAbsent(name, n -> {
+                    try {
+                        List<CardResponseDTO> r = cardService.searchByName(n);
+                        return r.isEmpty() ? null : r.get(0);
+                    } catch (Exception ex) {
+                        return null;
+                    }
+                });
+
+        // Determine commander color identity and tags. Prefer persisted deck.colorIdentity when present.
         Set<String> commanderColors = new HashSet<>();
         Set<String> commanderTags = new HashSet<>();
-        CardResponseDTO commanderCard = null;
+        CardResponseDTO commanderCard = lookupCard.apply(deck.getCommander());
         try {
-            List<CardResponseDTO> cmdInfo = cardService.searchByName(deck.getCommander());
-            if (!cmdInfo.isEmpty()) {
-                commanderCard = cmdInfo.get(0);
+            if (deck.getColorIdentity() != null && !deck.getColorIdentity().isBlank()) {
+                // normalize persisted colorIdentity string into individual color codes
+                String s = deck.getColorIdentity().replaceAll("[^A-Za-z]", "").toUpperCase();
+                for (char ch : s.toCharArray()) commanderColors.add(String.valueOf(ch));
+                if (commanderCard != null) commanderTags = synergyEngine.tagsForCard(commanderCard);
+            } else if (commanderCard != null) {
                 if (commanderCard.colorIdentity() != null) commanderColors.addAll(commanderCard.colorIdentity());
                 commanderTags = synergyEngine.tagsForCard(commanderCard);
             }
@@ -80,13 +93,19 @@ public class RecommendationService {
             LOG.debugv("event=recommendation.commander.color.lookup.failed {0}", deck.getCommander());
         }
 
+        // if commander tags are empty, try to build a basic CommanderProfile fallback
+        if (commanderTags.isEmpty()) {
+            com.mtg.domain.CommanderProfile profile = new com.mtg.domain.CommanderProfile(deck.getCommander(), new ArrayList<>(commanderColors), java.util.List.of());
+            commanderTags = synergyEngine.tagsForCommanderProfile(profile);
+        }
+
         // Aggregate tags from existing deck cards for synergy context
         Set<String> deckTags = new HashSet<>();
         for (DeckCard dc : deck.getCards()) {
             try {
-                List<CardResponseDTO> infos = cardService.searchByName(dc.getName());
-                if (!infos.isEmpty()) {
-                    deckTags.addAll(synergyEngine.tagsForCard(infos.get(0)));
+                CardResponseDTO info = lookupCard.apply(dc.getName());
+                if (info != null) {
+                    deckTags.addAll(synergyEngine.tagsForCard(info));
                 }
             } catch (Exception e) {
                 // ignore individual lookup failures
@@ -103,12 +122,6 @@ public class RecommendationService {
             int need = gap.getValue();
             // try local MetaProvider first (offline dataset), then EDHREC service as fallback
             List<com.mtg.service.meta.MetaCard> metaCards = metaProvider.getTopCards(deck.getCommander());
-            if (metaCards == null || metaCards.isEmpty()) {
-                // fallback to EdhrecService (legacy in-memory/fetch)
-                List<EdhrecService.CardUsage> edh = edhrecService.getTopCards(deck.getCommander());
-                // convert to MetaCard-like usage
-                metaCards = edh.stream().map(cu -> new com.mtg.service.meta.MetaCard(cu.name, cu.inclusionRate, cu.category, null)).toList();
-            }
             List<CardResponseDTO> candidates = new ArrayList<>();
 
             if (!metaCards.isEmpty()) {
@@ -194,9 +207,9 @@ public class RecommendationService {
                 .comparingDouble(RecommendationItem::score).reversed()
                 .thenComparingDouble(item -> {
                     try {
-                        List<CardResponseDTO> infos = cardService.searchByName(item.name());
-                        if (infos.isEmpty()) return Double.MAX_VALUE;
-                        Double cmc = infos.get(0).cmc();
+                        CardResponseDTO info = lookupCard.apply(item.name());
+                        if (info == null) return Double.MAX_VALUE;
+                        Double cmc = info.cmc();
                         return cmc != null ? cmc : Double.MAX_VALUE;
                     } catch (Exception e) {
                         return Double.MAX_VALUE;

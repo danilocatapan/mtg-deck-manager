@@ -5,7 +5,7 @@
 
 # Stack
 
-- **Backend:** Java 17 + Quarkus
+- **Backend:** Java 25 + Quarkus
 - **Frontend:** React (Vite)
 - **API externa:** Scryfall (REST)
 - **Banco de dados de desenvolvimento/testes:** H2 (in-memory)

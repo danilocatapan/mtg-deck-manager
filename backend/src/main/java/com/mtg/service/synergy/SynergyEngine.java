@@ -1,6 +1,7 @@
 package com.mtg.service.synergy;
 
 import com.mtg.dto.CardResponseDTO;
+import com.mtg.domain.CommanderProfile;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -16,6 +17,17 @@ public class SynergyEngine {
 
     public Set<String> tagsForCard(CardResponseDTO card) {
         return tagger.tagCard(card);
+    }
+
+    public Set<String> tagsForCommanderProfile(CommanderProfile profile) {
+        if (profile == null) return new HashSet<>();
+        if (profile.tags() != null && !profile.tags().isEmpty()) return new HashSet<>(profile.tags());
+        // fallback: derive basic tags from colors
+        Set<String> tags = new HashSet<>();
+        if (profile.colors() != null) {
+            for (String c : profile.colors()) tags.add("color_" + c.toLowerCase());
+        }
+        return tags;
     }
 
     public Set<String> aggregateTags(List<CardResponseDTO> cards) {

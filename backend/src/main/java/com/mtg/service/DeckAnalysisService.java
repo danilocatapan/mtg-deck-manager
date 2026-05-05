@@ -48,12 +48,21 @@ public class DeckAnalysisService {
         int removalCount = 0;
         Map<Integer, Integer> manaCurve = new HashMap<>();
 
+        // per-execution cache to avoid repeated remote lookups
+        Map<String, CardResponseDTO> cache = new HashMap<>();
+
         for (DeckCard dc : cards) {
             String name = dc.getName();
             int qty = dc.getQuantity();
 
-            List<CardResponseDTO> results = cardService.searchByName(name);
-            CardResponseDTO card = results.isEmpty() ? null : results.get(0);
+            CardResponseDTO card = cache.computeIfAbsent(name, n -> {
+                try {
+                    List<CardResponseDTO> results = cardService.searchByName(n);
+                    return results.isEmpty() ? null : results.get(0);
+                } catch (Exception e) {
+                    return null;
+                }
+            });
 
             double cmc = card != null && card.cmc() != null ? card.cmc() : 0.0;
 

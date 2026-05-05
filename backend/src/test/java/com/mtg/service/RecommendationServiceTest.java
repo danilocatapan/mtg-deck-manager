@@ -20,7 +20,6 @@ class RecommendationServiceTest {
     DeckRepository deckRepository = Mockito.mock(DeckRepository.class);
     DeckAnalysisService analysisService = Mockito.mock(DeckAnalysisService.class);
     CardService cardService = Mockito.mock(CardService.class);
-    EdhrecService edhrecService = Mockito.mock(EdhrecService.class);
     DeckCompleter deckCompleter = Mockito.mock(DeckCompleter.class);
     com.mtg.service.meta.MetaProvider metaProvider = Mockito.mock(com.mtg.service.meta.MetaProvider.class);
     com.mtg.service.synergy.SynergyEngine synergyEngine = Mockito.mock(com.mtg.service.synergy.SynergyEngine.class);
@@ -33,7 +32,6 @@ class RecommendationServiceTest {
         sut.deckRepository = deckRepository;
         sut.deckAnalysisService = analysisService;
         sut.cardService = cardService;
-        sut.edhrecService = edhrecService;
         sut.metaProvider = metaProvider;
         sut.synergyEngine = synergyEngine;
         sut.deckCompleter = deckCompleter;
