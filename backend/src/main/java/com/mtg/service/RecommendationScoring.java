@@ -21,9 +21,9 @@ public final class RecommendationScoring {
             default -> score += 0.5;
         }
 
-        // popularity and synergy (from EDHREC or heuristics)
-        score += popularity * 0.4; // popularity weight
-        score += synergy * 0.3; // synergy weight
+        // popularity and synergy (meta has dominant weight)
+        score += popularity * 0.6;
+        score += synergy * 0.2;
 
         // efficiency
         Double cmc = card.cmc();
@@ -41,9 +41,6 @@ public final class RecommendationScoring {
         if (text != null && text.length() < 80) {
             score += 0.3;
         }
-
-        // bonus for synergy
-        score += synergy * 0.1;
 
         return score;
     }

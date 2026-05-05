@@ -18,4 +18,14 @@ public class MetaDatasetLoaderTest {
         assertNotNull(mc.getCards());
         assertFalse(mc.getCards().isEmpty());
     }
+
+    @Test
+    public void normalizesArenaPrefixCommanderName() {
+        MetaDatasetLoader loader = new MetaDatasetLoader();
+        loader.load();
+
+        var cards = loader.getCardsForCommander("A-Xenagos, God of Revels");
+        assertNotNull(cards);
+        assertFalse(cards.isEmpty());
+    }
 }
