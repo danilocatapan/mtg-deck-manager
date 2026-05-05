@@ -1,66 +1,78 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import DeckForm from '../components/DeckForm'
 import DeckAnalysis from '../components/DeckAnalysis'
 import Recommendations from '../components/Recommendations'
 import RecommendationForm from '../components/RecommendationForm'
-import { createDeck, updateDeck, getDeckAnalysis, getRecommendations } from '../services/api'
+import { createDeck, getDeckAnalysis, getRecommendations, updateDeck } from '../services/api'
+import Button from '../components/ui/Button'
 
 export default function DeckEditorPage({ mode = 'create', deck = null, onDone }) {
   const [initial, setInitial] = useState(null)
+  const [analysis, setAnalysis] = useState(null)
+  const [rec, setRec] = useState(null)
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false)
+  const [loadingRec, setLoadingRec] = useState(false)
+  const [message, setMessage] = useState(null)
+  const [error, setError] = useState(null)
+  const [activePanel, setActivePanel] = useState('editor')
 
   useEffect(() => {
     if (mode === 'edit' && deck) setInitial(deck)
     if (mode === 'create') setInitial(null)
   }, [mode, deck])
 
+  const savedCardCount = useMemo(() => deck?.cards?.reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0, [deck])
+  const canAnalyze = mode === 'edit' && deck?.id && savedCardCount > 0 && savedCardCount <= 99
+
   async function handleSave(payload) {
     try {
+      setError(null)
       if (mode === 'create') {
         const created = await createDeck(payload)
         console.log('Deck created', created)
+        onDone && onDone(`Created ${created.name}. Open it to analyze and optimize.`)
       } else {
         const updated = await updateDeck(deck.id, payload)
         console.log('Deck updated', updated)
+        onDone && onDone(`Saved ${updated.name}.`)
       }
-      onDone && onDone()
     } catch (e) {
       console.error('save error', e)
-      alert('Failed to save deck')
+      setError(e.message || 'Failed to save deck.')
     }
   }
 
-  const [analysis, setAnalysis] = useState(null)
-  const [rec, setRec] = useState(null)
-  const [loadingAnalysis, setLoadingAnalysis] = useState(false)
-  const [loadingRec, setLoadingRec] = useState(false)
-
   async function handleAnalyze() {
-    if (!deck && mode === 'edit') return
-    const id = deck?.id
+    if (!canAnalyze) return
     try {
+      setError(null)
       setLoadingAnalysis(true)
-      const a = await getDeckAnalysis(id)
-      console.log('analysis', a)
-      setAnalysis(a)
+      const deckAnalysis = await getDeckAnalysis(deck.id)
+      console.log('analysis', deckAnalysis)
+      setAnalysis(deckAnalysis)
+      setActivePanel('analysis')
+      setMessage('Analysis updated.')
     } catch (e) {
       console.error('analysis error', e)
-      alert('Failed to get analysis')
+      setError(e.message || 'Failed to get analysis.')
     } finally {
       setLoadingAnalysis(false)
     }
   }
 
   async function handleRecommend(params) {
-    if (!deck && mode === 'edit') return
-    const id = deck?.id
+    if (!canAnalyze) return
     try {
+      setError(null)
       setLoadingRec(true)
-      const r = await getRecommendations(id, params)
-      console.log('recommendations', r)
-      setRec(r)
+      const recommendations = await getRecommendations(deck.id, params)
+      console.log('recommendations', recommendations)
+      setRec(recommendations)
+      setActivePanel('recommendations')
+      setMessage('Recommendations generated.')
     } catch (e) {
       console.error('recommendations error', e)
-      alert('Failed to get recommendations')
+      setError(e.message || 'Failed to get recommendations.')
     } finally {
       setLoadingRec(false)
     }
@@ -68,33 +80,76 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
 
   return (
     <section>
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0 }}>{mode === 'create' ? 'Create Deck' : 'Edit Deck'}</h2>
-          <div>
-            <button className="btn secondary" onClick={onDone} style={{ marginRight: 8 }}>Back</button>
-            <button className="btn" onClick={() => document.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))}>Save</button>
-          </div>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">{mode === 'create' ? 'Step 1 of 4' : 'Deck workspace'}</p>
+          <h1>{mode === 'create' ? 'Create Deck' : deck?.name || 'Edit Deck'}</h1>
+          <p className="page-description">
+            {mode === 'create'
+              ? 'Build the list first. After saving, reopen the deck to analyze and request recommendations.'
+              : 'Edit the list, analyze deck structure, then generate explainable recommendations.'}
+          </p>
         </div>
-
-        <div style={{ marginTop: 12 }}>
-          <DeckForm initial={initial} onCancel={onDone} onSave={handleSave} />
-        </div>
-
-        <div style={{ marginTop: 20 }}>
-          <button className="btn" onClick={handleAnalyze} disabled={loadingAnalysis || mode !== 'edit'}>
-            {loadingAnalysis ? 'Analyzing...' : 'Analyze Deck'}
-          </button>
-        </div>
+        <Button variant="secondary" onClick={() => onDone && onDone()}>Back to Decks</Button>
       </div>
 
-      {analysis && <div className="card"><DeckAnalysis analysis={analysis} /></div>}
+      <div className="tabs" role="tablist" aria-label="Deck workflow">
+        <button type="button" className={activePanel === 'editor' ? 'active' : ''} onClick={() => setActivePanel('editor')}>Editor</button>
+        <button type="button" className={activePanel === 'analysis' ? 'active' : ''} onClick={() => setActivePanel('analysis')} disabled={!analysis}>Analysis</button>
+        <button type="button" className={activePanel === 'recommendations' ? 'active' : ''} onClick={() => setActivePanel('recommendations')} disabled={!rec}>Recommendations</button>
+      </div>
 
-      <div className="card">
-        <h3>Recommendations</h3>
-        <RecommendationForm onSubmit={handleRecommend} />
-        {loadingRec && <div className="loading">Loading recommendations...</div>}
-        {rec && <Recommendations rec={rec} />}
+      {message && <div className="status success">{message}</div>}
+      {error && <div className="status error">{error}</div>}
+
+      {activePanel === 'editor' && (
+        <div className="card">
+          <DeckForm initial={initial} onCancel={() => onDone && onDone()} onSave={handleSave} />
+        </div>
+      )}
+
+      {activePanel === 'analysis' && (
+        <div className="card">
+          <div className="section-heading">
+            <div>
+              <h2>Analysis</h2>
+              <p>Structural metrics that guide deck decisions.</p>
+            </div>
+            <Button onClick={handleAnalyze} disabled={!canAnalyze || loadingAnalysis}>
+              {loadingAnalysis ? 'Analyzing...' : 'Refresh Analysis'}
+            </Button>
+          </div>
+          {analysis ? <DeckAnalysis analysis={analysis} /> : <div className="empty-inline">Run analysis from the editor actions first.</div>}
+        </div>
+      )}
+
+      {activePanel === 'recommendations' && (
+        <div className="card">
+          <div className="section-heading">
+            <div>
+              <h2>Recommendations</h2>
+              <p>Suggestions explain what gap each card is trying to solve.</p>
+            </div>
+          </div>
+          <RecommendationForm onSubmit={handleRecommend} disabled={!canAnalyze || loadingRec} />
+          {loadingRec && <div className="loading">Loading recommendations...</div>}
+          {rec ? <Recommendations rec={rec} /> : <div className="empty-inline">Generate recommendations after saving a valid deck.</div>}
+        </div>
+      )}
+
+      <div className="card action-card">
+        <div>
+          <h3>Next step</h3>
+          <p>{canAnalyze ? 'This saved deck can be analyzed and optimized.' : 'Save a valid deck with up to 99 cards before running analysis.'}</p>
+        </div>
+        <div className="actions-row">
+          <Button onClick={handleAnalyze} disabled={!canAnalyze || loadingAnalysis}>
+            {loadingAnalysis ? 'Analyzing...' : 'Analyze Deck'}
+          </Button>
+          <Button variant="secondary" onClick={() => setActivePanel('recommendations')} disabled={!canAnalyze}>
+            Open Recommendations
+          </Button>
+        </div>
       </div>
     </section>
   )

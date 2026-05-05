@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
+import Button from './ui/Button'
 
-export default function RecommendationForm({ onSubmit }) {
+export default function RecommendationForm({ onSubmit, disabled = false }) {
   const [budget, setBudget] = useState(5)
   const [bracket, setBracket] = useState('casual')
   const [strategy, setStrategy] = useState('')
@@ -11,32 +12,30 @@ export default function RecommendationForm({ onSubmit }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ textAlign: 'left', marginTop: 12 }}>
-      <div>
-        <label>Budget</label>
-        <br />
-        <input type="number" value={budget} onChange={(e) => setBudget(parseInt(e.target.value || '0', 10))} />
-      </div>
+    <form onSubmit={handleSubmit} className="recommendation-form">
+      <label title="Approximate budget available for suggested cards.">
+        Budget
+        <small>Estimated money available for additions.</small>
+        <input type="number" min={0} value={budget} onChange={(e) => setBudget(parseInt(e.target.value || '0', 10))} />
+      </label>
 
-      <div style={{ marginTop: 8 }}>
-        <label>Bracket</label>
-        <br />
+      <label title="Power level used to calculate expected ramp, draw and removal.">
+        Bracket
+        <small>Casual is slower, high expects stronger deck structure.</small>
         <select value={bracket} onChange={(e) => setBracket(e.target.value)}>
           <option value="casual">casual</option>
           <option value="mid">mid</option>
           <option value="high">high</option>
         </select>
-      </div>
+      </label>
 
-      <div style={{ marginTop: 8 }}>
-        <label>Strategy</label>
-        <br />
-        <input value={strategy} onChange={(e) => setStrategy(e.target.value)} />
-      </div>
+      <label title="Optional plan for recommendation flavor, such as aggro, counters, tokens or graveyard.">
+        Strategy
+        <small>Optional direction for recommendations.</small>
+        <input value={strategy} onChange={(e) => setStrategy(e.target.value)} placeholder="aggro, tokens, ramp..." />
+      </label>
 
-      <div style={{ marginTop: 12 }}>
-        <button type="submit">Get Recommendations</button>
-      </div>
+      <Button type="submit" disabled={disabled}>Get Recommendations</Button>
     </form>
   )
 }

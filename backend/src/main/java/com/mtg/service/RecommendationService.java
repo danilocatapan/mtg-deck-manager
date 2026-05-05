@@ -192,7 +192,7 @@ public class RecommendationService {
                     default -> "";
                 };
 
-                List<CardResponseDTO> varResults = cardService.searchByQuery(query);
+                List<CardResponseDTO> varResults = searchCandidatesByQuery(query, role);
                 candidates = varResults.stream()
                     .filter(c -> c.typeLine() != null)
                     .filter(c -> !c.typeLine().contains("Plane"))
@@ -321,5 +321,15 @@ public class RecommendationService {
 
     private int totalQuantity(List<RecommendationItem> items) {
         return items.stream().mapToInt(RecommendationItem::quantity).sum();
+    }
+
+    private List<CardResponseDTO> searchCandidatesByQuery(String query, String role) {
+        try {
+            return cardService.searchByQuery(query);
+        } catch (ExternalServiceException e) {
+            String reason = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            LOG.warnv("event=recommendation.scryfall.fallback.failed role={0} query={1} reason={2}", role, query, reason);
+            return List.of();
+        }
     }
 }

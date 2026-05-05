@@ -1,43 +1,56 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import CardSearch from './CardSearch'
+import Button from './ui/Button'
 
 export default function DeckForm({ initial = null, onCancel, onSave }) {
   const [name, setName] = useState('')
   const [commander, setCommander] = useState('')
   const [cards, setCards] = useState([])
   const [error, setError] = useState(null)
+  const [savedMessage, setSavedMessage] = useState(null)
 
   useEffect(() => {
     if (initial) {
       setName(initial.name || '')
       setCommander(initial.commander || '')
-      setCards(initial.cards ? initial.cards.map(c => ({ name: c.name, quantity: c.quantity })) : [])
+      setCards(initial.cards ? initial.cards.map((card) => ({ name: card.name, quantity: card.quantity })) : [])
     }
   }, [initial])
 
+  const totalCards = useMemo(() => cards.reduce((sum, card) => sum + Number(card.quantity || 0), 0), [cards])
+  const isOverLimit = totalCards > 99
+  const isValid = Boolean(name.trim() && commander.trim() && cards.length > 0 && !isOverLimit)
+
   function addCard(card) {
+    setSavedMessage(null)
     setCards((prev) => {
-      const found = prev.find((p) => p.name === card.name)
-      if (found) return prev.map((p) => (p.name === card.name ? { ...p, quantity: p.quantity + 1 } : p))
+      const found = prev.find((item) => item.name === card.name)
+      if (found) return prev.map((item) => (item.name === card.name ? { ...item, quantity: item.quantity + 1 } : item))
       return [...prev, { name: card.name, quantity: 1 }]
     })
   }
 
-  function removeCard(name) {
-    setCards((prev) => prev.filter((c) => c.name !== name))
+  function removeCard(nameToRemove) {
+    setSavedMessage(null)
+    setCards((prev) => prev.filter((card) => card.name !== nameToRemove))
   }
 
-  function changeQuantity(name, qty) {
-    setCards((prev) => prev.map((c) => (c.name === name ? { ...c, quantity: Math.max(1, qty) } : c)))
+  function changeQuantity(cardName, qty) {
+    setSavedMessage(null)
+    setCards((prev) => prev.map((card) => (card.name === cardName ? { ...card, quantity: Math.max(1, qty) } : card)))
   }
 
   function validate() {
-    if (!name || !commander) {
-      setError('Name and commander are required')
+    if (!name.trim() || !commander.trim()) {
+      setError('Deck name and commander are required.')
       return false
     }
-    if (!cards || cards.length === 0) {
-      setError('Add at least one card')
+    if (cards.length === 0) {
+      setError('Add at least one card before saving.')
+      return false
+    }
+    if (isOverLimit) {
+      setError(`Commander decks can have up to 99 cards outside the commander. Current list has ${totalCards}.`)
       return false
     }
     setError(null)
@@ -47,64 +60,88 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   function handleSubmit(e) {
     e.preventDefault()
     if (!validate()) return
+
     const payload = {
-      name,
-      commander,
-      cards: cards.map((c) => ({ name: c.name, quantity: c.quantity })),
+      name: name.trim(),
+      commander: commander.trim(),
+      cards: cards.map((card) => ({ name: card.name, quantity: card.quantity })),
     }
+    setSavedMessage('Saving deck...')
     onSave && onSave(payload)
   }
 
   return (
-    <div style={{ textAlign: 'left' }}>
-      <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="deck-editor-form">
+      <div className="form-grid">
+        <label>
+          Deck name
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Gruul Revels" />
+        </label>
+
+        <label>
+          Commander
+          <input value={commander} onChange={(e) => setCommander(e.target.value)} placeholder="Xenagos, God of Revels" />
+        </label>
+      </div>
+
+      <div className="deck-health">
         <div>
-          <label>Deck name</label>
-          <br />
-          <input value={name} onChange={(e) => setName(e.target.value)} />
+          <strong className={isOverLimit ? 'is-invalid' : ''}>{totalCards}/99</strong>
+          <span> cards in deck</span>
+        </div>
+        <div className={isValid ? 'status-pill ready' : 'status-pill'}>
+          {isValid ? 'Ready to save' : isOverLimit ? 'Over Commander limit' : 'Needs name, commander and cards'}
+        </div>
+      </div>
+
+      <section className="editor-section">
+        <div className="section-heading">
+          <div>
+            <h3>Add cards</h3>
+            <p>Search a card and use Add to place it directly into this deck.</p>
+          </div>
+        </div>
+        <CardSearch onSelect={addCard} />
+      </section>
+
+      <section className="editor-section">
+        <div className="section-heading">
+          <div>
+            <h3>Deck list</h3>
+            <p>Adjust quantities or remove cards before saving.</p>
+          </div>
         </div>
 
-        <div style={{ marginTop: 8 }}>
-          <label>Commander</label>
-          <br />
-          <input value={commander} onChange={(e) => setCommander(e.target.value)} />
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          <label>Add cards</label>
-          <CardSearch onSelect={addCard} />
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          <label>Cards</label>
-          <ul>
-            {cards.map((c) => (
-              <li key={c.name} style={{ marginBottom: 6 }}>
-                <strong>{c.name}</strong>{' '}
+        {cards.length === 0 ? (
+          <div className="empty-inline">No cards added yet. Search above to start building.</div>
+        ) : (
+          <div className="deck-table">
+            {cards.map((card) => (
+              <div key={card.name} className="deck-row">
+                <strong>{card.name}</strong>
                 <input
+                  aria-label={`Quantity for ${card.name}`}
                   type="number"
-                  value={c.quantity}
+                  value={card.quantity}
                   min={1}
-                  onChange={(e) => changeQuantity(c.name, parseInt(e.target.value || '1', 10))}
-                  style={{ width: 60, marginLeft: 8 }}
+                  onChange={(e) => changeQuantity(card.name, parseInt(e.target.value || '1', 10))}
                 />
-                <button type="button" onClick={() => removeCard(c.name)} style={{ marginLeft: 8 }}>
+                <Button type="button" variant="secondary" onClick={() => removeCard(card.name)}>
                   Remove
-                </button>
-              </li>
+                </Button>
+              </div>
             ))}
-          </ul>
-        </div>
+          </div>
+        )}
+      </section>
 
-        {error && <div style={{ color: 'red' }}>{error}</div>}
+      {error && <div className="status error">{error}</div>}
+      {savedMessage && <div className="status">{savedMessage}</div>}
 
-        <div style={{ marginTop: 12 }}>
-          <button type="submit">Save</button>
-          <button type="button" onClick={onCancel} style={{ marginLeft: 8 }}>
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
+      <div className="form-actions">
+        <Button type="submit" disabled={!isValid}>Save Deck</Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>Back</Button>
+      </div>
+    </form>
   )
 }

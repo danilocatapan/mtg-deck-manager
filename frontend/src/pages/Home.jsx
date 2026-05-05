@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { fetchDecks, deleteDeck } from '../services/api'
+import { deleteDeck, fetchDecks } from '../services/api'
 import DeckList from '../components/DeckList'
-import CardSearch from '../components/CardSearch'
 import DeckEditorPage from './DeckEditorPage'
 import ImportDeckPage from './ImportDeckPage'
 import Button from '../components/ui/Button'
@@ -9,33 +8,45 @@ import Card from '../components/ui/Card'
 
 export default function Home() {
   const [decks, setDecks] = useState([])
-  const [view, setView] = useState('home') // 'home' | 'create' | 'edit'
+  const [view, setView] = useState('home')
   const [editingDeck, setEditingDeck] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState(null)
 
   async function load() {
-    const d = await fetchDecks()
-    setDecks(d)
+    setLoading(true)
+    const loadedDecks = await fetchDecks()
+    setDecks(loadedDecks)
+    setLoading(false)
   }
 
   useEffect(() => {
     let mounted = true
-    fetchDecks().then((d) => {
-      if (mounted) setDecks(d)
+    fetchDecks().then((loadedDecks) => {
+      if (mounted) {
+        setDecks(loadedDecks)
+        setLoading(false)
+      }
     })
-    return () => (mounted = false)
+    return () => {
+      mounted = false
+    }
   }, [])
 
   function handleCreate() {
+    setMessage(null)
     setEditingDeck(null)
     setView('create')
   }
 
   function handleImport() {
+    setMessage(null)
     setEditingDeck(null)
     setView('import')
   }
 
   function handleEdit(deck) {
+    setMessage(null)
     setEditingDeck(deck)
     setView('edit')
   }
@@ -44,15 +55,17 @@ export default function Home() {
     if (!confirm(`Delete deck ${deck.name}?`)) return
     try {
       await deleteDeck(deck.id)
+      setMessage(`Deleted ${deck.name}.`)
       await load()
     } catch (e) {
       console.error('delete failed', e)
-      alert('Delete failed')
+      setMessage('Delete failed. Try again.')
     }
   }
 
-  function handleDone() {
+  function handleDone(nextMessage) {
     setView('home')
+    setMessage(nextMessage || null)
     load()
   }
 
@@ -66,22 +79,41 @@ export default function Home() {
 
   return (
     <main>
-      <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ margin: 0 }}>Decks</h1>
+      <section className="page-heading">
         <div>
-          <Button onClick={handleCreate}>Create Deck</Button>
-          <Button onClick={handleImport} style={{ marginLeft: 8 }}>Import Deck</Button>
+          <p className="eyebrow">Commander workflow</p>
+          <h1>Decks</h1>
+          <p className="page-description">Create or import a deck, tune the list, analyze structure, then request explainable recommendations.</p>
         </div>
-      </div>
+        <div className="actions-row">
+          <Button onClick={handleCreate}>Create Deck</Button>
+          <Button variant="secondary" onClick={handleImport}>Import Deck</Button>
+        </div>
+      </section>
 
       <Card>
-        <DeckList decks={decks} onEdit={handleEdit} onDelete={handleDelete} />
+        <div className="workflow-steps" aria-label="Main workflow">
+          <div><strong>1</strong><span>Create or import</span></div>
+          <div><strong>2</strong><span>Edit card list</span></div>
+          <div><strong>3</strong><span>Analyze deck</span></div>
+          <div><strong>4</strong><span>Optimize recommendations</span></div>
+        </div>
       </Card>
 
-      <h2 style={{ marginTop: 24 }}>Search Cards</h2>
-      <Card>
-        <CardSearch />
-      </Card>
+      {message && <div className="status success">{message}</div>}
+      {loading ? (
+        <Card><div className="loading">Loading decks...</div></Card>
+      ) : (
+        <Card>
+          <DeckList
+            decks={decks}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onCreate={handleCreate}
+            onImport={handleImport}
+          />
+        </Card>
+      )}
     </main>
   )
 }
