@@ -1,0 +1,10 @@
+[
+  {
+    "commander": "Xenagos, God of Revels",
+    "colors": ["R","G"],
+    "cards": [
+      { "name": "Sol Ring", "inclusion": 0.92, "category": "ramp", "avgCmc": 1.0 },
+      { "name": "Cultivate", "inclusion": 0.75, "category": "ramp", "avgCmc": 3.0 }
+    ]
+  }
+]

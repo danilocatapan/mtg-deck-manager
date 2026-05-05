@@ -30,9 +30,11 @@ public class RecommendationService {
 
     @Inject
     CardService cardService;
-
     @Inject
     EdhrecService edhrecService;
+
+    @Inject
+    com.mtg.service.meta.MetaProvider metaProvider;
 
     public DeckRecommendations recommend(Long deckId, RecommendationParamsDTO params) {
         LOG.infov("recommendation.started deckId={0} params={1}", deckId, params);
@@ -54,6 +56,8 @@ public class RecommendationService {
 
         List<RecommendationItem> adds = new ArrayList<>();
         List<RecommendationItem> cuts = new ArrayList<>();
+        // pool of candidates collected across gap roles (deduped and ranked later)
+        List<RecommendationItem> candidatePool = new ArrayList<>();
 
         // Determine commander color identity
         Set<String> commanderColors = new HashSet<>();
@@ -70,14 +74,20 @@ public class RecommendationService {
         for (Map.Entry<String, Integer> gap : gaps.entrySet()) {
             String role = gap.getKey();
             int need = gap.getValue();
-            // try EDHREC meta first
-            List<EdhrecService.CardUsage> metaCards = edhrecService.getTopCards(deck.getCommander());
+            // try local MetaProvider first (offline dataset), then EDHREC service as fallback
+            List<com.mtg.service.meta.MetaCard> metaCards = metaProvider.getTopCards(deck.getCommander());
+            if (metaCards == null || metaCards.isEmpty()) {
+                // fallback to EdhrecService (legacy in-memory/fetch)
+                List<EdhrecService.CardUsage> edh = edhrecService.getTopCards(deck.getCommander());
+                // convert to MetaCard-like usage
+                metaCards = edh.stream().map(cu -> new com.mtg.service.meta.MetaCard(cu.name, cu.inclusionRate, cu.category, null)).toList();
+            }
             List<CardResponseDTO> candidates = new ArrayList<>();
 
             if (!metaCards.isEmpty()) {
-                for (EdhrecService.CardUsage cu : metaCards) {
+                for (com.mtg.service.meta.MetaCard cu : metaCards) {
                     try {
-                        List<CardResponseDTO> found = cardService.searchByName(cu.name);
+                        List<CardResponseDTO> found = cardService.searchByName(cu.getName());
                         if (!found.isEmpty()) {
                             CardResponseDTO c = found.get(0);
                             if (!existingNames.contains(c.name()) && ColorIdentityMatcher.matches(c, commanderColors)) {
@@ -85,7 +95,7 @@ public class RecommendationService {
                             }
                         }
                     } catch (Exception e) {
-                        LOG.debugv("event=recommendation.meta.lookup.failed name={0}", cu.name);
+                        LOG.debugv("event=recommendation.meta.lookup.failed name={0}", cu.getName());
                     }
                     if (candidates.size() >= 100) break;
                 }
@@ -107,27 +117,64 @@ public class RecommendationService {
                         .collect(Collectors.toList());
             }
 
-            // Score and pick top 'need' items, using EDHREC popularity when available
+            // Score candidates using available meta popularity and heuristics, add to pool
             List<RecommendationItem> scored = candidates.stream()
                     .map(c -> {
                         double popularity = 0.0;
-                        // attempt to find popularity
                         if (!metaCards.isEmpty()) {
-                            for (EdhrecService.CardUsage cu : metaCards) {
-                                if (cu.name.equalsIgnoreCase(c.name())) { popularity = cu.inclusionRate; break; }
+                            for (com.mtg.service.meta.MetaCard cu : metaCards) {
+                                if (cu.getName().equalsIgnoreCase(c.name())) { popularity = cu.getInclusion(); break; }
                             }
                         }
                         double synergy = 0.0; // placeholder for future synergy calc
                         double s = RecommendationScoring.score(c, role, popularity, synergy);
                         return new RecommendationItem(c.name(), role, "gap " + role, s, 0.0);
                     })
-                    .sorted(Comparator.comparingDouble(RecommendationItem::score).reversed())
-                    .limit(need)
+                    .limit(500)
                     .collect(Collectors.toList());
 
-            // ensure diversity: avoid many identical categories
-            Map<String, Long> roleCount = scored.stream().collect(Collectors.groupingBy(RecommendationItem::role, Collectors.counting()));
-            adds.addAll(scored);
+            candidatePool.addAll(scored);
+        }
+
+        // After collecting candidatePool across roles, dedupe by name keeping highest score,
+        // then sort by score (tie-break by lower CMC) and pick top items to fill deck to 99 cards.
+        Map<String, RecommendationItem> bestByName = new HashMap<>();
+        for (RecommendationItem r : candidatePool) {
+            String n = r.name();
+            if (!bestByName.containsKey(n) || r.score() > bestByName.get(n).score()) {
+                bestByName.put(n, r);
+            }
+        }
+
+        Comparator<RecommendationItem> rankingComparator = Comparator
+                .comparingDouble(RecommendationItem::score).reversed()
+                .thenComparingDouble(item -> {
+                    try {
+                        List<CardResponseDTO> infos = cardService.searchByName(item.name());
+                        if (infos.isEmpty()) return Double.MAX_VALUE;
+                        Double cmc = infos.get(0).cmc();
+                        return cmc != null ? cmc : Double.MAX_VALUE;
+                    } catch (Exception e) {
+                        return Double.MAX_VALUE;
+                    }
+                });
+
+        List<RecommendationItem> rankedCandidates = bestByName.values().stream()
+                .filter(r -> !existingNames.contains(r.name()))
+                .sorted(rankingComparator)
+                .collect(Collectors.toList());
+
+        int missing = 99 - deck.getCards().size();
+        if (missing > 0) {
+            List<RecommendationItem> finalAdds = rankedCandidates.stream().limit(missing).collect(Collectors.toList());
+            // ensure no duplicates in adds
+            Set<String> seen = new HashSet<>();
+            for (RecommendationItem ai : finalAdds) {
+                if (!seen.contains(ai.name())) {
+                    adds.add(ai);
+                    seen.add(ai.name());
+                }
+            }
         }
 
         // Simple cut suggestions: high CMC cards
