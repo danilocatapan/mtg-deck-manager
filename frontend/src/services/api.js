@@ -74,4 +74,36 @@ export async function deleteDeck(id) {
   }
 }
 
-export default { fetchDecks, searchCards, createDeck, updateDeck, deleteDeck }
+export async function getDeckAnalysis(id) {
+  try {
+    console.log('getDeckAnalysis', id)
+    const res = await fetch(`${BASE_URL}/decks/${id}/analysis`)
+    if (!res.ok) throw new Error('Failed to get analysis')
+    const json = await res.json()
+    console.log('getDeckAnalysis result', json)
+    return json
+  } catch (e) {
+    console.error('getDeckAnalysis error', e)
+    throw e
+  }
+}
+
+export async function getRecommendations(id, params) {
+  try {
+    console.log('getRecommendations', id, params)
+    const res = await fetch(`${BASE_URL}/decks/${id}/recommendations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params || {}),
+    })
+    if (!res.ok) throw new Error('Failed to get recommendations')
+    const json = await res.json()
+    console.log('getRecommendations result', json)
+    return json
+  } catch (e) {
+    console.error('getRecommendations error', e)
+    throw e
+  }
+}
+
+export default { fetchDecks, searchCards, createDeck, updateDeck, deleteDeck, getDeckAnalysis, getRecommendations }
