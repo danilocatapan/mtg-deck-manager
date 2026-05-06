@@ -20,6 +20,9 @@ import java.util.stream.Collectors;
 public class DeckService {
 
     private static final Logger LOG = Logger.getLogger(DeckService.class);
+    private static final int MAX_DECK_NAME_LENGTH = 120;
+    private static final int MAX_CARD_NAME_LENGTH = 120;
+    private static final int MAX_DECK_CARDS = 120;
 
     private final DeckRepository deckRepository;
 
@@ -37,7 +40,7 @@ public class DeckService {
         LOG.debug("Creating deck: " + request);
 
         List<DeckCard> cards = toEntities(request.cards());
-        Deck deck = new Deck(request.name(), request.commander(), cards);
+        Deck deck = new Deck(request.name().trim(), request.commander().trim(), cards);
         deckRepository.persist(deck);
         LOG.info("Deck created: " + deck.getId());
 
@@ -47,8 +50,11 @@ public class DeckService {
     @Transactional
     public DeckResponseDTO importDeck(DeckImportDTO dto) {
         if (dto == null) throw new IllegalArgumentException("Import payload required");
-        if (dto.name() == null || dto.name().isBlank()) throw new IllegalArgumentException("Deck name required");
-        if (dto.commander() == null || dto.commander().isBlank()) throw new IllegalArgumentException("Commander is required");
+        validateDeckName(dto.name());
+        validateCommander(dto.commander());
+        if (dto.content() != null && dto.content().length() > 16_000) {
+            throw new IllegalArgumentException("Import payload is too large");
+        }
 
         var cards = importService.parse(dto.content());
         int total = cards.stream().mapToInt(DeckCard::getQuantity).sum();
@@ -57,8 +63,8 @@ public class DeckService {
         }
 
         Deck deck = new Deck();
-        deck.setName(dto.name());
-        deck.setCommander(dto.commander());
+        deck.setName(dto.name().trim());
+        deck.setCommander(dto.commander().trim());
         deck.setCards(cards);
         deckRepository.persist(deck);
         return toDto(deck);
@@ -84,8 +90,8 @@ public class DeckService {
             return null;
         }
         LOG.debug("Updating deck: " + id);
-        deck.setName(request.name());
-        deck.setCommander(request.commander());
+        deck.setName(request.name().trim());
+        deck.setCommander(request.commander().trim());
         deck.setCards(toEntities(request.cards()));
         deckRepository.persist(deck);
         LOG.info("Deck updated: " + id);
@@ -120,13 +126,49 @@ public class DeckService {
         if (request == null || request.name() == null || request.name().isBlank()) {
             throw new IllegalArgumentException("Deck name is required");
         }
+        validateDeckName(request.name());
+        validateCommander(request.commander());
         if (request.cards() == null || request.cards().isEmpty()) {
             throw new IllegalArgumentException("Deck must contain at least one card");
         }
+        if (request.cards().size() > MAX_DECK_CARDS) {
+            throw new IllegalArgumentException("Deck accepts at most " + MAX_DECK_CARDS + " card entries");
+        }
+        request.cards().forEach(this::validateCard);
     }
 
     private List<DeckCard> toEntities(List<DeckCardDTO> cards) {
-        return cards.stream().map(c -> new DeckCard(c.name(), c.quantity())).collect(Collectors.toList());
+        return cards.stream().map(c -> new DeckCard(c.name().trim(), c.quantity())).collect(Collectors.toList());
+    }
+
+    private void validateDeckName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Deck name is required");
+        }
+        if (name.length() > MAX_DECK_NAME_LENGTH) {
+            throw new IllegalArgumentException("Deck name is too long");
+        }
+    }
+
+    private void validateCommander(String commander) {
+        if (commander == null || commander.isBlank()) {
+            throw new IllegalArgumentException("Commander is required");
+        }
+        if (commander.length() > MAX_CARD_NAME_LENGTH) {
+            throw new IllegalArgumentException("Commander name is too long");
+        }
+    }
+
+    private void validateCard(DeckCardDTO card) {
+        if (card == null || card.name() == null || card.name().isBlank()) {
+            throw new IllegalArgumentException("Card name is required");
+        }
+        if (card.name().length() > MAX_CARD_NAME_LENGTH) {
+            throw new IllegalArgumentException("Card name is too long");
+        }
+        if (card.quantity() < 1 || card.quantity() > 99) {
+            throw new IllegalArgumentException("Card quantity must be between 1 and 99");
+        }
     }
 
     private DeckResponseDTO toDto(Deck deck) {

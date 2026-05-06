@@ -35,6 +35,8 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class CardController {
 
     private static final Logger LOG = Logger.getLogger(CardController.class);
+    private static final int MAX_CARD_NAME_LENGTH = 120;
+    private static final int MAX_COLLECTION_SIZE = 75;
 
     private final CardService cardService;
 
@@ -79,6 +81,12 @@ public class CardController {
                     new ErrorResponseDTO("Query parameter 'name' is required")
             );
         }
+        if (name.length() > MAX_CARD_NAME_LENGTH) {
+            return RestResponse.status(
+                    RestResponse.Status.BAD_REQUEST,
+                    new ErrorResponseDTO("Query parameter 'name' is too long")
+            );
+        }
 
         try {
             List<CardResponseDTO> cards = cardService.searchByName(name);
@@ -120,6 +128,18 @@ public class CardController {
             return RestResponse.status(
                     RestResponse.Status.BAD_REQUEST,
                     new ErrorResponseDTO("Body field 'names' must contain at least one card name")
+            );
+        }
+        if (names.size() > MAX_COLLECTION_SIZE) {
+            return RestResponse.status(
+                    RestResponse.Status.BAD_REQUEST,
+                    new ErrorResponseDTO("Body field 'names' accepts at most " + MAX_COLLECTION_SIZE + " cards")
+            );
+        }
+        if (names.stream().anyMatch(name -> name.length() > MAX_CARD_NAME_LENGTH)) {
+            return RestResponse.status(
+                    RestResponse.Status.BAD_REQUEST,
+                    new ErrorResponseDTO("Card names must be at most " + MAX_CARD_NAME_LENGTH + " characters")
             );
         }
 

@@ -28,6 +28,8 @@ public class CardService {
 
     private static final Logger LOG = Logger.getLogger(CardService.class);
     private static final int SCRYFALL_COLLECTION_LIMIT = 75;
+    private static final int MAX_CARD_NAME_LENGTH = 120;
+    private static final int MAX_QUERY_LENGTH = 180;
     private static final long MIN_REQUEST_INTERVAL_MILLIS = 150L;
 
     @ConfigProperty(name = "scryfall.api.url")
@@ -140,6 +142,9 @@ public class CardService {
     @CacheResult(cacheName = "cards-by-query")
     public List<CardResponseDTO> searchByQuery(String query) {
         if (query == null || query.isBlank()) return List.of();
+        if (query.length() > MAX_QUERY_LENGTH) {
+            throw new IllegalArgumentException("Search query is too long");
+        }
 
         LOG.infov("event=cards.search.request query={0}", query);
         LOG.infov("event=scryfall.url base={0}", scryfallApiUrl);
@@ -170,7 +175,12 @@ public class CardService {
             throw new IllegalArgumentException("The card name must be provided");
         }
 
-        return name.trim();
+        String trimmed = name.trim();
+        if (trimmed.length() > MAX_CARD_NAME_LENGTH) {
+            throw new IllegalArgumentException("The card name is too long");
+        }
+
+        return trimmed;
     }
 
     private String buildNameQuery(String name) {

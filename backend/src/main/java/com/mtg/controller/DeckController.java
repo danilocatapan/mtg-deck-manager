@@ -1,26 +1,35 @@
 package com.mtg.controller;
 
-import com.mtg.dto.DeckRequestDTO;
-import com.mtg.dto.DeckResponseDTO;
-import com.mtg.service.DeckService;
-import com.mtg.service.DeckAnalysisService;
 import com.mtg.domain.DeckAnalysis;
-import com.mtg.service.RecommendationService;
-import com.mtg.dto.RecommendationParamsDTO;
 import com.mtg.domain.DeckRecommendations;
 import com.mtg.domain.StrategicRecommendation;
+import com.mtg.dto.DeckImportDTO;
+import com.mtg.dto.DeckRequestDTO;
+import com.mtg.dto.DeckResponseDTO;
+import com.mtg.dto.ErrorResponseDTO;
+import com.mtg.dto.RecommendationParamsDTO;
+import com.mtg.service.DeckAnalysisService;
+import com.mtg.service.DeckService;
+import com.mtg.service.RecommendationService;
+import com.mtg.service.StrategicRecommendationService;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
-import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
-
 import java.net.URI;
 import java.util.List;
-import java.util.UUID;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 
 @Path("/decks")
 @Produces(MediaType.APPLICATION_JSON)
@@ -37,7 +46,7 @@ public class DeckController {
     RecommendationService recommendationService;
 
     @Inject
-    com.mtg.service.StrategicRecommendationService strategicRecommendationService;
+    StrategicRecommendationService strategicRecommendationService;
 
     @POST
     @Operation(summary = "Create a new deck")
@@ -45,21 +54,25 @@ public class DeckController {
             @APIResponse(responseCode = "201", description = "Deck created")
     })
     public Response createDeck(DeckRequestDTO request) {
-        DeckResponseDTO created = deckService.createDeck(request);
-        URI location = URI.create("/decks/" + created.id());
-        return Response.created(location).entity(created).build();
+        try {
+            DeckResponseDTO created = deckService.createDeck(request);
+            URI location = URI.create("/decks/" + created.id());
+            return Response.created(location).entity(created).build();
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        }
     }
 
     @POST
     @Path("/import")
     @Operation(summary = "Import deck from text")
-    public Response importDeck(com.mtg.dto.DeckImportDTO dto) {
+    public Response importDeck(DeckImportDTO dto) {
         try {
             DeckResponseDTO created = deckService.importDeck(dto);
             URI location = URI.create("/decks/" + created.id());
             return Response.created(location).entity(created).build();
         } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+            return badRequest(e.getMessage());
         }
     }
 
@@ -73,12 +86,9 @@ public class DeckController {
     @Path("{id}")
     @Operation(summary = "Get deck by id")
     public Response getDeck(@Parameter(description = "Deck id") @PathParam("id") String idStr) {
-        long id;
-        try {
-            id = Long.parseLong(idStr);
-        } catch (NumberFormatException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
-        }
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
         DeckResponseDTO dto = deckService.getDeckById(id);
         if (dto == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -90,13 +100,16 @@ public class DeckController {
     @Path("{id}")
     @Operation(summary = "Update a deck")
     public Response updateDeck(@PathParam("id") String idStr, DeckRequestDTO request) {
-        long id;
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
+        DeckResponseDTO updated;
         try {
-            id = Long.parseLong(idStr);
-        } catch (NumberFormatException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
+            updated = deckService.updateDeck(id, request);
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
         }
-        DeckResponseDTO updated = deckService.updateDeck(id, request);
+
         if (updated == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -107,12 +120,9 @@ public class DeckController {
     @Path("{id}")
     @Operation(summary = "Delete a deck")
     public Response deleteDeck(@PathParam("id") String idStr) {
-        long id;
-        try {
-            id = Long.parseLong(idStr);
-        } catch (NumberFormatException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
-        }
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
         boolean deleted = deckService.deleteDeck(id);
         if (!deleted) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -125,12 +135,9 @@ public class DeckController {
     @Produces(MediaType.TEXT_PLAIN)
     @Operation(summary = "Export deck in text format")
     public Response exportDeck(@PathParam("id") String idStr) {
-        long id;
-        try {
-            id = Long.parseLong(idStr);
-        } catch (NumberFormatException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
-        }
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
         String exported = deckService.exportDeck(id);
         if (exported == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -143,16 +150,13 @@ public class DeckController {
     @Operation(summary = "Analyze deck")
     @APIResponse(responseCode = "200", description = "Deck analysis")
     public Response analyzeDeck(@Parameter(description = "Deck id") @PathParam("id") String idStr) {
-        long id;
-        try {
-            id = Long.parseLong(idStr);
-        } catch (NumberFormatException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
-        }
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
         try {
             DeckAnalysis analysis = deckAnalysisService.analyzeDeck(id);
             return Response.ok(analysis).build();
-        } catch (jakarta.ws.rs.NotFoundException e) {
+        } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
     }
@@ -162,16 +166,13 @@ public class DeckController {
     @Operation(summary = "Recommend deck improvements")
     @APIResponse(responseCode = "200", description = "Recommendations generated")
     public Response recommend(@PathParam("id") String idStr, RecommendationParamsDTO params) {
-        long id;
-        try {
-            id = Long.parseLong(idStr);
-        } catch (NumberFormatException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
-        }
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
         try {
             DeckRecommendations recs = recommendationService.recommend(id, params);
             return Response.ok(recs).build();
-        } catch (jakarta.ws.rs.NotFoundException e) {
+        } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
     }
@@ -181,19 +182,32 @@ public class DeckController {
     @Operation(summary = "Recommend strategic deck improvements")
     @APIResponse(responseCode = "200", description = "Strategic recommendations generated")
     public Response strategicRecommendations(@PathParam("id") String idStr, RecommendationParamsDTO params) {
-        long id;
-        try {
-            id = Long.parseLong(idStr);
-        } catch (NumberFormatException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
-        }
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
         try {
             List<StrategicRecommendation> recommendations = strategicRecommendationService.recommend(id, params);
             return Response.ok(recommendations).build();
-        } catch (jakarta.ws.rs.NotFoundException e) {
+        } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
         } catch (IllegalStateException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+            return badRequest(e.getMessage());
         }
+    }
+
+    private Long parseDeckId(String idStr) {
+        try {
+            long id = Long.parseLong(idStr);
+            return id > 0 ? id : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private Response badRequest(String message) {
+        String safeMessage = message == null || message.isBlank() ? "Invalid request" : message;
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorResponseDTO(safeMessage))
+                .build();
     }
 }

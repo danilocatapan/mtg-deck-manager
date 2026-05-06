@@ -6,25 +6,35 @@ import com.mtg.service.meta.MetaProvider;
 import com.mtg.service.meta.MetaSourceStatus;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Path("/meta")
 @Produces(MediaType.APPLICATION_JSON)
 public class MetaController {
+
+    private static final int MAX_COMMANDER_LENGTH = 120;
+    private static final int MAX_OPTION_LENGTH = 40;
 
     @Inject
     MetaProvider metaProvider;
 
     @Inject
     ExternalMetaIngestionJob ingestionJob;
+
+    @ConfigProperty(name = "meta.sync.api-key")
+    Optional<String> syncApiKey;
 
     @GET
     @Path("/sources")
@@ -34,8 +44,11 @@ public class MetaController {
 
     @POST
     @Path("/sync")
-    public Map<String, List<MetaSourceStatus>> sync() {
-        return Map.of("sources", ingestionJob.sync());
+    public Response sync(@HeaderParam("X-Admin-Key") String adminKey) {
+        if (syncApiKey.isPresent() && !syncApiKey.get().equals(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        return Response.ok(Map.of("sources", ingestionJob.sync())).build();
     }
 
     @GET
@@ -45,6 +58,15 @@ public class MetaController {
             @QueryParam("bracket") String bracket,
             @QueryParam("sourceMode") String sourceMode
     ) {
+        validateLength(commander, MAX_COMMANDER_LENGTH, "commander");
+        validateLength(bracket, MAX_OPTION_LENGTH, "bracket");
+        validateLength(sourceMode, MAX_OPTION_LENGTH, "sourceMode");
         return metaProvider.getCommanderProfile(commander, bracket, sourceMode);
+    }
+
+    private void validateLength(String value, int maxLength, String field) {
+        if (value != null && value.length() > maxLength) {
+            throw new IllegalArgumentException(field + " is too long");
+        }
     }
 }
