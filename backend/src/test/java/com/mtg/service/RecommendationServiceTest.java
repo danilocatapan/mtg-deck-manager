@@ -11,9 +11,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class RecommendationServiceTest {
@@ -42,6 +45,9 @@ class RecommendationServiceTest {
         when(synergyEngine.tagsForCard(org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Set.of());
         when(synergyEngine.computeSynergy(org.mockito.ArgumentMatchers.anySet(), org.mockito.ArgumentMatchers.anySet(), org.mockito.ArgumentMatchers.anySet())).thenReturn(0.0);
         when(deckCompleter.complete(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyList(), org.mockito.ArgumentMatchers.anyInt())).thenReturn(java.util.List.of());
+        when(cardService.findByNames(org.mockito.ArgumentMatchers.anyList())).thenReturn(Map.of(
+                "sol ring", new CardResponseDTO("Sol Ring", "{1}", "Artifact", "{T}: Add {C}{C}.", 1.0, java.util.List.of(), java.util.List.of())
+        ));
     }
 
     @Test
@@ -58,10 +64,10 @@ class RecommendationServiceTest {
 
         // cardService query returns some candidates
         when(cardService.searchByQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Arcane Signet","{2}","Artifact","{T}: Add {C}",2.0, java.util.List.of(), java.util.List.of())));
-        when(cardService.searchByName(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Sol Ring","{1}","Artifact","{T}: Add {C}{C}.",1.0, java.util.List.of(), java.util.List.of())));
 
         DeckRecommendations recs = sut.recommend(1L, new RecommendationParamsDTO(200.0,"casual","aggro",null));
         assertNotNull(recs);
+        verify(cardService, never()).searchByName(org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test
@@ -74,7 +80,6 @@ class RecommendationServiceTest {
         when(deckRepository.findById(1L)).thenReturn(deck);
         when(analysisService.analyzeDeck(1L)).thenReturn(new com.mtg.domain.DeckAnalysis(1.0, 1, 0, 0, 0, java.util.Map.of()));
         when(cardService.searchByQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of());
-        when(cardService.searchByName(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Sol Ring", "{1}", "Artifact", "{T}: Add {C}{C}.", 1.0, java.util.List.of(), java.util.List.of())));
 
         DeckRecommendations recs = sut.recommend(1L, new RecommendationParamsDTO(200.0, "casual", "aggro", null));
 
@@ -92,7 +97,6 @@ class RecommendationServiceTest {
 
         when(deckRepository.findById(1L)).thenReturn(deck);
         when(analysisService.analyzeDeck(1L)).thenReturn(new com.mtg.domain.DeckAnalysis(1.0, 1, 0, 0, 0, java.util.Map.of()));
-        when(cardService.searchByName(org.mockito.ArgumentMatchers.anyString())).thenReturn(List.of(new CardResponseDTO("Sol Ring", "{1}", "Artifact", "{T}: Add {C}{C}.", 1.0, java.util.List.of(), java.util.List.of())));
         when(cardService.searchByQuery(org.mockito.ArgumentMatchers.anyString())).thenThrow(new ExternalServiceException("Failed to fetch cards from Scryfall", new RuntimeException("429")));
 
         DeckRecommendations recs = sut.recommend(1L, new RecommendationParamsDTO(200.0, "casual", "aggro", null));

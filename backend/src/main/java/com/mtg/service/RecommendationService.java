@@ -67,18 +67,13 @@ public class RecommendationService {
         List<RecommendationItem> cuts = new ArrayList<>();
         // pool of candidates collected across gap roles (deduped and ranked later)
         List<RecommendationItem> candidatePool = new ArrayList<>();
+        List<com.mtg.service.meta.MetaCard> metaCards = metaProvider.getTopCards(deck.getCommander());
+        if (metaCards == null) {
+            metaCards = List.of();
+        }
 
-        // per-execution card lookup cache to avoid N+1 lookups
-        final Map<String, CardResponseDTO> cardCache = new HashMap<>();
-        java.util.function.Function<String, CardResponseDTO> lookupCard = name ->
-                cardCache.computeIfAbsent(name, n -> {
-                    try {
-                        List<CardResponseDTO> r = cardService.searchByName(n);
-                        return r.isEmpty() ? null : r.get(0);
-                    } catch (Exception ex) {
-                        return null;
-                    }
-                });
+        final Map<String, CardResponseDTO> cardCache = preloadCardDetails(deck, metaCards);
+        java.util.function.Function<String, CardResponseDTO> lookupCard = name -> cardCache.get(normalizeLookupName(name));
 
         // Determine commander color identity and tags. Prefer persisted deck.colorIdentity when present.
         Set<String> commanderColors = new HashSet<>();
@@ -165,8 +160,6 @@ public class RecommendationService {
         for (Map.Entry<String, Integer> gap : gaps.entrySet()) {
             String role = gap.getKey();
             int need = gap.getValue();
-            // try local MetaProvider first (offline dataset), then EDHREC service as fallback
-            List<com.mtg.service.meta.MetaCard> metaCards = metaProvider.getTopCards(deck.getCommander());
             List<CardResponseDTO> candidates = new ArrayList<>();
 
             if (!metaCards.isEmpty()) {
@@ -202,6 +195,7 @@ public class RecommendationService {
                     .limit(50)
                     .collect(Collectors.toList());
             }
+            candidates.forEach(candidate -> cardCache.putIfAbsent(normalizeLookupName(candidate.name()), candidate));
 
             // Score candidates using available meta popularity and heuristics, add to pool
             final List<com.mtg.service.meta.MetaCard> metaForLookup = metaCards == null ? List.of() : metaCards;
@@ -323,6 +317,27 @@ public class RecommendationService {
         return items.stream().mapToInt(RecommendationItem::quantity).sum();
     }
 
+    private Map<String, CardResponseDTO> preloadCardDetails(Deck deck, List<com.mtg.service.meta.MetaCard> metaCards) {
+        List<String> names = new ArrayList<>();
+        names.add(deck.getCommander());
+        deck.getCards().stream()
+                .map(DeckCard::getName)
+                .forEach(names::add);
+        metaCards.stream()
+                .map(com.mtg.service.meta.MetaCard::getName)
+                .forEach(names::add);
+
+        Map<String, CardResponseDTO> cardsByName = new HashMap<>();
+        try {
+            cardService.findByNames(names).forEach(cardsByName::put);
+        } catch (ExternalServiceException exception) {
+            String reason = exception.getCause() != null ? exception.getCause().getMessage() : exception.getMessage();
+            LOG.warnv("event=recommendation.card.preload.failed reason={0}", reason);
+        }
+
+        return cardsByName;
+    }
+
     private List<CardResponseDTO> searchCandidatesByQuery(String query, String role) {
         try {
             return cardService.searchByQuery(query);
@@ -331,5 +346,9 @@ public class RecommendationService {
             LOG.warnv("event=recommendation.scryfall.fallback.failed role={0} query={1} reason={2}", role, query, reason);
             return List.of();
         }
+    }
+
+    private String normalizeLookupName(String name) {
+        return name == null ? "" : name.trim().toLowerCase(Locale.ROOT);
     }
 }
