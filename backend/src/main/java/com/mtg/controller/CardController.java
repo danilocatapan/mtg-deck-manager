@@ -4,6 +4,7 @@ import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.ErrorResponseDTO;
 import com.mtg.service.CardService;
 import com.mtg.service.ExternalServiceException;
+import com.mtg.service.RateLimitedExternalServiceException;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -50,6 +51,11 @@ public class CardController {
                     content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class, type = SchemaType.OBJECT))
             ),
             @APIResponse(
+                    responseCode = "429",
+                    description = "Scryfall rate limit reached",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class, type = SchemaType.OBJECT))
+            ),
+            @APIResponse(
                     responseCode = "502",
                     description = "Failed to query Scryfall",
                     content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class, type = SchemaType.OBJECT))
@@ -71,6 +77,12 @@ public class CardController {
         try {
             List<CardResponseDTO> cards = cardService.searchByName(name);
             return RestResponse.ok(cards);
+        } catch (RateLimitedExternalServiceException exception) {
+            LOG.warnv("event=cards.endpoint.rate_limited name={0}", name);
+            return RestResponse.status(
+                    RestResponse.Status.TOO_MANY_REQUESTS,
+                    new ErrorResponseDTO("Scryfall rate limit reached. Please try again shortly.")
+            );
         } catch (ExternalServiceException exception) {
             LOG.errorv(exception, "event=cards.endpoint.failure name={0}", name);
             return RestResponse.status(

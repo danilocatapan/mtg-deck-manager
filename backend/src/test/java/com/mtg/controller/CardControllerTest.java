@@ -3,6 +3,7 @@ package com.mtg.controller;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.service.CardService;
 import com.mtg.service.ExternalServiceException;
+import com.mtg.service.RateLimitedExternalServiceException;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import java.util.List;
@@ -60,6 +61,21 @@ class CardControllerTest {
                 .then()
                 .statusCode(502)
                 .body("message", equalTo("Unable to fetch cards from Scryfall"));
+    }
+
+    @Test
+    void shouldReturnTooManyRequestsWhenScryfallIsRateLimited() {
+        when(cardService.searchByName("Rate Limited Card")).thenThrow(
+                new RateLimitedExternalServiceException("Scryfall rate limit exceeded", new RuntimeException("429"))
+        );
+
+        given()
+                .queryParam("name", "Rate Limited Card")
+                .when()
+                .get("/cards")
+                .then()
+                .statusCode(429)
+                .body("message", equalTo("Scryfall rate limit reached. Please try again shortly."));
     }
 
     @Test

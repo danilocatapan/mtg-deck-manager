@@ -9,6 +9,8 @@ import com.mtg.dto.ScryfallResponseDTO;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.MockitoConfig;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -105,6 +107,15 @@ class CardServiceTest {
         when(scryfallClient.searchByName(anyString())).thenThrow(new jakarta.ws.rs.ProcessingException("timeout"));
 
         assertThrows(ExternalServiceException.class, () -> cardService.searchByName("Broken Card"));
+    }
+
+    @Test
+    void shouldWrapRateLimitFailures() {
+        when(scryfallClient.searchByName(anyString())).thenThrow(new WebApplicationException(
+                Response.status(429).build()
+        ));
+
+        assertThrows(RateLimitedExternalServiceException.class, () -> cardService.searchByName("Rate Limited Card"));
     }
 
     @Test
