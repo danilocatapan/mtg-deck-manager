@@ -42,6 +42,54 @@ jobs:
       - name: Test backend
         run: ./mvnw test
 
+  backend-postgres:
+    name: Backend PostgreSQL
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: mtg_deck_manager
+          POSTGRES_USER: mtg
+          POSTGRES_PASSWORD: mtg_dev_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mtg -d mtg_deck_manager"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Make Maven wrapper executable
+        run: chmod +x ./mvnw
+
+      - name: Test backend against PostgreSQL
+        run: ./mvnw test
+        env:
+          QUARKUS_DATASOURCE_DB_KIND: postgresql
+          QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://localhost:5432/mtg_deck_manager
+          QUARKUS_DATASOURCE_USERNAME: mtg
+          QUARKUS_DATASOURCE_PASSWORD: mtg_dev_password
+          QUARKUS_FLYWAY_MIGRATE_AT_START: "true"
+          QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION: validate
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
@@ -70,7 +118,9 @@ jobs:
   backend-image:
     name: Publish backend image
     runs-on: ubuntu-latest
-    needs: backend
+    needs:
+      - backend
+      - backend-postgres
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     defaults:
@@ -94,6 +144,8 @@ jobs:
 
       - name: Package backend
         run: ./mvnw package -DskipTests
+        env:
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID || 'ci-placeholder.apps.googleusercontent.com' }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
@@ -129,6 +181,68 @@ jobs:
           fi
 
           curl --fail --show-error --silent --request POST "$BACKEND_DEPLOY_HOOK_URL"
+
+  staging-smoke:
+    name: Staging smoke tests
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Run staging API smoke tests
+        env:
+          STAGING_API_URL: ${{ vars.STAGING_API_URL }}
+          STAGING_BEARER_TOKEN: ${{ secrets.STAGING_BEARER_TOKEN }}
+        run: |
+          if [ -z "$STAGING_API_URL" ] || [ -z "$STAGING_BEARER_TOKEN" ]; then
+            echo "Skipping staging smoke tests because STAGING_API_URL or STAGING_BEARER_TOKEN is not configured."
+            exit 0
+          fi
+
+          python - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.request
+
+          base_url = os.environ["STAGING_API_URL"].rstrip("/")
+          token = os.environ["STAGING_BEARER_TOKEN"]
+
+          def request(path, method="GET", body=None, accept="application/json"):
+              headers = {
+                  "Authorization": f"Bearer {token}",
+                  "Accept": accept,
+              }
+              data = None
+              if body is not None:
+                  data = json.dumps(body).encode("utf-8")
+                  headers["Content-Type"] = "application/json"
+              req = urllib.request.Request(f"{base_url}{path}", data=data, headers=headers, method=method)
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  payload = response.read().decode("utf-8")
+                  if accept == "application/json":
+                      return json.loads(payload) if payload else None
+                  return payload
+
+          time.sleep(30)
+          request("/meta/sources")
+          deck = request("/decks/import", method="POST", body={
+              "name": "CI Smoke Deck",
+              "commander": "Xenagos, God of Revels",
+              "content": "1 Sol Ring\n1 Command Tower\n1 Forest\n1 Mountain"
+          })
+          deck_id = deck["id"]
+          exported = request(f"/decks/{deck_id}/export", accept="text/plain")
+          if "Sol Ring" not in exported:
+              raise SystemExit("Export smoke test did not include expected card")
+          request(f"/decks/{deck_id}/recommendations/strategic", method="POST", body={
+              "bracket": "casual",
+              "sourceMode": "auto",
+              "maxRecommendations": 3
+          })
+          request(f"/decks/{deck_id}", method="DELETE", accept="text/plain")
+          PY
 
   deploy-frontend:
     name: Deploy frontend
