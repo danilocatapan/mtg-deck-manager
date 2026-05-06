@@ -3,6 +3,7 @@ import { getAuthToken } from './auth'
 const API_ORIGIN = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 const BASE_URL = normalizeApiOrigin(API_ORIGIN)
 const REQUEST_TIMEOUT_MS = 12000
+const CARD_COLLECTION_BATCH_SIZE = 75
 
 function normalizeApiOrigin(origin) {
   try {
@@ -134,10 +135,16 @@ export async function fetchCardsByNames(names = []) {
   const uniqueNames = [...new Set(names.map((name) => String(name || '').trim()).filter(Boolean))]
   if (uniqueNames.length === 0) return []
   try {
-    return await request('/cards/collection', {
-      method: 'POST',
-      body: JSON.stringify({ names: uniqueNames }),
-    })
+    const cards = []
+    for (let start = 0; start < uniqueNames.length; start += CARD_COLLECTION_BATCH_SIZE) {
+      const batch = uniqueNames.slice(start, start + CARD_COLLECTION_BATCH_SIZE)
+      const resolved = await request('/cards/collection', {
+        method: 'POST',
+        body: JSON.stringify({ names: batch }),
+      })
+      cards.push(...resolved)
+    }
+    return cards
   } catch (e) {
     console.error('fetchCardsByNames error', e)
     return []

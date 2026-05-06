@@ -36,7 +36,7 @@ public class CardController {
 
     private static final Logger LOG = Logger.getLogger(CardController.class);
     private static final int MAX_CARD_NAME_LENGTH = 120;
-    private static final int MAX_COLLECTION_SIZE = 75;
+    private static final int MAX_COLLECTION_SIZE = 300;
 
     private final CardService cardService;
 
