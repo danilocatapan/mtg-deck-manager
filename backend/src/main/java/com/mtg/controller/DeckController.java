@@ -8,6 +8,7 @@ import com.mtg.domain.DeckAnalysis;
 import com.mtg.service.RecommendationService;
 import com.mtg.dto.RecommendationParamsDTO;
 import com.mtg.domain.DeckRecommendations;
+import com.mtg.domain.StrategicRecommendation;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -34,6 +35,9 @@ public class DeckController {
 
     @Inject
     RecommendationService recommendationService;
+
+    @Inject
+    com.mtg.service.StrategicRecommendationService strategicRecommendationService;
 
     @POST
     @Operation(summary = "Create a new deck")
@@ -169,6 +173,27 @@ public class DeckController {
             return Response.ok(recs).build();
         } catch (jakarta.ws.rs.NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
+        }
+    }
+
+    @POST
+    @Path("{id}/recommendations/strategic")
+    @Operation(summary = "Recommend strategic deck improvements")
+    @APIResponse(responseCode = "200", description = "Strategic recommendations generated")
+    public Response strategicRecommendations(@PathParam("id") String idStr, RecommendationParamsDTO params) {
+        long id;
+        try {
+            id = Long.parseLong(idStr);
+        } catch (NumberFormatException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid deck id: " + idStr).build();
+        }
+        try {
+            List<StrategicRecommendation> recommendations = strategicRecommendationService.recommend(id, params);
+            return Response.ok(recommendations).build();
+        } catch (jakarta.ws.rs.NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
         }
     }
 }
