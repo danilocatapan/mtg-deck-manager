@@ -39,7 +39,7 @@ export default function CardSearch({ onSelect }) {
   }, [query])
 
   function handleAdd(card) {
-    if (onSelect) onSelect({ name: card.name })
+    if (onSelect) onSelect(card)
   }
 
   return (

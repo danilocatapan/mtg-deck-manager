@@ -102,6 +102,24 @@ export async function getRecommendations(id, params) {
   return getStrategicRecommendations(id, params)
 }
 
+export async function fetchCardsByNames(names = []) {
+  const uniqueNames = [...new Set(names.map((name) => String(name || '').trim()).filter(Boolean))]
+  if (uniqueNames.length === 0) return []
+  try {
+    console.log('fetchCardsByNames:', uniqueNames.length)
+    const res = await fetch(`${BASE_URL}/cards/collection`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ names: uniqueNames }),
+    })
+    if (!res.ok) throw new Error('Failed to fetch card collection')
+    return await res.json()
+  } catch (e) {
+    console.error('fetchCardsByNames error', e)
+    return []
+  }
+}
+
 export async function getStrategicRecommendations(id, params) {
   try {
     if (id === undefined || id === null || isNaN(Number(id))) {
@@ -174,6 +192,7 @@ export async function importDeck(data) {
 
 export default {
   fetchDecks,
+  fetchCardsByNames,
   searchCards,
   createDeck,
   updateDeck,

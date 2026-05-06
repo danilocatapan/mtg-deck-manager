@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import CardSearch from './CardSearch'
 import Button from './ui/Button'
+import { fetchCardsByNames } from '../services/api'
 
 export default function DeckForm({ initial = null, onCancel, onSave }) {
   const [name, setName] = useState('')
   const [commander, setCommander] = useState('')
   const [cards, setCards] = useState([])
+  const [deckView, setDeckView] = useState('list')
+  const [cardImages, setCardImages] = useState({})
+  const [loadingImages, setLoadingImages] = useState(false)
   const [error, setError] = useState(null)
   const [savedMessage, setSavedMessage] = useState(null)
 
@@ -16,6 +20,32 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       setCards(initial.cards ? initial.cards.map((card) => ({ name: card.name, quantity: card.quantity })) : [])
     }
   }, [initial])
+
+  useEffect(() => {
+    if (deckView !== 'images' || cards.length === 0) return
+    const missingCards = cards.filter((card) => card.name && cardImages[card.name] === undefined)
+    if (missingCards.length === 0) return
+
+    let cancelled = false
+    async function loadImages() {
+      setLoadingImages(true)
+      const nextImages = {}
+      const fetchedCards = await fetchCardsByNames(missingCards.map((card) => card.name))
+      const fetchedByName = new Map(fetchedCards.map((card) => [card.name?.toLowerCase(), card]))
+      for (const deckCard of missingCards) {
+        const fetched = fetchedByName.get(deckCard.name.toLowerCase())
+        nextImages[deckCard.name] = fetched?.imageUrl || null
+      }
+      if (!cancelled) {
+        setCardImages((prev) => ({ ...prev, ...nextImages }))
+        setLoadingImages(false)
+      }
+    }
+    loadImages()
+    return () => {
+      cancelled = true
+    }
+  }, [deckView, cards, cardImages])
 
   const totalCards = useMemo(() => cards.reduce((sum, card) => sum + Number(card.quantity || 0), 0), [cards])
   const isOverLimit = totalCards > 99
@@ -34,6 +64,9 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       if (found) return prev.map((item) => (item.name === card.name ? { ...item, quantity: item.quantity + 1 } : item))
       return [...prev, { name: card.name, quantity: 1 }]
     })
+    if (card.imageUrl) {
+      setCardImages((prev) => ({ ...prev, [card.name]: card.imageUrl }))
+    }
   }
 
   function removeCard(nameToRemove) {
@@ -126,13 +159,21 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
         <div className="section-heading">
           <div>
             <h3>Deck list</h3>
-            <p>Adjust quantities or remove cards before saving.</p>
+            <p>Use list mode for fast edits or image mode to recognize cards visually.</p>
+          </div>
+          <div className="view-toggle" aria-label="Deck display mode">
+            <button type="button" className={deckView === 'list' ? 'active' : ''} onClick={() => setDeckView('list')}>
+              Lista
+            </button>
+            <button type="button" className={deckView === 'images' ? 'active' : ''} onClick={() => setDeckView('images')}>
+              Imagens
+            </button>
           </div>
         </div>
 
         {cards.length === 0 ? (
           <div className="empty-inline">No cards added yet. Search above to start building.</div>
-        ) : (
+        ) : deckView === 'list' ? (
           <div className="deck-table">
             {cards.map((card) => (
               <div key={card.name} className="deck-row">
@@ -150,6 +191,39 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
               </div>
             ))}
           </div>
+        ) : (
+          <>
+            {loadingImages && <div className="loading">Loading card images...</div>}
+            <div className="deck-image-grid">
+              {cards.map((card) => (
+                <article key={card.name} className="deck-image-card">
+                  <div className="card-art-frame">
+                    {cardImages[card.name] ? (
+                      <img src={cardImages[card.name]} alt={card.name} loading="lazy" />
+                    ) : (
+                      <div className="card-art-placeholder">
+                        <strong>{card.name}</strong>
+                        <span>Image unavailable</span>
+                      </div>
+                    )}
+                    <span className="card-quantity-badge">{card.quantity}x</span>
+                  </div>
+                  <div className="image-card-actions">
+                    <input
+                      aria-label={`Quantity for ${card.name}`}
+                      type="number"
+                      value={card.quantity}
+                      min={1}
+                      onChange={(e) => changeQuantity(card.name, parseInt(e.target.value || '1', 10))}
+                    />
+                    <Button type="button" variant="danger" onClick={() => removeCard(card.name)}>
+                      Remove
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
         )}
       </section>
 

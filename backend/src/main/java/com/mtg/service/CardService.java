@@ -240,8 +240,31 @@ public class CardService {
                 card.oracleText(),
                 card.cmc(),
                 card.colorIdentity(),
-                java.util.List.of()
+                java.util.List.of(),
+                imageUrl(card)
         );
+    }
+
+    private String imageUrl(ScryfallCardDTO card) {
+        if (card == null) {
+            return null;
+        }
+        if (card.imageUris() != null) {
+            return preferredImage(card.imageUris());
+        }
+        if (card.cardFaces() != null && !card.cardFaces().isEmpty()
+                && card.cardFaces().get(0) != null
+                && card.cardFaces().get(0).imageUris() != null) {
+            return preferredImage(card.cardFaces().get(0).imageUris());
+        }
+        return null;
+    }
+
+    private String preferredImage(ScryfallCardDTO.ImageUris imageUris) {
+        if (imageUris.normal() != null && !imageUris.normal().isBlank()) return imageUris.normal();
+        if (imageUris.large() != null && !imageUris.large().isBlank()) return imageUris.large();
+        if (imageUris.small() != null && !imageUris.small().isBlank()) return imageUris.small();
+        return imageUris.png();
     }
 
     public String normalizeLookupName(String name) {

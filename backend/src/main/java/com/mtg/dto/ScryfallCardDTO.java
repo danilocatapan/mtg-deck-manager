@@ -12,7 +12,34 @@ public record ScryfallCardDTO(
         @JsonProperty("cmc") Double cmc,
         @JsonProperty("type_line") String typeLine,
         @JsonProperty("oracle_text") String oracleText,
-        @JsonProperty("color_identity") java.util.List<String> colorIdentity
+        @JsonProperty("color_identity") java.util.List<String> colorIdentity,
+        @JsonProperty("image_uris") ImageUris imageUris,
+        @JsonProperty("card_faces") java.util.List<CardFaceDTO> cardFaces
 ) {
+    public ScryfallCardDTO(
+            String name,
+            String manaCost,
+            Double cmc,
+            String typeLine,
+            String oracleText,
+            java.util.List<String> colorIdentity
+    ) {
+        this(name, manaCost, cmc, typeLine, oracleText, colorIdentity, null, null);
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record ImageUris(
+            String small,
+            String normal,
+            String large,
+            String png
+    ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record CardFaceDTO(
+            @JsonProperty("image_uris") ImageUris imageUris
+    ) {
+    }
 }
 

@@ -1,17 +1,22 @@
 package com.mtg.controller;
 
 import com.mtg.dto.CardResponseDTO;
+import com.mtg.dto.CardCollectionRequestDTO;
 import com.mtg.dto.ErrorResponseDTO;
 import com.mtg.service.CardService;
 import com.mtg.service.ExternalServiceException;
 import com.mtg.service.RateLimitedExternalServiceException;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -25,6 +30,7 @@ import org.jboss.resteasy.reactive.RestResponse;
 
 @Path("/cards")
 @Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 @Tag(name = "Cards")
 public class CardController {
 
@@ -90,5 +96,39 @@ public class CardController {
                     new ErrorResponseDTO("Unable to fetch cards from Scryfall")
             );
         }
+    }
+
+    @POST
+    @Path("/collection")
+    @Operation(summary = "Fetch cards by exact names", description = "Uses Scryfall collection lookup and local cache to resolve many cards with fewer upstream requests.")
+    public RestResponse<?> findByNames(CardCollectionRequestDTO request) {
+        if (request == null || request.names() == null || request.names().isEmpty()) {
+            return RestResponse.status(
+                    RestResponse.Status.BAD_REQUEST,
+                    new ErrorResponseDTO("Body field 'names' is required")
+            );
+        }
+
+        List<String> names = request.names().stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(name -> !name.isBlank())
+                .distinct()
+                .toList();
+
+        if (names.isEmpty()) {
+            return RestResponse.status(
+                    RestResponse.Status.BAD_REQUEST,
+                    new ErrorResponseDTO("Body field 'names' must contain at least one card name")
+            );
+        }
+
+        LOG.infov("event=cards.collection.endpoint.request count={0}", names.size());
+        Map<String, CardResponseDTO> cardsByName = cardService.findByNames(names);
+        List<CardResponseDTO> cards = names.stream()
+                .map(name -> cardsByName.get(cardService.normalizeLookupName(name)))
+                .filter(Objects::nonNull)
+                .toList();
+        return RestResponse.ok(cards);
     }
 }
