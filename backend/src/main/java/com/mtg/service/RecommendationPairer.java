@@ -21,12 +21,22 @@ public class RecommendationPairer {
             CommanderArchetypeProfile profile,
             DeckRoleSummary roles
     ) {
+        return pair(adds, cuts, profile, roles, 5);
+    }
+
+    public List<StrategicRecommendation> pair(
+            List<StrategicCandidate> adds,
+            List<StrategicCandidate> cuts,
+            CommanderArchetypeProfile profile,
+            DeckRoleSummary roles,
+            int maxRecommendations
+    ) {
         List<StrategicRecommendation> recommendations = new ArrayList<>();
         Set<String> usedAdds = new HashSet<>();
         Set<String> usedCuts = new HashSet<>();
 
         for (StrategicCandidate add : adds) {
-            if (recommendations.size() >= 5) {
+            if (recommendations.size() >= maxRecommendations) {
                 break;
             }
             if (!usedAdds.add(normalize(add.card().name()))) {

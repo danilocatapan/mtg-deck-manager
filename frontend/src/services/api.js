@@ -99,23 +99,55 @@ export async function getDeckAnalysis(id) {
 }
 
 export async function getRecommendations(id, params) {
+  return getStrategicRecommendations(id, params)
+}
+
+export async function getStrategicRecommendations(id, params) {
   try {
     if (id === undefined || id === null || isNaN(Number(id))) {
       throw new Error('Invalid deck id')
     }
-    console.log('getRecommendations', id, params)
-    const res = await fetch(`${BASE_URL}/decks/${id}/recommendations`, {
+    console.log('getStrategicRecommendations', id, params)
+    const res = await fetch(`${BASE_URL}/decks/${id}/recommendations/strategic`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params || {}),
     })
-    if (!res.ok) throw new Error('Failed to get recommendations')
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(text || 'Failed to get strategic recommendations')
+    }
     const json = await res.json()
-    console.log('getRecommendations result', json)
+    console.log('getStrategicRecommendations result', json)
     return json
   } catch (e) {
-    console.error('getRecommendations error', e)
+    console.error('getStrategicRecommendations error', e)
     throw e
+  }
+}
+
+export async function getMetaSources() {
+  try {
+    const res = await fetch(`${BASE_URL}/meta/sources`)
+    if (!res.ok) throw new Error('Failed to get meta sources')
+    const json = await res.json()
+    return json.sources || []
+  } catch (e) {
+    console.error('getMetaSources error', e)
+    return []
+  }
+}
+
+export async function getCommanderMeta(commander, { bracket = 'casual', sourceMode = 'auto' } = {}) {
+  if (!commander) return null
+  try {
+    const query = new URLSearchParams({ bracket, sourceMode })
+    const res = await fetch(`${BASE_URL}/meta/commanders/${encodeURIComponent(commander)}?${query}`)
+    if (!res.ok) throw new Error('Failed to get commander meta')
+    return await res.json()
+  } catch (e) {
+    console.error('getCommanderMeta error', e)
+    return null
   }
 }
 
@@ -140,4 +172,15 @@ export async function importDeck(data) {
   }
 }
 
-export default { fetchDecks, searchCards, createDeck, updateDeck, deleteDeck, getDeckAnalysis, getRecommendations }
+export default {
+  fetchDecks,
+  searchCards,
+  createDeck,
+  updateDeck,
+  deleteDeck,
+  getDeckAnalysis,
+  getRecommendations,
+  getStrategicRecommendations,
+  getMetaSources,
+  getCommanderMeta,
+}

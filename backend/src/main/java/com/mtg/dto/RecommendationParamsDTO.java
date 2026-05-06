@@ -7,6 +7,11 @@ public record RecommendationParamsDTO(
         Double budget,
         String bracket,
         String strategy,
-        String meta
+        String meta,
+        String sourceMode,
+        Integer maxRecommendations
 ) {
+    public RecommendationParamsDTO(Double budget, String bracket, String strategy, String meta) {
+        this(budget, bracket, strategy, meta, null, null);
+    }
 }

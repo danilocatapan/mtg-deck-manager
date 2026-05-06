@@ -58,16 +58,39 @@ public class DeckRoleAnalyzer {
     }
 
     private Map<String, Integer> detectGaps(int lands, int ramp, int draw, int removal, int protection, int finishers, double averageCmc, String bracket) {
-        int rampTarget = "high-power".equalsIgnoreCase(bracket) ? 12 : 10;
-        int drawTarget = "high-power".equalsIgnoreCase(bracket) ? 11 : 9;
-        int removalTarget = "high-power".equalsIgnoreCase(bracket) ? 10 : 8;
+        String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase();
+        int landTarget = switch (normalizedBracket) {
+            case "cedh" -> 27;
+            case "high-power" -> 30;
+            case "mid" -> 34;
+            default -> 36;
+        };
+        int rampTarget = switch (normalizedBracket) {
+            case "cedh" -> 14;
+            case "high-power" -> 12;
+            case "mid" -> 10;
+            default -> 9;
+        };
+        int drawTarget = switch (normalizedBracket) {
+            case "cedh" -> 12;
+            case "high-power" -> 10;
+            case "mid" -> 9;
+            default -> 8;
+        };
+        int removalTarget = switch (normalizedBracket) {
+            case "cedh" -> 14;
+            case "high-power" -> 10;
+            case "mid" -> 8;
+            default -> 7;
+        };
+        int protectionTarget = "high-power".equals(normalizedBracket) || "cedh".equals(normalizedBracket) ? 4 : 2;
 
         Map<String, Integer> gaps = new HashMap<>();
-        if (lands < 34) gaps.put("land", 34 - lands);
+        if (lands < landTarget) gaps.put("land", landTarget - lands);
         if (ramp < rampTarget) gaps.put("ramp", rampTarget - ramp);
         if (draw < drawTarget) gaps.put("draw", drawTarget - draw);
         if (removal < removalTarget) gaps.put("removal", removalTarget - removal);
-        if (protection < 3) gaps.put("protection", 3 - protection);
+        if (protection < protectionTarget) gaps.put("protection", protectionTarget - protection);
         if (finishers < 4) gaps.put("finisher", 4 - finishers);
         if (averageCmc > 3.8) gaps.put("curve", (int) Math.ceil((averageCmc - 3.6) * 4));
         return gaps;

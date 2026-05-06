@@ -20,16 +20,21 @@ public class CandidateCutSelector {
     SynergyEngine synergyEngine;
 
     public List<StrategicCandidate> select(Deck deck, Map<String, CardResponseDTO> cardsByName, CommanderArchetypeProfile profile, DeckRoleSummary roles) {
+        return select(deck, cardsByName, profile, roles, "casual");
+    }
+
+    public List<StrategicCandidate> select(Deck deck, Map<String, CardResponseDTO> cardsByName, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket) {
         return deck.getCards().stream()
-                .map(deckCard -> toCandidate(deckCard, cardsByName.get(normalize(deckCard.getName())), profile, roles))
+                .map(deckCard -> toCandidate(deckCard, cardsByName.get(normalize(deckCard.getName())), profile, roles, bracket))
                 .filter(candidate -> candidate.card() != null)
-                .filter(candidate -> !"land".equals(candidate.role()) || roles.lands() > 37)
+                .filter(candidate -> !"land".equals(candidate.role()) || roles.lands() > minLandTarget(bracket))
+                .filter(candidate -> roleProtectionAllowsCut(candidate.role(), candidate.card(), roles, bracket))
                 .sorted(Comparator.comparingDouble(StrategicCandidate::score).reversed())
                 .limit(12)
                 .toList();
     }
 
-    private StrategicCandidate toCandidate(DeckCard deckCard, CardResponseDTO card, CommanderArchetypeProfile profile, DeckRoleSummary roles) {
+    private StrategicCandidate toCandidate(DeckCard deckCard, CardResponseDTO card, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket) {
         if (card == null) {
             return new StrategicCandidate(null, "unknown", 0.0, "sem dados suficientes para avaliar");
         }
@@ -41,8 +46,12 @@ public class CandidateCutSelector {
         double curvePressure = card.cmc() != null && card.cmc() >= 5.0 && roles.averageCmc() > 3.5 ? 1.0 : 0.2;
         double weakRoleFit = weakRoleFit(role, profile);
         double strictUpgrade = strictUpgradeAvailable(role, card);
-        double score = lowSynergy * 0.30 + lowEfficiency * 0.20 + redundancy * 0.15
-                + curvePressure * 0.15 + weakRoleFit * 0.10 + strictUpgrade * 0.10;
+        double lowMetaFitForBracket = lowMetaFitForBracket(card, bracket);
+        double score = lowSynergy * 0.25 + lowEfficiency * 0.20 + curvePressure * 0.15
+                + redundancy * 0.15 + lowMetaFitForBracket * 0.15 + strictUpgrade * 0.10;
+        if ("value".equals(role)) {
+            score += weakRoleFit * 0.05;
+        }
 
         return new StrategicCandidate(card, role, score, cutReason(role, card));
     }
@@ -92,6 +101,58 @@ public class CandidateCutSelector {
             case "draw" -> cmc >= 4.0 ? 0.75 : 0.25;
             case "removal" -> cmc >= 4.0 ? 0.7 : 0.2;
             default -> cmc >= 5.0 ? 0.6 : 0.3;
+        };
+    }
+
+    private double lowMetaFitForBracket(CardResponseDTO card, String bracket) {
+        double cmc = card.cmc() != null ? card.cmc() : 0.0;
+        String oracle = text(card.oracleText());
+        String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT);
+        if ("cedh".equals(normalizedBracket)) {
+            return cmc >= 4.0 && !oracle.contains("win the game") && !oracle.contains("counter target") ? 1.0 : 0.25;
+        }
+        if ("high-power".equals(normalizedBracket)) {
+            return cmc >= 5.0 || oracle.contains("at the beginning of your upkeep") ? 0.85 : 0.3;
+        }
+        if ("casual".equals(normalizedBracket)) {
+            return cmc >= 7.0 ? 0.65 : 0.35;
+        }
+        return cmc >= 5.0 ? 0.65 : 0.35;
+    }
+
+    private boolean roleProtectionAllowsCut(String role, CardResponseDTO card, DeckRoleSummary roles, String bracket) {
+        String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT);
+        int rampFloor = "cedh".equals(normalizedBracket) ? 14 : "high-power".equals(normalizedBracket) ? 12 : "mid".equals(normalizedBracket) ? 10 : 9;
+        int drawFloor = "cedh".equals(normalizedBracket) ? 12 : "high-power".equals(normalizedBracket) ? 10 : "mid".equals(normalizedBracket) ? 9 : 8;
+        int removalFloor = "cedh".equals(normalizedBracket) ? 14 : "high-power".equals(normalizedBracket) ? 10 : "mid".equals(normalizedBracket) ? 8 : 7;
+        int protectionFloor = "high-power".equals(normalizedBracket) || "cedh".equals(normalizedBracket) ? 4 : 2;
+        return switch (role) {
+            case "ramp" -> roles.ramp() > rampFloor;
+            case "draw" -> roles.draw() > drawFloor;
+            case "removal" -> roles.removal() > removalFloor;
+            case "protection" -> roles.protection() > protectionFloor;
+            case "finisher" -> roles.finishers() > 1 || isGenericExpensiveThreat(card);
+            default -> true;
+        };
+    }
+
+    private boolean isGenericExpensiveThreat(CardResponseDTO card) {
+        double cmc = card.cmc() != null ? card.cmc() : 0.0;
+        String oracle = text(card.oracleText());
+        return cmc >= 5.0
+                && !oracle.contains("win the game")
+                && !oracle.contains("extra turn")
+                && !oracle.contains("combo")
+                && !oracle.contains("whenever");
+    }
+
+    private int minLandTarget(String bracket) {
+        String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT);
+        return switch (normalizedBracket) {
+            case "cedh" -> 27;
+            case "high-power" -> 30;
+            case "mid" -> 34;
+            default -> 36;
         };
     }
 

@@ -1,6 +1,85 @@
 import React from 'react'
 
-export default function Recommendations({ rec }) {
+function motivationBadges(reasoning = '') {
+  const text = reasoning.toLowerCase()
+  return [
+    text.includes('sinerg') || text.includes('plano') ? 'synergy' : null,
+    text.includes('precisa') || text.includes('lacuna') || text.includes('gap') ? 'gap' : null,
+    text.includes('eficient') || text.includes('curva') ? 'efficiency' : null,
+    text.includes('meta') || text.includes('performance') ? 'meta' : null,
+  ].filter(Boolean)
+}
+
+function MetaContext({ metaProfile, metaSources }) {
+  if (!metaProfile && (!metaSources || metaSources.length === 0)) return null
+  const sourcesUsed = metaProfile?.sourcesUsed || []
+  return (
+    <section className="meta-context-panel">
+      <div>
+        <span className="rec-label">Contexto usado</span>
+        <h4>{metaProfile?.bracket || 'auto'} / {metaProfile?.sourceMode || 'auto'}</h4>
+      </div>
+      <div className="meta-context-grid">
+        <div>
+          <dt>Amostra local</dt>
+          <dd>{metaProfile?.sampleSize ?? 0} cartas priorizadas</dd>
+        </div>
+        <div>
+          <dt>Fontes escolhidas</dt>
+          <dd>{sourcesUsed.length ? sourcesUsed.join(', ') : 'LOCAL'}</dd>
+        </div>
+        <div>
+          <dt>Modo de runtime</dt>
+          <dd>cache local, sem chamada externa direta</dd>
+        </div>
+      </div>
+      {metaSources?.length > 0 && (
+        <div className="source-status-list">
+          {metaSources.map((source) => (
+            <span key={source.name} className={source.enabled ? 'source-pill enabled' : 'source-pill'}>
+              {source.name}: {source.enabled ? 'ativo' : 'inativo'}
+            </span>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function StrategicRecommendations({ rec }) {
+  if (!Array.isArray(rec)) return null
+  if (rec.length === 0) {
+    return <div className="empty-inline">Nenhuma troca estratégica segura foi encontrada com os filtros atuais.</div>
+  }
+
+  return (
+    <div className="strategic-swap-list">
+      {rec.map((item, index) => {
+        const badges = motivationBadges(item.reasoning)
+        return (
+          <article key={`${item.add}-${item.remove}-${index}`} className="strategic-swap-card">
+            <div className="swap-flow">
+              <div>
+                <span className="rec-label">Adicionar</span>
+                <strong>{item.add}</strong>
+              </div>
+              <div>
+                <span className="rec-label">Remover</span>
+                <strong>{item.remove}</strong>
+              </div>
+            </div>
+            <p>{item.reasoning}</p>
+            <div className="motivation-badges">
+              {(badges.length ? badges : ['strategy']).map((badge) => <span key={badge}>{badge}</span>)}
+            </div>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function Recommendations({ rec, metaProfile, metaSources = [] }) {
   if (!rec) return null
 
   const recommendationKey = (item, index) => `${item.name}-${item.role || 'unknown'}-${item.reason || 'none'}-${index}`
@@ -16,8 +95,10 @@ export default function Recommendations({ rec }) {
   return (
     <div className="recommendation-results">
       <h3>Recommendations</h3>
+      <MetaContext metaProfile={metaProfile} metaSources={metaSources} />
+      {Array.isArray(rec) && <StrategicRecommendations rec={rec} />}
 
-      {rec.gaps && (
+      {!Array.isArray(rec) && rec.gaps && (
         <div className="gap-panel">
           <h4>Gaps</h4>
           <div className="gap-grid">
@@ -31,7 +112,7 @@ export default function Recommendations({ rec }) {
         </div>
       )}
 
-      {rec.add && rec.add.length > 0 && (
+      {!Array.isArray(rec) && rec.add && rec.add.length > 0 && (
         <div>
           <h4>Add</h4>
           <div className="recommendation-grid">
@@ -53,7 +134,7 @@ export default function Recommendations({ rec }) {
         </div>
       )}
 
-      {rec.cut && rec.cut.length > 0 && (
+      {!Array.isArray(rec) && rec.cut && rec.cut.length > 0 && (
         <div>
           <h4>Cut</h4>
           <div className="recommendation-grid">

@@ -79,10 +79,13 @@ public class CandidateAddSelector {
         double gapScore = roles.gaps().containsKey(role) || ("curve".equals(role) && roles.gaps().containsKey("curve")) ? 1.0 : 0.3;
         double efficiency = efficiency(card);
         double archetypeFit = archetypeFit(card, profile);
-        double metaScore = metaCards.stream().anyMatch(meta -> meta.getName().equalsIgnoreCase(card.name())) ? 1.0 : 0.2;
-        double bracketFit = bracketFit(card, bracket);
-        double score = commanderSynergy * 0.30 + gapScore * 0.25 + efficiency * 0.15
-                + archetypeFit * 0.15 + metaScore * 0.10 + bracketFit * 0.05;
+        MetaCard metaCard = metaCards.stream()
+                .filter(meta -> meta.getName().equalsIgnoreCase(card.name()))
+                .findFirst()
+                .orElse(null);
+        double metaScore = metaCard == null ? 0.2 : Math.min(1.0, metaCard.getInclusion() * metaCard.getBracketWeight() + metaCard.getPerformanceWeight());
+        double bracketFit = bracketFit(card, bracket, metaCard);
+        double score = scoreForBracket(bracket, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore, bracketFit, role);
         return new StrategicCandidate(card, role, score, addReason(role, profile));
     }
 
@@ -154,11 +157,41 @@ public class CandidateAddSelector {
         return 0.55;
     }
 
-    private double bracketFit(CardResponseDTO card, String bracket) {
+    private double bracketFit(CardResponseDTO card, String bracket, MetaCard metaCard) {
         double cmc = card.cmc() != null ? card.cmc() : 0.0;
-        if ("casual".equalsIgnoreCase(bracket) && cmc <= 4.0) return 0.8;
-        if ("high-power".equalsIgnoreCase(bracket) && cmc <= 3.0) return 1.0;
+        String source = metaCard == null ? "LOCAL" : metaCard.getSource();
+        if ("casual".equalsIgnoreCase(bracket)) {
+            if ("EDHTOP16".equalsIgnoreCase(source) || "TOPDECK".equalsIgnoreCase(source)) return 0.45;
+            return cmc <= 4.0 ? 0.9 : 0.55;
+        }
+        if ("mid".equalsIgnoreCase(bracket)) return cmc <= 4.0 ? 0.85 : 0.55;
+        if ("high-power".equalsIgnoreCase(bracket)) return cmc <= 3.0 ? 1.0 : 0.45;
+        if ("cedh".equalsIgnoreCase(bracket)) return cmc <= 2.0 || isStackInteraction(card) ? 1.0 : 0.35;
         return 0.6;
+    }
+
+    private double scoreForBracket(
+            String bracket,
+            double synergy,
+            double gapFix,
+            double efficiency,
+            double archetypeFit,
+            double meta,
+            double bracketFit,
+            String role
+    ) {
+        double comboOrInteractionDensity = ("removal".equals(role) || "protection".equals(role)) ? 1.0 : 0.45;
+        return switch (bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT)) {
+            case "cedh" -> meta * 0.35 + efficiency * 0.30 + comboOrInteractionDensity * 0.15 + synergy * 0.10 + gapFix * 0.10;
+            case "high-power" -> efficiency * 0.30 + meta * 0.25 + synergy * 0.20 + gapFix * 0.15 + archetypeFit * 0.10;
+            case "mid" -> synergy * 0.30 + gapFix * 0.25 + efficiency * 0.20 + meta * 0.15 + archetypeFit * 0.10;
+            default -> synergy * 0.35 + gapFix * 0.25 + archetypeFit * 0.20 + efficiency * 0.10 + Math.min(meta, bracketFit) * 0.10;
+        };
+    }
+
+    private boolean isStackInteraction(CardResponseDTO card) {
+        String oracle = text(card.oracleText());
+        return oracle.contains("counter target") || oracle.contains("you may cast") || oracle.contains("mana value 1 or less");
     }
 
     private String addReason(String role, CommanderArchetypeProfile profile) {

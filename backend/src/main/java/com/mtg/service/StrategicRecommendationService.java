@@ -5,11 +5,14 @@ import com.mtg.dto.CardResponseDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
 import com.mtg.repository.DeckRepository;
+import com.mtg.service.meta.BracketMetaPolicy;
+import com.mtg.service.meta.CommanderMetaProfile;
 import com.mtg.service.meta.MetaCard;
 import com.mtg.service.meta.MetaProvider;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
+import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,6 +22,7 @@ import java.util.Map;
 
 @ApplicationScoped
 public class StrategicRecommendationService {
+    private static final Logger LOG = Logger.getLogger(StrategicRecommendationService.class);
 
     @Inject
     DeckRepository deckRepository;
@@ -44,6 +48,9 @@ public class StrategicRecommendationService {
     @Inject
     RecommendationPairer pairer;
 
+    @Inject
+    BracketMetaPolicy bracketMetaPolicy;
+
     public List<StrategicRecommendation> recommend(Long deckId, com.mtg.dto.RecommendationParamsDTO params) {
         Deck deck = deckRepository.findById(deckId);
         if (deck == null) {
@@ -57,8 +64,26 @@ public class StrategicRecommendationService {
             throw new IllegalStateException("Commander deck main deck must have at most 99 cards");
         }
 
-        String bracket = params != null && params.bracket() != null ? params.bracket() : "casual";
-        List<MetaCard> metaCards = metaProvider.getTopCards(deck.getCommander());
+        BracketMetaPolicy policy = bracketMetaPolicy == null ? new BracketMetaPolicy() : bracketMetaPolicy;
+        String bracket = policy.normalizeBracket(params != null ? params.bracket() : null);
+        String sourceMode = policy.normalizeSourceMode(params != null ? params.sourceMode() : null);
+        int maxRecommendations = maxRecommendations(params);
+        CommanderMetaProfile metaProfile = metaProvider.getCommanderProfile(deck.getCommander(), bracket, sourceMode);
+        if (metaProfile == null) {
+            List<MetaCard> legacyCards = metaProvider.getTopCards(deck.getCommander());
+            metaProfile = new CommanderMetaProfile(
+                    deck.getCommander(),
+                    bracket,
+                    sourceMode,
+                    legacyCards == null ? 0 : legacyCards.size(),
+                    legacyCards == null ? List.of() : legacyCards,
+                    com.mtg.service.meta.RoleTargets.forBracket(bracket).asMap(),
+                    List.of(),
+                    policy.sourcesFor(bracket, sourceMode),
+                    java.time.OffsetDateTime.now()
+            );
+        }
+        List<MetaCard> metaCards = metaProfile.topCards();
         if (metaCards == null) metaCards = List.of();
 
         Map<String, CardResponseDTO> knownCards = preloadCards(deck, metaCards);
@@ -67,11 +92,20 @@ public class StrategicRecommendationService {
         CommanderArchetypeProfile profile = archetypeDetector.detect(deck.getCommander(), commanderCard, roles, persistedColors(deck.getColorIdentity()));
 
         List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket);
-        List<StrategicCandidate> cuts = cutSelector.select(deck, knownCards, profile, roles);
+        List<StrategicCandidate> cuts = cutSelector.select(deck, knownCards, profile, roles, bracket);
 
-        return pairer.pair(adds, cuts, profile, roles).stream()
-                .limit(5)
-                .toList();
+        LOG.infov(
+                "event=strategic.recommendation.context deckId={0} commander=\"{1}\" bracket={2} sourceMode={3} sampleSize={4} sources={5} fallback={6}",
+                deckId,
+                deck.getCommander(),
+                bracket,
+                sourceMode,
+                metaProfile.sampleSize(),
+                metaProfile.sourcesUsed(),
+                metaCards.isEmpty()
+        );
+
+        return pairer.pair(adds, cuts, profile, roles, maxRecommendations);
     }
 
     private Map<String, CardResponseDTO> preloadCards(Deck deck, List<MetaCard> metaCards) {
@@ -103,5 +137,13 @@ public class StrategicRecommendationService {
             colors.add(String.valueOf(symbol));
         }
         return colors;
+    }
+
+    private int maxRecommendations(com.mtg.dto.RecommendationParamsDTO params) {
+        Integer requested = params == null ? null : params.maxRecommendations();
+        if (requested == null) {
+            return 5;
+        }
+        return Math.max(3, Math.min(5, requested));
     }
 }

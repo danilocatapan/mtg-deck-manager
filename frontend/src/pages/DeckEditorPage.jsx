@@ -3,7 +3,7 @@ import DeckForm from '../components/DeckForm'
 import DeckAnalysis from '../components/DeckAnalysis'
 import Recommendations from '../components/Recommendations'
 import RecommendationForm from '../components/RecommendationForm'
-import { createDeck, getDeckAnalysis, getRecommendations, updateDeck } from '../services/api'
+import { createDeck, getCommanderMeta, getDeckAnalysis, getMetaSources, getRecommendations, updateDeck } from '../services/api'
 import Button from '../components/ui/Button'
 import analyzeIcon from '../assets/icons/analyze.png'
 import recommendIcon from '../assets/icons/recommend.png'
@@ -12,6 +12,9 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
   const [initial, setInitial] = useState(null)
   const [analysis, setAnalysis] = useState(null)
   const [rec, setRec] = useState(null)
+  const [metaProfile, setMetaProfile] = useState(null)
+  const [metaSources, setMetaSources] = useState([])
+  const [recommendationParams, setRecommendationParams] = useState({ bracket: 'casual', sourceMode: 'auto' })
   const [loadingAnalysis, setLoadingAnalysis] = useState(false)
   const [loadingRec, setLoadingRec] = useState(false)
   const [message, setMessage] = useState(null)
@@ -22,6 +25,11 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
     if (mode === 'edit' && deck) setInitial(deck)
     if (mode === 'create') setInitial(null)
   }, [mode, deck])
+
+  useEffect(() => {
+    if (!canAnalyze) return
+    getMetaSources().then(setMetaSources)
+  }, [canAnalyze])
 
   const savedCardCount = useMemo(() => deck?.cards?.reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0, [deck])
   const canAnalyze = mode === 'edit' && deck?.id && savedCardCount > 0 && savedCardCount <= 99
@@ -72,11 +80,17 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
     try {
       setError(null)
       setLoadingRec(true)
+      setRecommendationParams(params)
       const recommendations = await getRecommendations(deck.id, params)
+      const profile = await getCommanderMeta(deck.commander, {
+        bracket: params?.bracket || 'casual',
+        sourceMode: params?.sourceMode || 'auto',
+      })
       console.log('recommendations', recommendations)
       setRec(recommendations)
+      setMetaProfile(profile)
       setActivePanel('recommendations')
-      setMessage('Recommendations generated.')
+      setMessage('Strategic recommendations generated from local meta cache.')
     } catch (e) {
       console.error('recommendations error', e)
       setError(e.message || 'Failed to get recommendations.')
@@ -148,12 +162,21 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
             <div>
               <p className="eyebrow">Sideboard / Upgrade Path</p>
               <h2>Recommendations</h2>
-              <p>Suggestions explain what gap each card is trying to solve.</p>
+              <p>Bracket-aware swaps explain the problem, why the add helps, and why the cut is the least painful slot.</p>
             </div>
           </div>
-          <RecommendationForm onSubmit={handleRecommend} disabled={!canAnalyze || loadingRec} />
+          <RecommendationForm
+            onSubmit={handleRecommend}
+            onParamsChange={setRecommendationParams}
+            disabled={!canAnalyze || loadingRec}
+          />
+          <div className="recommendation-source-summary">
+            <span>Modo atual: {recommendationParams.sourceMode || 'auto'}</span>
+            <span>Nível: {recommendationParams.bracket || 'casual'}</span>
+            <span>Runtime: cache local</span>
+          </div>
           {loadingRec && <div className="loading">Loading recommendations...</div>}
-          {rec ? <Recommendations rec={rec} /> : <div className="empty-inline">Generate recommendations after saving a valid deck.</div>}
+          {rec ? <Recommendations rec={rec} metaProfile={metaProfile} metaSources={metaSources} /> : <div className="empty-inline">Generate recommendations after saving a valid deck.</div>}
         </div>
       )}
 
