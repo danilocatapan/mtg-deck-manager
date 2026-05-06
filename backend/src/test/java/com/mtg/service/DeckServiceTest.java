@@ -51,7 +51,7 @@ class DeckServiceTest {
 
         assertNotNull(resp.id());
         assertEquals("My Deck", resp.name());
-        verify(deckRepository).persist(argThat(deck -> OWNER_ID.equals(deck.getOwnerId())));
+        verify(deckRepository).persist(org.mockito.ArgumentMatchers.<Deck>argThat(deck -> OWNER_ID.equals(deck.getOwnerId())));
     }
 
     @Test

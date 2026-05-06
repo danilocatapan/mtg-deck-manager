@@ -62,21 +62,27 @@ Suposicoes necessarias:
 
 Plano para producao e GitHub Actions:
 
-1. Adicionar dependencia `quarkus-jdbc-postgresql` no backend e manter H2 apenas para `%dev`/`%test` ou substituir por perfis explicitos.
-2. Trocar `application.properties` para usar variaveis:
+1. Dependencias adicionadas no backend: `quarkus-jdbc-postgresql` e `quarkus-flyway`.
+2. Configuracoes adicionadas em `application.properties`:
+   - `%dev` e `%test` continuam usando H2 em memoria.
+   - `%pg` usa PostgreSQL local com Flyway automatico para validacao production-like.
+   - `%prod` usa PostgreSQL com `hibernate-orm.database.generation=validate` e Flyway controlado por variavel.
+3. Variaveis esperadas:
    - `QUARKUS_DATASOURCE_DB_KIND=postgresql`
    - `QUARKUS_DATASOURCE_JDBC_URL`
    - `QUARKUS_DATASOURCE_USERNAME`
    - `QUARKUS_DATASOURCE_PASSWORD`
    - `QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=validate` em producao
-3. Introduzir migrations versionadas, preferencialmente Flyway (`quarkus-flyway`) ou Liquibase, colocando este script como migration inicial apos validar ambiente vazio.
-4. Criar um job de CI com PostgreSQL service container para rodar testes de persistencia contra Postgres, separado dos testes H2 atuais durante a transicao.
-5. Configurar GitHub Secrets/Variables:
+   - `QUARKUS_FLYWAY_MIGRATE_AT_START=true` somente quando o runtime deve aplicar migrations no start.
+4. Migration inicial criada em `backend/src/main/resources/db/migration/V1__create_deck_schema.sql`.
+5. PostgreSQL local configurado via `docker-compose.yml`, `.env` local ignorado e `.env.example` versionado.
+6. Proxima melhoria de CI: criar um job com PostgreSQL service container para validar a migration contra Postgres, separado dos testes H2 atuais durante a transicao.
+7. Configurar GitHub Secrets/Variables:
    - Secrets: `DATABASE_URL` ou `QUARKUS_DATASOURCE_JDBC_URL`, `QUARKUS_DATASOURCE_USERNAME`, `QUARKUS_DATASOURCE_PASSWORD`, `BACKEND_DEPLOY_HOOK_URL`, `GOOGLE_CLIENT_ID` se o runtime precisar receber via deploy.
    - Variables: `VITE_API_URL`, `CORS_ORIGINS`, `SWAGGER_UI_ENABLED`, `APP_LOG_LEVEL`.
-6. Ajustar o deploy hook/runtime para injetar as variaveis no provedor de hospedagem do backend, nao apenas no GitHub Actions.
-7. Rodar a migration em staging, subir backend com `database.generation=validate`, executar smoke tests de `GET/POST /decks`, import/export e recomendacoes.
-8. Promover para producao com backup/snapshot do PostgreSQL antes da primeira aplicacao da migration.
+8. Ajustar o deploy hook/runtime para injetar as variaveis no provedor de hospedagem do backend, nao apenas no GitHub Actions.
+9. Rodar a migration em staging, subir backend com `database.generation=validate`, executar smoke tests de `GET/POST /decks`, import/export e recomendacoes.
+10. Promover para producao com backup/snapshot do PostgreSQL antes da primeira aplicacao da migration.
 
 ## Script Final
 
