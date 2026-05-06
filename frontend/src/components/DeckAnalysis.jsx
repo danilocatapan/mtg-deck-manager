@@ -16,6 +16,15 @@ export default function DeckAnalysis({ analysis }) {
     ['Draw', analysis.drawCount],
     ['Removal', analysis.removalCount],
   ]
+  const diagnostics = [
+    { label: 'Early Game', value: (analysis.manaCurve?.[0] || 0) + (analysis.manaCurve?.[1] || 0) + (analysis.manaCurve?.[2] || 0), goodAt: 16 },
+    { label: 'Ramp Density', value: analysis.rampCount ?? 0, goodAt: 10 },
+    { label: 'Interaction', value: analysis.removalCount ?? 0, goodAt: 8 },
+    { label: 'Card Advantage', value: analysis.drawCount ?? 0, goodAt: 8 },
+  ].map((item) => ({
+    ...item,
+    tone: item.value >= item.goodAt ? 'good' : item.value >= Math.ceil(item.goodAt * 0.65) ? 'warning' : 'bad',
+  }))
 
   return (
     <div className="analysis-panel">
@@ -24,6 +33,17 @@ export default function DeckAnalysis({ analysis }) {
           <div key={label} className="metric-card">
             <span>{label}</span>
             <strong title={String(value)}>{formatMetric(value)}</strong>
+          </div>
+        ))}
+      </div>
+
+      <h4>Commander Diagnostics</h4>
+      <div className="diagnostic-grid">
+        {diagnostics.map((item) => (
+          <div key={item.label} className={`diagnostic-card metric-${item.tone}`}>
+            <span>{item.label}</span>
+            <strong>{formatMetric(item.value)}</strong>
+            <small>Target {item.goodAt}+</small>
           </div>
         ))}
       </div>

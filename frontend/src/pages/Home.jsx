@@ -81,14 +81,14 @@ export default function Home() {
 
   return (
     <main>
-      <section className="page-heading">
+      <section className="zone zone-command page-heading">
         <div>
-          <p className="eyebrow">Commander workflow</p>
-          <h1>Decks</h1>
+          <p className="eyebrow">Command Zone</p>
+          <h1>Deck Library</h1>
           <p className="page-description">Create or import a deck, tune the list, analyze structure, then request explainable recommendations.</p>
         </div>
         <div className="actions-row">
-          <Button onClick={handleCreate}>
+          <Button className="cta-primary" onClick={handleCreate}>
             <img className="btn-icon" src={createIcon} alt="" aria-hidden="true" />
             Create Deck
           </Button>
@@ -99,12 +99,12 @@ export default function Home() {
         </div>
       </section>
 
-      <Card>
+      <Card className="zone zone-battlefield">
         <div className="workflow-steps" aria-label="Main workflow">
-          <div><strong>1</strong><span>Create or import</span></div>
-          <div><strong>2</strong><span>Edit card list</span></div>
-          <div><strong>3</strong><span>Analyze deck</span></div>
-          <div><strong>4</strong><span>Optimize recommendations</span></div>
+          <div data-state="active"><strong>1</strong><span>Create or import</span></div>
+          <div><strong>2</strong><span>Edit library</span></div>
+          <div><strong>3</strong><span>Battlefield metrics</span></div>
+          <div><strong>4</strong><span>Upgrade path</span></div>
         </div>
       </Card>
 
@@ -112,7 +112,7 @@ export default function Home() {
       {loading ? (
         <Card><div className="loading">Loading decks...</div></Card>
       ) : (
-        <Card>
+        <Card className="zone zone-library">
           <DeckList
             decks={decks}
             onEdit={handleEdit}

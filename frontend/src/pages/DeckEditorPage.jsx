@@ -25,6 +25,11 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
 
   const savedCardCount = useMemo(() => deck?.cards?.reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0, [deck])
   const canAnalyze = mode === 'edit' && deck?.id && savedCardCount > 0 && savedCardCount <= 99
+  const steps = [
+    { key: 'editor', label: 'Editor', state: activePanel === 'editor' ? 'active' : 'complete' },
+    { key: 'analysis', label: 'Analysis', state: activePanel === 'analysis' ? 'active' : analysis ? 'complete' : 'locked' },
+    { key: 'recommendations', label: 'Recommendations', state: activePanel === 'recommendations' ? 'active' : rec ? 'complete' : 'locked' },
+  ]
 
   async function handleSave(payload) {
     try {
@@ -82,9 +87,9 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
 
   return (
     <section>
-      <div className="page-heading">
+      <div className="zone zone-command page-heading">
         <div>
-          <p className="eyebrow">{mode === 'create' ? 'Step 1 of 4' : 'Deck workspace'}</p>
+          <p className="eyebrow">Command Zone</p>
           <h1>{mode === 'create' ? 'Create Deck' : deck?.name || 'Edit Deck'}</h1>
           <p className="page-description">
             {mode === 'create'
@@ -95,25 +100,36 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
         <Button variant="secondary" onClick={() => onDone && onDone()}>Back to Decks</Button>
       </div>
 
-      <div className="tabs" role="tablist" aria-label="Deck workflow">
-        <button type="button" className={activePanel === 'editor' ? 'active' : ''} onClick={() => setActivePanel('editor')}>Editor</button>
-        <button type="button" className={activePanel === 'analysis' ? 'active' : ''} onClick={() => setActivePanel('analysis')} disabled={!analysis}>Analysis</button>
-        <button type="button" className={activePanel === 'recommendations' ? 'active' : ''} onClick={() => setActivePanel('recommendations')} disabled={!rec}>Recommendations</button>
+      <div className="workflow-stepper" role="tablist" aria-label="Deck workflow">
+        {steps.map((step, index) => (
+          <button
+            key={step.key}
+            type="button"
+            className="step"
+            data-state={step.state}
+            onClick={() => setActivePanel(step.key)}
+            disabled={step.state === 'locked'}
+          >
+            <strong>{index + 1}</strong>
+            <span>{step.label}</span>
+          </button>
+        ))}
       </div>
 
       {message && <div className="status success">{message}</div>}
       {error && <div className="status error">{error}</div>}
 
       {activePanel === 'editor' && (
-        <div className="card">
+        <div className="card zone zone-library">
           <DeckForm initial={initial} onCancel={() => onDone && onDone()} onSave={handleSave} />
         </div>
       )}
 
       {activePanel === 'analysis' && (
-        <div className="card">
+        <div className="card zone zone-battlefield">
           <div className="section-heading">
             <div>
+              <p className="eyebrow">Battlefield Metrics</p>
               <h2>Analysis</h2>
               <p>Structural metrics that guide deck decisions.</p>
             </div>
@@ -127,9 +143,10 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       )}
 
       {activePanel === 'recommendations' && (
-        <div className="card">
+        <div className="card zone zone-sideboard">
           <div className="section-heading">
             <div>
+              <p className="eyebrow">Sideboard / Upgrade Path</p>
               <h2>Recommendations</h2>
               <p>Suggestions explain what gap each card is trying to solve.</p>
             </div>

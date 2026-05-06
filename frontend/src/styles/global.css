@@ -1,15 +1,23 @@
 :root{
-  --color-bg: #07110C;
-  --color-surface: #101A13;
-  --color-surface-alt: #1A2419;
-  --color-gold: #D6A84F;
-  --color-gold-soft: #E8D7A0;
-  --color-green: #2F6B3F;
-  --color-green-dark: #16351F;
-  --color-copper: #A9522D;
-  --color-text: #F5E8C7;
-  --color-muted: #B9A987;
-  --color-border: #6E5528;
+  --color-bg: #06120C;
+  --color-surface: #0D1B12;
+  --color-surface-elevated: #142419;
+  --color-surface-alt: var(--color-surface-elevated);
+  --color-primary: #D6A84F;
+  --color-primary-hover: #F0C86A;
+  --color-accent-green: #5E8F46;
+  --color-danger: #B85C45;
+  --color-border: rgba(214,168,79,.35);
+  --color-text: #F2E6C8;
+  --color-muted: #B8AA8A;
+  --color-value: #FFE7A3;
+  --color-warning: #D6A84F;
+  --color-good: #8FCB6B;
+  --color-gold: var(--color-primary);
+  --color-gold-soft: var(--color-value);
+  --color-green: var(--color-accent-green);
+  --color-green-dark: #274B2D;
+  --color-copper: var(--color-danger);
   --spacing-xxs:4px;
   --spacing-xs:8px;
   --spacing-sm:12px;
@@ -17,8 +25,8 @@
   --spacing-lg:24px;
   --radius-sm:6px;
   --radius-md:8px;
-  --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  --font-display: Georgia, 'Times New Roman', serif;
+  --font-sans: Inter, "Source Sans 3", system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: Cinzel, Georgia, 'Times New Roman', serif;
 }
 
 html,body,#root{height:100%;}
@@ -27,4 +35,4 @@ body{font-family:var(--font-sans);margin:0;background:var(--bg);color:var(--text
 /* small helpers */
 .row{display:flex;gap:var(--spacing-sm);align-items:center}
 .col{display:flex;flex-direction:column;gap:var(--spacing-xs)}
-.muted{color:var(--text)}
+.muted{color:var(--color-muted)}

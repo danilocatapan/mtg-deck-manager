@@ -81,7 +81,7 @@ export default function CardSearch({ onSelect }) {
               <div>
                 <strong>{card.name}</strong>
                 <div className="result-card-meta">
-                  {card.manaCost || 'No cost'} · CMC {card.cmc ?? '-'} · {card.typeLine || 'Unknown type'}
+                  {card.manaCost || 'No cost'} / CMC {card.cmc ?? '-'} / {card.typeLine || 'Unknown type'}
                 </div>
               </div>
               {onSelect && (

@@ -20,6 +20,12 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   const totalCards = useMemo(() => cards.reduce((sum, card) => sum + Number(card.quantity || 0), 0), [cards])
   const isOverLimit = totalCards > 99
   const isValid = Boolean(name.trim() && commander.trim() && cards.length > 0 && !isOverLimit)
+  const commanderInitials = commander
+    .split(/[,\s]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'C'
 
   function addCard(card) {
     setSavedMessage(null)
@@ -72,6 +78,18 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
 
   return (
     <form onSubmit={handleSubmit} className="deck-editor-form">
+      <section className="commander-card">
+        <div className="commander-sigil" aria-hidden="true">{commanderInitials}</div>
+        <div className="commander-details">
+          <p className="eyebrow">Commander Identity</p>
+          <h2>{commander.trim() || 'Choose your commander'}</h2>
+          <div className="commander-meta">
+            <span>{commander.trim() ? 'Commander legal check pending' : 'Name defines color identity and recommendations'}</span>
+            <span>{name.trim() || 'Untitled deck'}</span>
+          </div>
+        </div>
+      </section>
+
       <div className="form-grid">
         <label>
           Deck name
@@ -126,7 +144,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
                   min={1}
                   onChange={(e) => changeQuantity(card.name, parseInt(e.target.value || '1', 10))}
                 />
-                <Button type="button" variant="secondary" onClick={() => removeCard(card.name)}>
+                <Button type="button" variant="danger" onClick={() => removeCard(card.name)}>
                   Remove
                 </Button>
               </div>

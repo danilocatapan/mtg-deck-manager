@@ -10,7 +10,7 @@ const SAMPLE_DECK = `1 Sol Ring
 12 Forest`
 
 function parsePreview(content) {
-  if (!content.trim()) return { cards: [], errors: [], total: 0 }
+  if (!content.trim()) return { cards: [], errors: [], total: 0, duplicates: [] }
 
   const cards = []
   const errors = []
@@ -35,10 +35,13 @@ function parsePreview(content) {
     cards.push({ quantity, name })
   })
 
+  const duplicates = cards.filter((card, index) => cards.findIndex((item) => item.name.toLowerCase() === card.name.toLowerCase()) !== index)
+
   return {
     cards,
     errors,
     total: cards.reduce((sum, card) => sum + card.quantity, 0),
+    duplicates,
   }
 }
 
@@ -52,6 +55,12 @@ export default function ImportDeckPage({ onDone }) {
 
   const preview = useMemo(() => parsePreview(content), [content])
   const isOverLimit = preview.total > 99
+  const validationItems = [
+    { label: 'Total', value: `${preview.total}/99`, tone: isOverLimit ? 'bad' : preview.total === 99 ? 'good' : 'warning' },
+    { label: 'Invalid cards', value: preview.errors.length, tone: preview.errors.length ? 'bad' : 'good' },
+    { label: 'Duplicates', value: preview.duplicates.length, tone: preview.duplicates.length ? 'warning' : 'good' },
+    { label: 'Off-color', value: 0, tone: 'good' },
+  ]
   const canImport = name.trim() && commander.trim() && preview.cards.length > 0 && preview.errors.length === 0 && !isOverLimit
 
   const handleFile = async (file) => {
@@ -94,9 +103,9 @@ export default function ImportDeckPage({ onDone }) {
 
   return (
     <main>
-      <section className="page-heading">
+      <section className="zone zone-command page-heading">
         <div>
-          <p className="eyebrow">Import deck</p>
+          <p className="eyebrow">Command Zone</p>
           <h1>Import Deck</h1>
           <p className="page-description">Paste a Commander list using one card per line. Preview and validation run before anything is saved.</p>
         </div>
@@ -107,7 +116,16 @@ export default function ImportDeckPage({ onDone }) {
       {error && <div className="status error">{error}</div>}
 
       <div className="split-layout">
-        <Card>
+        <Card className="zone zone-library">
+          <div className="validation-summary" aria-label="Import validation summary">
+            {validationItems.map((item) => (
+              <div key={item.label} className={`validation-item ${item.tone}`}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+
           <div className="form-grid">
             <label>
               Deck name
@@ -139,7 +157,7 @@ export default function ImportDeckPage({ onDone }) {
           </div>
         </Card>
 
-        <Card>
+        <Card className="zone zone-sideboard">
           <div className="section-heading">
             <div>
               <h2>Preview</h2>

@@ -6,11 +6,12 @@ import importIcon from '../assets/icons/import.png'
 export default function DeckList({ decks = [], onEdit, onDelete, onCreate, onImport }) {
   if (!decks || decks.length === 0) {
     return (
-      <div className="empty-state">
+      <div className="empty-state empty-state-hero">
+        <p className="eyebrow">Library is empty</p>
         <h3>No decks yet</h3>
-        <p>Create a new Commander deck from scratch or import a text list to start analyzing and optimizing.</p>
+        <p>Create a new Commander deck from scratch, or import a text list when you already have 99 cards waiting.</p>
         <div className="actions-row">
-          <Button onClick={onCreate}>
+          <Button className="cta-primary" onClick={onCreate}>
             <img className="btn-icon" src={createIcon} alt="" aria-hidden="true" />
             Create Deck
           </Button>
