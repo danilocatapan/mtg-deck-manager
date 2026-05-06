@@ -67,7 +67,14 @@ export default function RecommendationForm({ onSubmit, disabled = false, onParam
       <label title="Number of add/remove swaps to return.">
         Trocas
         <small>Quantidade de recomendações estratégicas.</small>
-        <select value={maxRecommendations} onChange={(e) => setMaxRecommendations(Number(e.target.value))}>
+        <select
+          value={maxRecommendations}
+          onChange={(e) => {
+            const nextValue = Number(e.target.value)
+            setMaxRecommendations(nextValue)
+            update({ maxRecommendations: nextValue })
+          }}
+        >
           <option value={3}>3</option>
           <option value={4}>4</option>
           <option value={5}>5</option>

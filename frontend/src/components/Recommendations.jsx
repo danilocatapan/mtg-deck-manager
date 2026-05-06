@@ -58,17 +58,10 @@ function StrategicRecommendations({ rec }) {
         const badges = motivationBadges(item.reasoning)
         return (
           <article key={`${item.add}-${item.remove}-${index}`} className="strategic-swap-card">
-            <div className="swap-flow">
-              <div>
-                <span className="rec-label">Adicionar</span>
-                <strong>{item.add}</strong>
-              </div>
-              <div>
-                <span className="rec-label">Remover</span>
-                <strong>{item.remove}</strong>
-              </div>
+            <div className="swap-summary">
+              <span className="rec-label">Troca recomendada</span>
+              <strong>{item.reasoning}</strong>
             </div>
-            <p>{item.reasoning}</p>
             <div className="motivation-badges">
               {(badges.length ? badges : ['strategy']).map((badge) => <span key={badge}>{badge}</span>)}
             </div>

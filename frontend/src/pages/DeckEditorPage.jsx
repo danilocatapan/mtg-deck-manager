@@ -26,13 +26,13 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
     if (mode === 'create') setInitial(null)
   }, [mode, deck])
 
+  const savedCardCount = useMemo(() => deck?.cards?.reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0, [deck])
+  const canAnalyze = mode === 'edit' && deck?.id && savedCardCount > 0 && savedCardCount <= 99
+
   useEffect(() => {
     if (!canAnalyze) return
     getMetaSources().then(setMetaSources)
   }, [canAnalyze])
-
-  const savedCardCount = useMemo(() => deck?.cards?.reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0, [deck])
-  const canAnalyze = mode === 'edit' && deck?.id && savedCardCount > 0 && savedCardCount <= 99
   const steps = [
     { key: 'editor', label: 'Editor', state: activePanel === 'editor' ? 'active' : 'complete' },
     { key: 'analysis', label: 'Analysis', state: activePanel === 'analysis' ? 'active' : analysis ? 'complete' : 'locked' },

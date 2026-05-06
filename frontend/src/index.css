@@ -1418,6 +1418,139 @@ dt {
   text-align: left;
 }
 
+.recommendation-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+}
+
+.recommendation-intel,
+.advanced-source-panel,
+.recommendation-source-summary,
+.meta-context-panel,
+.strategic-swap-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(6, 18, 12, 0.48);
+}
+
+.recommendation-intel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.recommendation-intel strong {
+  color: var(--color-value);
+}
+
+.recommendation-intel p {
+  color: var(--color-muted);
+}
+
+.advanced-source-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.advanced-toggle {
+  width: fit-content;
+  background: #101810;
+  color: var(--color-primary);
+  border-color: var(--color-border);
+}
+
+.recommendation-source-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  margin-top: 12px;
+}
+
+.recommendation-source-summary span,
+.motivation-badges span,
+.source-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: #c9b98f;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.meta-context-panel {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.meta-context-panel h4 {
+  margin: 2px 0 0;
+  color: var(--color-value);
+}
+
+.meta-context-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.meta-context-grid > div {
+  min-width: 0;
+}
+
+.meta-context-grid dd {
+  margin: 2px 0 0;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.source-status-list,
+.motivation-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source-pill.enabled {
+  border-color: rgba(143, 203, 107, 0.58);
+  color: var(--color-good);
+}
+
+.strategic-swap-list {
+  display: grid;
+  gap: 12px;
+}
+
+.strategic-swap-card {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.swap-summary {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(214, 168, 79, 0.32);
+  border-radius: 8px;
+  background: rgba(20, 36, 25, 0.72);
+}
+
+.swap-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-value);
+  font-size: 16px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .recommendation-grid {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
@@ -1466,7 +1599,9 @@ dt {
   .split-layout,
   .workflow-stepper,
   .workflow-steps,
-  .form-grid {
+  .form-grid,
+  .recommendation-form,
+  .meta-context-grid {
     grid-template-columns: 1fr;
   }
 
