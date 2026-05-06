@@ -3,12 +3,30 @@ import CardSearch from './CardSearch'
 import Button from './ui/Button'
 import { fetchCardsByNames } from '../services/api'
 
+const CARD_IMAGE_CACHE_KEY = 'mtg-card-image-cache-v1'
+
+function readImageCache() {
+  try {
+    return JSON.parse(window.localStorage.getItem(CARD_IMAGE_CACHE_KEY) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+function writeImageCache(cache) {
+  try {
+    window.localStorage.setItem(CARD_IMAGE_CACHE_KEY, JSON.stringify(cache))
+  } catch {
+    // Best-effort cache only.
+  }
+}
+
 export default function DeckForm({ initial = null, onCancel, onSave }) {
   const [name, setName] = useState('')
   const [commander, setCommander] = useState('')
   const [cards, setCards] = useState([])
   const [deckView, setDeckView] = useState('list')
-  const [cardImages, setCardImages] = useState({})
+  const [cardImages, setCardImages] = useState(() => readImageCache())
   const [loadingImages, setLoadingImages] = useState(false)
   const [error, setError] = useState(null)
   const [savedMessage, setSavedMessage] = useState(null)
@@ -37,7 +55,11 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
         nextImages[deckCard.name] = fetched?.imageUrl || null
       }
       if (!cancelled) {
-        setCardImages((prev) => ({ ...prev, ...nextImages }))
+        setCardImages((prev) => {
+          const merged = { ...prev, ...nextImages }
+          writeImageCache(merged)
+          return merged
+        })
         setLoadingImages(false)
       }
     }
@@ -65,8 +87,20 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       return [...prev, { name: card.name, quantity: 1 }]
     })
     if (card.imageUrl) {
-      setCardImages((prev) => ({ ...prev, [card.name]: card.imageUrl }))
+      setCardImages((prev) => {
+        const merged = { ...prev, [card.name]: card.imageUrl }
+        writeImageCache(merged)
+        return merged
+      })
     }
+  }
+
+  function markImageUnavailable(cardName) {
+    setCardImages((prev) => {
+      const merged = { ...prev, [cardName]: null }
+      writeImageCache(merged)
+      return merged
+    })
   }
 
   function removeCard(nameToRemove) {
@@ -199,7 +233,13 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
                 <article key={card.name} className="deck-image-card">
                   <div className="card-art-frame">
                     {cardImages[card.name] ? (
-                      <img src={cardImages[card.name]} alt={card.name} loading="lazy" />
+                      <img
+                        src={cardImages[card.name]}
+                        alt={card.name}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        onError={() => markImageUnavailable(card.name)}
+                      />
                     ) : (
                       <div className="card-art-placeholder">
                         <strong>{card.name}</strong>
