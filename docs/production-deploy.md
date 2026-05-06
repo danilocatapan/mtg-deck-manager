@@ -35,6 +35,7 @@ In the Render backend service, configure these environment variables:
 ```text
 GOOGLE_CLIENT_ID=<google-oauth-client-id>
 CORS_ORIGINS=https://danilocatapan.github.io,http://localhost:5173
+FRONTEND_URL=https://danilocatapan.github.io/mtg-deck-manager/
 SWAGGER_UI_ENABLED=false
 APP_LOG_LEVEL=INFO
 ```
@@ -67,6 +68,7 @@ Configure these in the backend hosting provider, not only in GitHub Actions:
 ```text
 GOOGLE_CLIENT_ID=<google-oauth-client-id>
 CORS_ORIGINS=https://danilocatapan.github.io,http://localhost:5173
+FRONTEND_URL=https://danilocatapan.github.io/mtg-deck-manager/
 SWAGGER_UI_ENABLED=false
 APP_LOG_LEVEL=INFO
 QUARKUS_FLYWAY_MIGRATE_AT_START=false
