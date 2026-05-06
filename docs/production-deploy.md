@@ -11,7 +11,7 @@ QUARKUS_DATASOURCE_DB_KIND=postgresql
 QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://<host>:5432/<database>
 QUARKUS_DATASOURCE_USERNAME=<database-user>
 QUARKUS_DATASOURCE_PASSWORD=<database-password>
-QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=validate
+QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY=validate
 ```
 
 Flyway migrations live in:
@@ -26,7 +26,32 @@ For the first staging migration, enable:
 QUARKUS_FLYWAY_MIGRATE_AT_START=true
 ```
 
-For production, take a PostgreSQL backup or provider snapshot before the first migration. After the first deploy is validated, keep `QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=validate`; only set `QUARKUS_FLYWAY_MIGRATE_AT_START=true` when a migration rollout is intended.
+For production, take a PostgreSQL backup or provider snapshot before the first migration. After the first deploy is validated, keep `QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY=validate`; only set `QUARKUS_FLYWAY_MIGRATE_AT_START=true` when a migration rollout is intended.
+
+## Render Environment
+
+In the Render backend service, configure these environment variables:
+
+```text
+QUARKUS_DATASOURCE_DB_KIND=postgresql
+QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://<render-postgres-host>:5432/<database>
+QUARKUS_DATASOURCE_USERNAME=<render-postgres-user>
+QUARKUS_DATASOURCE_PASSWORD=<render-postgres-password>
+QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY=validate
+QUARKUS_FLYWAY_MIGRATE_AT_START=true
+GOOGLE_CLIENT_ID=<google-oauth-client-id>
+CORS_ORIGINS=https://danilocatapan.github.io,http://localhost:5173
+SWAGGER_UI_ENABLED=false
+APP_LOG_LEVEL=INFO
+```
+
+Render PostgreSQL URLs often appear as `postgresql://user:password@host:5432/database`. Quarkus JDBC needs the JDBC form, so use:
+
+```text
+jdbc:postgresql://host:5432/database
+```
+
+Keep username and password in `QUARKUS_DATASOURCE_USERNAME` and `QUARKUS_DATASOURCE_PASSWORD`. If you use an external Render database URL, add `?sslmode=require` to the JDBC URL.
 
 ## Backend Runtime Variables
 

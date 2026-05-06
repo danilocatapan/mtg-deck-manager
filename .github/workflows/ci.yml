@@ -88,7 +88,7 @@ jobs:
           QUARKUS_DATASOURCE_USERNAME: mtg
           QUARKUS_DATASOURCE_PASSWORD: mtg_dev_password
           QUARKUS_FLYWAY_MIGRATE_AT_START: "true"
-          QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION: validate
+          QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY: validate
 
   frontend:
     name: Frontend
