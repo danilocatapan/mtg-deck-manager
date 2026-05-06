@@ -11,11 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.junit.jupiter.api.BeforeEach;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +21,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DeckServiceTest {
+
+    private static final String OWNER_ID = "google-user-1";
 
     @Mock
     DeckRepository deckRepository;
@@ -47,32 +47,33 @@ class DeckServiceTest {
             return null;
         }).when(deckRepository).persist(any(Deck.class));
 
-        DeckResponseDTO resp = deckService.createDeck(request);
+        DeckResponseDTO resp = deckService.createDeck(request, OWNER_ID);
 
         assertNotNull(resp.id());
         assertEquals("My Deck", resp.name());
+        verify(deckRepository).persist(argThat(deck -> OWNER_ID.equals(deck.getOwnerId())));
     }
 
     @Test
     void createDeck_validationFails() {
         DeckRequestDTO request = new DeckRequestDTO(" ", "Commander", List.of());
-        assertThrows(IllegalArgumentException.class, () -> deckService.createDeck(request));
+        assertThrows(IllegalArgumentException.class, () -> deckService.createDeck(request, OWNER_ID));
     }
 
     @Test
     void updateDeck_notFound() {
         Long id = 999L;
-        when(deckRepository.findById(id)).thenReturn(null);
+        when(deckRepository.findByIdAndOwner(id, OWNER_ID)).thenReturn(null);
         DeckRequestDTO request = new DeckRequestDTO("Name","Cmd", List.of(new DeckCardDTO("Sol Ring",1)));
-        assertNull(deckService.updateDeck(id, request));
+        assertNull(deckService.updateDeck(id, request, OWNER_ID));
     }
 
     @Test
     void exportDeck_withCards() {
         Deck deck = new Deck("My Deck", "Cmd", List.of(new DeckCard("Sol Ring",1), new DeckCard("Command Tower",1)));
-        when(deckRepository.findById(1L)).thenReturn(deck);
+        when(deckRepository.findByIdAndOwner(1L, OWNER_ID)).thenReturn(deck);
 
-        String exported = deckService.exportDeck(1L);
+        String exported = deckService.exportDeck(1L, OWNER_ID);
 
         assertEquals("1 Sol Ring\n1 Command Tower", exported);
     }
@@ -80,17 +81,17 @@ class DeckServiceTest {
     @Test
     void exportDeck_empty() {
         Deck deck = new Deck("Empty", "Cmd", List.of());
-        when(deckRepository.findById(2L)).thenReturn(deck);
+        when(deckRepository.findByIdAndOwner(2L, OWNER_ID)).thenReturn(deck);
 
-        String exported = deckService.exportDeck(2L);
+        String exported = deckService.exportDeck(2L, OWNER_ID);
 
         assertEquals("", exported);
     }
 
     @Test
     void exportDeck_notFound() {
-        when(deckRepository.findById(999L)).thenReturn(null);
-        assertNull(deckService.exportDeck(999L));
+        when(deckRepository.findByIdAndOwner(999L, OWNER_ID)).thenReturn(null);
+        assertNull(deckService.exportDeck(999L, OWNER_ID));
     }
 
     @Test
@@ -102,9 +103,17 @@ class DeckServiceTest {
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> deckService.importDeck(new com.mtg.dto.DeckImportDTO("Big Deck", "Cmd", "60 Mountain\n45 Forest"))
+                () -> deckService.importDeck(new com.mtg.dto.DeckImportDTO("Big Deck", "Cmd", "60 Mountain\n45 Forest"), OWNER_ID)
         );
 
         assertEquals("Imported deck has 105 cards; maximum is 99.", exception.getMessage());
+    }
+
+    @Test
+    void createDeck_requiresOwner() {
+        DeckRequestDTO request = new DeckRequestDTO("My Deck", "Commander", List.of(new DeckCardDTO("Sol Ring",1)));
+
+        assertThrows(IllegalArgumentException.class, () -> deckService.createDeck(request, " "));
+        verify(deckRepository, never()).persist(any(Deck.class));
     }
 }

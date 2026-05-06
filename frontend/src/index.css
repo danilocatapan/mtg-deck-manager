@@ -814,7 +814,27 @@ body::before {
 .app-header .container {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding-block: 12px;
+}
+
+.auth-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  color: var(--color-gold-soft);
+  font-size: 0.88rem;
+}
+
+.auth-status .btn {
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
+.auth-warning {
+  color: #ffd3c7;
 }
 
 .brand-logo {

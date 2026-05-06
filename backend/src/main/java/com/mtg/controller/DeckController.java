@@ -13,6 +13,8 @@ import com.mtg.service.DeckService;
 import com.mtg.service.RecommendationService;
 import com.mtg.service.StrategicRecommendationService;
 import jakarta.inject.Inject;
+import io.quarkus.security.Authenticated;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -48,14 +50,18 @@ public class DeckController {
     @Inject
     StrategicRecommendationService strategicRecommendationService;
 
+    @Inject
+    SecurityIdentity securityIdentity;
+
     @POST
+    @Authenticated
     @Operation(summary = "Create a new deck")
     @APIResponses({
             @APIResponse(responseCode = "201", description = "Deck created")
     })
     public Response createDeck(DeckRequestDTO request) {
         try {
-            DeckResponseDTO created = deckService.createDeck(request);
+            DeckResponseDTO created = deckService.createDeck(request, currentUserId());
             URI location = URI.create("/decks/" + created.id());
             return Response.created(location).entity(created).build();
         } catch (IllegalArgumentException e) {
@@ -65,10 +71,11 @@ public class DeckController {
 
     @POST
     @Path("/import")
+    @Authenticated
     @Operation(summary = "Import deck from text")
     public Response importDeck(DeckImportDTO dto) {
         try {
-            DeckResponseDTO created = deckService.importDeck(dto);
+            DeckResponseDTO created = deckService.importDeck(dto, currentUserId());
             URI location = URI.create("/decks/" + created.id());
             return Response.created(location).entity(created).build();
         } catch (IllegalArgumentException e) {
@@ -77,19 +84,21 @@ public class DeckController {
     }
 
     @GET
+    @Authenticated
     @Operation(summary = "List decks")
     public List<DeckResponseDTO> listDecks() {
-        return deckService.listDecks();
+        return deckService.listDecks(currentUserId());
     }
 
     @GET
     @Path("{id}")
+    @Authenticated
     @Operation(summary = "Get deck by id")
     public Response getDeck(@Parameter(description = "Deck id") @PathParam("id") String idStr) {
         Long id = parseDeckId(idStr);
         if (id == null) return badRequest("Invalid deck id");
 
-        DeckResponseDTO dto = deckService.getDeckById(id);
+        DeckResponseDTO dto = deckService.getDeckById(id, currentUserId());
         if (dto == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -98,6 +107,7 @@ public class DeckController {
 
     @PUT
     @Path("{id}")
+    @Authenticated
     @Operation(summary = "Update a deck")
     public Response updateDeck(@PathParam("id") String idStr, DeckRequestDTO request) {
         Long id = parseDeckId(idStr);
@@ -105,7 +115,7 @@ public class DeckController {
 
         DeckResponseDTO updated;
         try {
-            updated = deckService.updateDeck(id, request);
+            updated = deckService.updateDeck(id, request, currentUserId());
         } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
         }
@@ -118,12 +128,13 @@ public class DeckController {
 
     @DELETE
     @Path("{id}")
+    @Authenticated
     @Operation(summary = "Delete a deck")
     public Response deleteDeck(@PathParam("id") String idStr) {
         Long id = parseDeckId(idStr);
         if (id == null) return badRequest("Invalid deck id");
 
-        boolean deleted = deckService.deleteDeck(id);
+        boolean deleted = deckService.deleteDeck(id, currentUserId());
         if (!deleted) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -133,12 +144,13 @@ public class DeckController {
     @GET
     @Path("{id}/export")
     @Produces(MediaType.TEXT_PLAIN)
+    @Authenticated
     @Operation(summary = "Export deck in text format")
     public Response exportDeck(@PathParam("id") String idStr) {
         Long id = parseDeckId(idStr);
         if (id == null) return badRequest("Invalid deck id");
 
-        String exported = deckService.exportDeck(id);
+        String exported = deckService.exportDeck(id, currentUserId());
         if (exported == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -209,5 +221,9 @@ public class DeckController {
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new ErrorResponseDTO(safeMessage))
                 .build();
+    }
+
+    private String currentUserId() {
+        return securityIdentity.getPrincipal().getName();
     }
 }

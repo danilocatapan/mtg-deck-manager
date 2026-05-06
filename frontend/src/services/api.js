@@ -1,3 +1,5 @@
+import { getAuthToken } from './auth'
+
 const API_ORIGIN = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 const BASE_URL = normalizeApiOrigin(API_ORIGIN)
 const REQUEST_TIMEOUT_MS = 12000
@@ -17,6 +19,7 @@ function normalizeApiOrigin(origin) {
 async function request(path, options = {}) {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  const token = getAuthToken()
 
   try {
     const res = await fetch(`${BASE_URL}${path}`, {
@@ -25,6 +28,7 @@ async function request(path, options = {}) {
       headers: {
         Accept: 'application/json',
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
       signal: controller.signal,
@@ -32,7 +36,7 @@ async function request(path, options = {}) {
 
     if (!res.ok) {
       const message = await readErrorMessage(res)
-      throw new Error(message || 'Request failed')
+      throw new Error(res.status === 401 ? 'Login with Google is required.' : message || 'Request failed')
     }
 
     if (res.status === 204) return null

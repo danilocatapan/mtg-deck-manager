@@ -35,12 +35,14 @@ public class DeckService {
     }
 
     @Transactional
-    public DeckResponseDTO createDeck(DeckRequestDTO request) {
+    public DeckResponseDTO createDeck(DeckRequestDTO request, String ownerId) {
         validateRequest(request);
+        validateOwner(ownerId);
         LOG.debug("Creating deck: " + request);
 
         List<DeckCard> cards = toEntities(request.cards());
         Deck deck = new Deck(request.name().trim(), request.commander().trim(), cards);
+        deck.setOwnerId(ownerId);
         deckRepository.persist(deck);
         LOG.info("Deck created: " + deck.getId());
 
@@ -48,7 +50,8 @@ public class DeckService {
     }
 
     @Transactional
-    public DeckResponseDTO importDeck(DeckImportDTO dto) {
+    public DeckResponseDTO importDeck(DeckImportDTO dto, String ownerId) {
+        validateOwner(ownerId);
         if (dto == null) throw new IllegalArgumentException("Import payload required");
         validateDeckName(dto.name());
         validateCommander(dto.commander());
@@ -65,17 +68,20 @@ public class DeckService {
         Deck deck = new Deck();
         deck.setName(dto.name().trim());
         deck.setCommander(dto.commander().trim());
+        deck.setOwnerId(ownerId);
         deck.setCards(cards);
         deckRepository.persist(deck);
         return toDto(deck);
     }
 
-    public List<DeckResponseDTO> listDecks() {
-        return deckRepository.listAll().stream().map(this::toDto).collect(Collectors.toList());
+    public List<DeckResponseDTO> listDecks(String ownerId) {
+        validateOwner(ownerId);
+        return deckRepository.listByOwner(ownerId).stream().map(this::toDto).collect(Collectors.toList());
     }
 
-    public DeckResponseDTO getDeckById(Long id) {
-        Deck deck = deckRepository.findById(id);
+    public DeckResponseDTO getDeckById(Long id, String ownerId) {
+        validateOwner(ownerId);
+        Deck deck = deckRepository.findByIdAndOwner(id, ownerId);
         if (deck == null) {
             return null;
         }
@@ -83,9 +89,10 @@ public class DeckService {
     }
 
     @Transactional
-    public DeckResponseDTO updateDeck(Long id, DeckRequestDTO request) {
+    public DeckResponseDTO updateDeck(Long id, DeckRequestDTO request, String ownerId) {
         validateRequest(request);
-        Deck deck = deckRepository.findById(id);
+        validateOwner(ownerId);
+        Deck deck = deckRepository.findByIdAndOwner(id, ownerId);
         if (deck == null) {
             return null;
         }
@@ -99,14 +106,16 @@ public class DeckService {
     }
 
     @Transactional
-    public boolean deleteDeck(Long id) {
+    public boolean deleteDeck(Long id, String ownerId) {
+        validateOwner(ownerId);
         LOG.info("Deleting deck: " + id);
-        return deckRepository.deleteById(id);
+        return deckRepository.delete("id = ?1 and ownerId = ?2", id, ownerId) > 0;
     }
 
-    public String exportDeck(Long id) {
+    public String exportDeck(Long id, String ownerId) {
+        validateOwner(ownerId);
         LOG.info("Export requested: " + id);
-        Deck deck = deckRepository.findById(id);
+        Deck deck = deckRepository.findByIdAndOwner(id, ownerId);
         if (deck == null) {
             LOG.error("Export failed: deck not found " + id);
             return null;
@@ -168,6 +177,12 @@ public class DeckService {
         }
         if (card.quantity() < 1 || card.quantity() > 99) {
             throw new IllegalArgumentException("Card quantity must be between 1 and 99");
+        }
+    }
+
+    private void validateOwner(String ownerId) {
+        if (ownerId == null || ownerId.isBlank()) {
+            throw new IllegalArgumentException("Authenticated user is required");
         }
     }
 

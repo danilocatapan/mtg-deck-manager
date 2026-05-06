@@ -15,6 +15,10 @@ public class Deck {
     private String name;
 
     private String commander;
+
+    @Column(name = "owner_id")
+    private String ownerId;
+
     @Column(name = "color_identity")
     private String colorIdentity;
 
@@ -56,6 +60,10 @@ public class Deck {
     public void setCommander(String commander) {
         this.commander = commander;
     }
+
+    public String getOwnerId() { return ownerId; }
+
+    public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
 
     public String getColorIdentity() { return colorIdentity; }
 

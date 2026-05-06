@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { deleteDeck, fetchDecks } from '../services/api'
 import DeckList from '../components/DeckList'
 import DeckEditorPage from './DeckEditorPage'
 import ImportDeckPage from './ImportDeckPage'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
+import { getAuthToken, subscribeAuth } from '../services/auth'
 import createIcon from '../assets/icons/create.png'
 import importIcon from '../assets/icons/import.png'
 
@@ -12,10 +13,16 @@ export default function Home() {
   const [decks, setDecks] = useState([])
   const [view, setView] = useState('home')
   const [editingDeck, setEditingDeck] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getAuthToken()))
+  const [loading, setLoading] = useState(() => isAuthenticated)
   const [message, setMessage] = useState(null)
 
   async function load() {
+    if (!getAuthToken()) {
+      setDecks([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     const loadedDecks = await fetchDecks()
     setDecks(loadedDecks)
@@ -24,6 +31,11 @@ export default function Home() {
 
   useEffect(() => {
     let mounted = true
+    if (!isAuthenticated) {
+      return () => {
+        mounted = false
+      }
+    }
     fetchDecks().then((loadedDecks) => {
       if (mounted) {
         setDecks(loadedDecks)
@@ -33,27 +45,52 @@ export default function Home() {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [isAuthenticated])
+
+  useEffect(() => subscribeAuth(() => {
+    const nextIsAuthenticated = Boolean(getAuthToken())
+    setIsAuthenticated(nextIsAuthenticated)
+    if (!nextIsAuthenticated) {
+      setDecks([])
+      setLoading(false)
+    }
+  }), [])
 
   function handleCreate() {
+    if (!isAuthenticated) {
+      setMessage('Sign in with Google before creating decks.')
+      return
+    }
     setMessage(null)
     setEditingDeck(null)
     setView('create')
   }
 
   function handleImport() {
+    if (!isAuthenticated) {
+      setMessage('Sign in with Google before importing decks.')
+      return
+    }
     setMessage(null)
     setEditingDeck(null)
     setView('import')
   }
 
   function handleEdit(deck) {
+    if (!isAuthenticated) {
+      setMessage('Sign in with Google before editing decks.')
+      return
+    }
     setMessage(null)
     setEditingDeck(deck)
     setView('edit')
   }
 
   async function handleDelete(deck) {
+    if (!isAuthenticated) {
+      setMessage('Sign in with Google before deleting decks.')
+      return
+    }
     if (!confirm(`Delete deck ${deck.name}?`)) return
     try {
       await deleteDeck(deck.id)
@@ -109,6 +146,11 @@ export default function Home() {
       </Card>
 
       {message && <div className="status success">{message}</div>}
+      {!isAuthenticated && (
+        <div className="status">
+          Sign in with Google to create, import, edit, list, or delete your decks.
+        </div>
+      )}
       {loading ? (
         <Card><div className="loading">Loading decks...</div></Card>
       ) : (
