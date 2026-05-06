@@ -78,6 +78,7 @@ Repository variables:
 
 ```text
 VITE_API_URL=https://<backend-runtime-url>
+VITE_GOOGLE_CLIENT_ID=<google-oauth-client-id>
 CORS_ORIGINS=https://danilocatapan.github.io,http://localhost:5173
 SWAGGER_UI_ENABLED=false
 APP_LOG_LEVEL=INFO
