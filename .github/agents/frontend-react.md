@@ -1,50 +1,54 @@
-# frontend-react.md — Implementação e manutenção segura (Vite + React)
+# frontend-react.md - Implementacao e manutencao segura (Vite + React)
 
 Quando usar
 -----------
-- Ao implementar ou refatorar componentes, páginas, serviços de API, estilos ou testes no frontend (Vite + React).
+- Ao implementar ou refatorar componentes, paginas, servicos de API, estilos ou assets no frontend (Vite + React).
 
 Regras de arquitetura (resumido)
--------------------------------
-- Separação de responsabilidades: Pages → Components → Services (API) → Styles.  
-- Componentes devem ser pequenos, com props explícitas; lógica pesada vai para hooks ou services.  
-- Comunicações com backend devem passar por `src/services/api.js` (único lugar para chamadas REST).  
-
-Fluxo de implementação recomendado
-----------------------------------
-1. Localize testes e exemplos de uso (component tests, storybook se existir).  
-2. Adicione/atualize unit tests (Vitest/Jest) e component/integration tests.  
-3. Faça mudanças isoladas em componentes e hooks; valide via story/test.  
-4. Atualize chamadas a `services/api.js` e valide contratos JSON com o backend.
-
-Checklists por tipo de mudança
------------------------------
-- UI/Component: accessibility (a11y), props API, isoladamente testável.  
-- Page/Route: validação de params, lazy-loading, code-splitting.  
-- API/Service: centralizar em `src/services/api.js`, tratar erros e retries.  
-- Styles: usar variáveis globais; evitar regras CSS globais que quebrem outras páginas.
-
-Guardrails de refatoração segura
 --------------------------------
-- Não alterar o contrato REST esperado pelo backend sem coordenação; teste com dados reais.  
-- Não mover lógica de negócio do backend para o frontend (cálculos de regras negocial).  
-- Preservar observáveis UX (mensagens de erro, códigos HTTP tratados) — registre como achado se precisar mudar.
+- Separacao de responsabilidades: Pages -> Components -> Services (API) -> Styles.
+- Componentes devem ser pequenos, com props explicitas; logica pesada vai para hooks ou services.
+- Comunicacoes com backend devem passar por `src/services/api.js` sempre que representarem chamadas REST.
+- O app atual usa estado local em React, sem router dedicado nesta fase.
 
-Hotspots do repositório (onde revisar primeiro)
-----------------------------------------------
-- `src/services/api.js` — integração com backend e formatação de payloads.  
-- `src/pages/DeckEditorPage.jsx`, `src/components/RecommendationForm.jsx` — fluxo de recomendação.  
-- `src/components/layout` — responsividade e temas.  
-- Tests: `src/__tests__` ou arquivos com `.test.jsx` — primeiro ponto para validar mudanças.
+Fluxo de implementacao recomendado
+----------------------------------
+1. Localize componentes, paginas e servicos envolvidos.
+2. Verifique o contrato JSON esperado no backend antes de mudar payloads.
+3. Faca mudancas isoladas em componentes, services e estilos.
+4. Valide com lint, build e um fluxo manual representativo.
 
-Validação mínima
+Checklists por tipo de mudanca
+------------------------------
+- UI/Component: acessibilidade, props explicitas, estados vazio/loading/erro e responsividade.
+- Page/Flow: preservar navegacao atual por estado local e validar transicoes principais.
+- API/Service: centralizar chamadas em `src/services/api.js`, tratar erros e preservar contratos REST.
+- Styles: usar variaveis globais; evitar regras CSS globais que quebrem outras paginas.
+- Assets: confirmar import/path e build final.
+
+Guardrails de refatoracao segura
+--------------------------------
+- Nao alterar o contrato REST esperado pelo backend sem coordenacao e teste.
+- Nao mover logica de negocio do backend para o frontend.
+- Preservar observaveis UX (mensagens de erro, estados tratados, exibicao de resultados) salvo pedido explicito.
+
+Hotspots do repositorio (onde revisar primeiro)
+-----------------------------------------------
+- `src/services/api.js` - integracao com backend e formatacao de payloads.
+- `src/pages/DeckEditorPage.jsx`, `src/pages/ImportDeckPage.jsx`, `src/components/RecommendationForm.jsx` - fluxo de importacao, edicao e recomendacao.
+- `src/components/Recommendations.jsx`, `src/components/DeckAnalysis.jsx` - renderizacao dos resultados do backend.
+- `src/components/layout/AppLayout.jsx`, `src/styles/global.css`, `src/index.css` - responsividade, tema e layout.
+- Assets em `src/assets` e `public/icons.svg` impactam identidade visual e build.
+
+Validacao minima
 ----------------
-- Rodar `npm test` (ou `pnpm`/`yarn` conforme projeto) e corrigir falhas.  
-- Rodar build local: `npm run build` e verificar bundle size / console warnings.  
-- Executar um caso manual: abrir página de edição de deck, chamar recommendations, validar que UI mostra 99 resultados sem erros.
+- O projeto ainda nao define script de teste frontend; nao assumir `npm test`.
+- Rodar `npm run lint` e corrigir falhas.
+- Rodar `npm run build` e verificar warnings relevantes.
+- Executar um caso manual quando a mudanca afetar fluxo principal: criar/editar deck, importar lista, analisar deck ou chamar recommendations.
 
-Notas operacionais rápidas
--------------------------
-- Centralize chamadas externas e feature flags em `src/services`.  
-- Prefira testes automáticos a validação manual para evitar regressões visuais.  
-- Em dúvidas contratuais, voltar para `AGENTS.md` e seguir a regra: não alterar regra negocial sem solicitação explícita.
+Notas operacionais rapidas
+--------------------------
+- Centralize chamadas externas e feature flags em `src/services`.
+- Prefira testes automaticos quando um harness frontend for adicionado; ate la, combine lint/build com validacao manual focada.
+- Em duvidas contratuais, volte para `AGENTS.md` e siga a regra: nao alterar regra negocial sem solicitacao explicita.

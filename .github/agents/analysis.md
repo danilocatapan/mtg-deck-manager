@@ -1,41 +1,44 @@
-# analysis.md — Análise de impacto, bug e regressão
+# analysis.md - Analise de impacto, bug e regressao
 
 Responsabilidade
 ----------------
-Fornecer passos concisos e obrigatórios para diagnosticar bugs, avaliar impacto e propor a menor correção segura. Este arquivo cobre análise de impacto, regressão e diagnóstico — não existe `debug.md` separado.
+Fornecer passos concisos para diagnosticar bugs, avaliar impacto e propor a menor correcao segura. Este arquivo cobre analise de impacto, regressao e diagnostico; nao existe `debug.md` separado.
 
 Quando usar
 -----------
-- Antes de qualquer PR que altere comportamento observável.  
-- Ao investigar falhas relatadas em produção ou testes automatizados.
+- Antes de qualquer mudanca que altere comportamento observavel.
+- Ao investigar falhas relatadas em producao, testes automatizados, CI ou fluxos manuais.
+- Ao tocar contratos REST, persistencia, recomendacoes, importacao de deck, meta dataset ou integracoes externas.
 
-Passos obrigatórios (ordem)
---------------------------
-1. Reproduza localmente — identifique entrada (request) e saída atual vs esperada.  
-2. Rode testes relevantes unit/integration; capture falhas.  
-3. Identifique o menor cenário reproduzível.  
-4. Busque causa raiz (logs, stacktrace, histórico de commits).  
-5. Liste side-effects potenciais (DB, integrações, cache).  
-6. Proponha a menor correção segura (hotfix ou PR limitado).  
+Passos obrigatorios (ordem)
+---------------------------
+1. Reproduza localmente quando possivel: identifique entrada (request/acao) e saida atual vs esperada.
+2. Rode testes relevantes unit/controller/integration; capture falhas.
+3. Identifique o menor cenario reproduzivel.
+4. Busque causa raiz (logs, stacktrace, contrato, fixtures, historico de commits se necessario).
+5. Liste side effects potenciais (DB, integracoes, cache, UI, contratos, CI/CD).
+6. Proponha a menor correcao segura e o plano de validacao.
 
-Trilho adicional para bug e regressão
-------------------------------------
-- Se for produção, isole deploys recentes e aplique rollback se necessário.  
-- Para regressão em testes, analise testes que dependem do contrato e execute apenas aqueles antes de abrir PR.
+Trilho adicional para bug e regressao
+-------------------------------------
+- Para regressao em testes, analise primeiro os testes que dependem do contrato afetado e execute o menor conjunto antes da suite completa.
+- Para falhas de CI, compare o comando local equivalente (`./mvnw test`, `npm run lint`, `npm run build`) antes de alterar workflow.
+- Para mudancas de recomendacao, valide invariantes: color identity, duplicatas, tamanho alvo e cortes.
 
 Checklist operacional de conformidade arquitetural
-------------------------------------------------
-- Verifique contratos REST expostos (OpenAPI) e testes de contrato.  
-- Verifique mudanças em entidades persistidas (migrations).  
-- Verifique configurações de cache e TTL afetados.  
-- Confirme que integrações externas mantêm compatibilidade (Scryfall, EDHREC ingest).  
+--------------------------------------------------
+- Verifique contratos REST expostos e testes de controller.
+- Verifique mudancas em entidades persistidas e impacto de schema.
+- Verifique configuracoes de cache, CORS, auth/OIDC e headers de seguranca quando afetadas.
+- Confirme compatibilidade de integracoes externas (Scryfall, fontes/adapters de meta).
+- Confirme que frontend e backend continuam alinhados em payloads JSON.
 
-Classificação de achados (P0/P1/P2)
-----------------------------------
-- P0: quebra de invariantes ou perda de dados / violação de contrato.  
-- P1: degradação de qualidade perceptível (recommender ruim) ou erro repetido.  
-- P2: refactor, melhoria de perf, adição de testes sem impacto imediato.
+Classificacao de achados (P0/P1/P2)
+-----------------------------------
+- P0: quebra de invariantes, perda de dados, falha de seguranca ou violacao de contrato.
+- P1: degradacao perceptivel de recomendacao, erro repetido ou falha relevante de UX/API.
+- P2: refactor, melhoria de performance, limpeza ou adicao de testes sem impacto imediato.
 
-Saída esperada
+Saida esperada
 --------------
-- Relatório curto no PR com: cenário reproduzível, testes falhando, causa raiz proposta, plano de validação e impacto estimado.
+- Relatorio curto com cenario reproduzivel, testes falhando ou executados, causa raiz proposta, impacto estimado e plano de validacao.

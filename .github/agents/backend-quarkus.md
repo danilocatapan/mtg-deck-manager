@@ -1,54 +1,61 @@
-# backend-quarkus.md — Implementação e refatoração segura (Java + Quarkus)
+# backend-quarkus.md - Implementacao e refatoracao segura (Java + Quarkus)
 
 Quando usar
 -----------
-- Implementar ou refatorar endpoints, serviços, entidades ou fluxo de recomendação no backend Quarkus.
+- Implementar ou refatorar endpoints, servicos, entidades, DTOs, repositories, clients ou fluxo de recomendacao no backend Quarkus.
 
 Regras de arquitetura (resumido)
--------------------------------
-- Mantém separação clara: Controller (resource) → Service → Repository/Entity.  
-- Evite lógica de negócio em controllers; coloque em `service` ou `use-case`.  
-- Persistência via Panache/Hibernate; alterações de entidade exigem migração/versionamento.
-
-Fluxo de implementação recomendado
-----------------------------------
-1. Localize testes relacionados (unit + integration).  
-2. Crie ou atualize testes antes de alterar comportamento.  
-3. Implemente mudanças em `service` e rode testes isolados.  
-4. Atualize recursos REST e documentação (OpenAPI) se houver contrato novo.  
-
-Checklists por tipo de mudança
------------------------------
-- Endpoint/Resource: validar path, parâmetros, códigos HTTP, segurança (roles).  
-- Service/Use-case: testar regras de negócio com unit tests; evitar side-effects diretos.  
-- Entity/DB: preparar migration/script; atualizar testes de integração.  
-- Algoritmo (recommender): isolar scorer, adicionar testes de regressão com decks reais.
-
-Guardrails de refatoração segura
 --------------------------------
-- Não altere contrato público sem atualização de OpenAPI e testes de contrato.  
-- Não remova validações que suportam invariantes (color identity, deck size).  
-- Prefira extrair componente (`DeckCompleter`, `MetaProvider`, `SynergyEngine`) em vez de injetar lógica em recursos.
+- Manter separacao clara: Controller -> Service -> Repository/Entity/Client.
+- Evitar logica de negocio em controllers; colocar em `service` ou componentes de dominio.
+- Persistencia via Panache/Hibernate; alteracoes de entidade exigem avaliacao de schema/migration e testes.
+- Contratos publicos vivem em controllers + DTOs; qualquer mudanca observavel exige teste.
 
-Hotspots do repositório (onde revisar primeiro)
-----------------------------------------------
-- `RecommendationService` — orquestra pipeline.  
-- `CardService` — integra Scryfall (cache e queries).  
-- `meta` package — ingestão e dataset local.  
-- `model`/`domain` — entidades e DTOs que servem de contrato.
+Fluxo de implementacao recomendado
+----------------------------------
+1. Localize testes relacionados (unit + controller/integration).
+2. Crie ou atualize testes antes ou junto da mudanca de comportamento.
+3. Implemente mudancas em services/componentes e rode testes isolados.
+4. Atualize recursos REST e documentacao OpenAPI se houver contrato novo.
 
-Validação mínima
+Checklists por tipo de mudanca
+------------------------------
+- Endpoint/Resource: validar path, parametros, status HTTP, erros, autenticacao/autorizacao quando aplicavel.
+- Service/Use-case: testar regras de negocio com unit tests; evitar side effects diretos e escondidos.
+- Entity/DB: avaliar migration/script, defaults e testes de persistencia.
+- Algoritmo/recommender: isolar scorer/selectors/completer, adicionar testes de regressao com decks representativos.
+- Integracao externa: preservar isolamento com mocks em testes e tratar rate limit/erros (`ExternalServiceException`, `RateLimitedExternalServiceException`).
+
+Guardrails de refatoracao segura
+--------------------------------
+- Nao alterar contrato publico sem atualizar testes de controller/contrato.
+- Nao remover validacoes que suportam invariantes (color identity, deck size, duplicidade).
+- Prefira extrair ou ajustar componentes existentes (`DeckCompleter`, `MetaProvider`, `SynergyEngine`, selectors) em vez de concentrar logica em controllers.
+
+Hotspots do repositorio (onde revisar primeiro)
+-----------------------------------------------
+- `RecommendationService` e `StrategicRecommendationService` - orquestram recomendacoes heuristicas e estrategicas.
+- `DeckCompleter`, `RecommendationScoring`, `RecommendationPairer`, `CandidateAddSelector`, `CandidateCutSelector` - pipeline de completar, pontuar e parear sugestoes.
+- `CardService` e `ScryfallClient` - integracao Scryfall, cache e queries.
+- `service/meta` - ingestao, adapters, normalizacao e dataset local.
+- `DeckImportService` e `service/meta/DecklistNormalizer` - parsing e normalizacao de listas.
+- `controller` + `dto` - contratos REST observaveis.
+- `config` - headers, auth, mappers de erro e configuracao transversal.
+
+Validacao minima
 ----------------
-- Compilar, rodar testes unitários e executar um teste manual de recomendação (gera 99 cards).  
-- Validar logs e métricas mínimos; confirmar que não há regressão de contrato.
+- Compilar e rodar testes backend relevantes.
+- Para mudanca ampla, rodar suite backend completa.
+- Executar um teste manual de recomendacao/importacao quando afetar fluxo de deck.
+- Confirmar que nao ha regressao de contrato REST.
 
 Executando Maven (Windows PowerShell)
------------------------------------
-Antes de executar `mvn` no PowerShell, exporte o `JAVA_HOME` e atualize o `Path` com o JDK adequado. Exemplo usado neste repositório:
+-------------------------------------
+Antes de executar `mvn`/`./mvnw.cmd` no PowerShell, exporte o `JAVA_HOME` e atualize o `Path` com o JDK adequado:
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2"
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 ```
 
-Em seguida, execute os comandos Maven habituais, por ex.: `./mvnw.cmd clean test`.
+Em seguida, em `backend`, execute `./mvnw.cmd test` ou `./mvnw.cmd clean test`.

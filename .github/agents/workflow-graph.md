@@ -1,31 +1,37 @@
-# workflow-graph.md — Guia do hotspot: pipeline de recomendação (grafo de etapas)
+# workflow-graph.md - Guia do hotspot: pipeline de recomendacao
 
 Quando usar
 -----------
-- Ao alterar ou refatorar o fluxo de recomendação (candidatos → filtro → scoring → completar → cortes).
+- Ao alterar ou refatorar o fluxo de recomendacao (candidatos -> filtro -> scoring -> completar -> cortes).
 
 Invariantes do grafo
----------------------
-- Ordem das etapas é importante: coleta de candidatos → filtragem por cor/duplicidade → scoring (meta+synergy) → rank → completar até 99 → sugestões de corte.
-- Cada etapa deve ser idempotente e testável isoladamente.
+--------------------
+- Ordem das etapas e importante: coleta de candidatos -> filtragem por cor/duplicidade -> scoring (meta + synergy) -> rank -> completar ate 99 -> sugestoes de corte.
+- Cada etapa deve ser idempotente e testavel isoladamente.
+- O pipeline nao deve sugerir cartas duplicadas nem cartas fora da color identity.
+- Sugestoes de corte nao devem remover comandante.
 
-Pontos do código que merecem revisão explícita
+Pontos do codigo que merecem revisao explicita
 ----------------------------------------------
-- `RecommendationService` (orquestra) — revisar se a orquestração foi alterada.  
-- `MetaProvider`/`MetaDatasetLoader` — validação de dados; normalização de nomes.  
-- `CardFilter` (se existir) — regras de color identity e legality.  
-- `SynergyEngine` e `RecommendationScoring` — pesos e combinações (meta vs synergy).
+- `RecommendationService` - orquestracao das recomendacoes heuristicas.
+- `StrategicRecommendationService` - recomendacoes estrategicas e criterios de decisao.
+- `MetaProvider`, `MetaProviderImpl`, `MetaDatasetLoader` - validacao de dados e normalizacao de nomes.
+- `ColorIdentityMatcher`, `CandidateAddSelector`, `CandidateCutSelector` - regras de cor, duplicidade e elegibilidade.
+- `DeckCompleter` e `RecommendationPairer` - completar deck e parear adds/cuts.
+- `SynergyEngine`, `CardTagger` e `RecommendationScoring` - tags, pesos e combinacoes (meta vs synergy).
 
-Validações mínimas
+Validacoes minimas
 ------------------
-- Depois de qualquer alteração no grafo:  
-  - rodar testes unitários de cada componente;  
-  - executar um fluxo end-to-end com um deck de exemplo e validar:  
-    - nenhuma carta fora de cor;  
-    - total de 99 cartas adicionadas;  
-    - sem duplicatas;  
-    - ranking coerente com meta quando presente.
+Depois de qualquer alteracao no grafo:
+- Rodar testes unitarios dos componentes afetados.
+- Rodar testes de controller/service quando contrato ou orquestracao mudar.
+- Executar um fluxo representativo com deck de exemplo e validar:
+  - nenhuma carta fora de cor;
+  - total coerente com o alvo Commander;
+  - sem duplicatas;
+  - ranking coerente com meta quando presente;
+  - cuts coerentes com a estrategia e sem remover comandante.
 
-Saída esperada
+Saida esperada
 --------------
-- PR com: alteração de código, lista mínima de testes executados, um caso de entrada/saída (ex.: deck X → top 10 adds), e validação de invariantes acima.
+- PR ou resumo com alteracao de codigo, testes executados, um caso de entrada/saida quando aplicavel e validacao dos invariantes acima.

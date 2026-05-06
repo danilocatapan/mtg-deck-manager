@@ -1,50 +1,64 @@
-# testing.md — Estratégia prática de testes
+# testing.md - Estrategia pratica de testes
 
 Quando usar
 -----------
-- Para decidir rapidamente que tipo de teste criar/rodar ao alterar código (unit/integration/e2e).
+- Para decidir rapidamente que tipo de teste criar/rodar ao alterar codigo (unit, integration, controller/contract, build/lint).
 
 Escolha em 30 segundos
 ----------------------
-- Mudança de regra de negócio ou algoritmo → escreva unit tests + regression test com casos reais.  
-- Mudança de integração/DB/schema → escreva integration tests e fixtures.  
-- Mudança de contrato REST → escreva tests de contrato e endpoint tests.
+- Mudanca de regra de negocio ou algoritmo -> unit tests + regression test com casos representativos.
+- Mudanca de integracao/DB/schema -> integration tests e fixtures.
+- Mudanca de contrato REST -> tests de controller/contrato e validacao dos DTOs/status HTTP.
+- Mudanca de frontend -> lint/build e validacao manual; adicionar testes quando houver harness configurado.
 
-Matriz rápida de decisão
------------------------
-- Unit tests: lógica pura (scorers, taggers, helpers).  
-- Integration tests: serviços que usam DB, cache, ou RestClient (CardService + Scryfall).  
-- End-to-end / contract: validação de rota completa e formatos JSON.
+Matriz rapida de decisao
+------------------------
+- Unit tests: logica pura (scorers, taggers, helpers, normalizers).
+- Integration tests: servicos que usam DB, cache ou RestClient.
+- Controller/contract: validacao de rota completa e formatos JSON.
+- Frontend validation: ESLint, Vite build e fluxo manual focado.
 
 Regras de fixture e ambiente
 ----------------------------
-- Preferir fixtures imutáveis pequenos nos testes (objetos Java ou JSON no resources).  
-- Use mocks para serviços externos (Scryfall) em unit tests; reserve integration tests para testar mapeamentos/serialização.
+- Preferir fixtures imutaveis pequenos nos testes (objetos Java ou JSON em resources).
+- Use mocks para servicos externos (Scryfall e fontes externas de meta) em unit tests.
+- Reserve integration tests para mapeamentos, serializacao, persistencia e contratos completos.
 
-Cobertura que merece atenção explícita
--------------------------------------
-- Invariantes de domínio (color identity, deck size).  
-- Pipeline de recomendação: scorer + completer + filtro (evitar duplicatas).  
+Cobertura que merece atencao explicita
+--------------------------------------
+- Invariantes de dominio (color identity, deck size, duplicatas, comandante).
+- Pipeline de recomendacao: scorer + completer + selectors + filtro.
 - Meta dataset ingestion (parsing/normalization).
+- Importacao de deck e normalizacao de decklist.
+- Erros de contrato REST e respostas HTTP.
 
-Exemplos úteis do projeto
+Exemplos uteis do projeto
 -------------------------
-- Testar scorer com um conjunto de `CardResponseDTO` representativos.  
-- Fixture: `meta_dataset.json` como fonte para testes de `MetaDatasetLoader`.
+- `DeckControllerTest`, `DeckControllerRecommendationTest`, `DeckControllerAnalysisTest`.
+- `RecommendationServiceTest`, `StrategicRecommendationServiceTest`, `RecommendationScoringTest`.
+- `DeckCompleterTest`, `DeckAnalysisServiceTest`, `ClassificationServiceTest`.
+- `MetaDatasetLoaderTest`, `MetaProviderImplTest`.
+- `SynergyEngineTest`, `CardTaggerTest`.
 
-Checklist rápido
+Checklist rapido
+----------------
+1. Identifique o menor conjunto de testes que a mudanca deve impactar.
+2. Garanta que todos os testes relevantes passem localmente.
+3. Se a mudanca altera contratos, adicione/atualize testes de controller/contrato.
+
+Comandos atuais
 ---------------
-1. Identifique o menor conjunto de testes que o PR deve impactar.  
-2. Garanta que todos os testes relevantes passem localmente.  
-3. Se o PR altera contratos, adicione/atualize testes de contrato.
+- Backend: em `backend`, rode `./mvnw.cmd test` no Windows ou `./mvnw test` no Linux/macOS.
+- Frontend: em `frontend`, rode `npm run lint` e `npm run build`.
+- O frontend ainda nao possui script `test`; nao exigir `npm test` ate ele ser adicionado ao `package.json`.
 
 Executando Maven nos testes (Windows PowerShell)
----------------------------------------------
-No Windows, antes de chamar `mvn`/`./mvnw.cmd` no PowerShell, exporte o `JAVA_HOME` apontando para o JDK desejado. Exemplo do ambiente deste projeto:
+------------------------------------------------
+No Windows, antes de chamar `mvn`/`./mvnw.cmd` no PowerShell, exporte o `JAVA_HOME` apontando para o JDK desejado:
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2"
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 ```
 
-Depois execute: `cd backend` seguido de `./mvnw.cmd clean test`.
+Depois execute: `cd backend` seguido de `./mvnw.cmd test`.
