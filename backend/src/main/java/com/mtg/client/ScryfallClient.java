@@ -1,7 +1,11 @@
 package com.mtg.client;
 
 import com.mtg.dto.ScryfallResponseDTO;
+import com.mtg.dto.ScryfallCollectionRequestDTO;
+import com.mtg.dto.ScryfallCollectionResponseDTO;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
@@ -16,4 +20,10 @@ public interface ScryfallClient {
     @Path("/search")
     @Produces(MediaType.APPLICATION_JSON)
     ScryfallResponseDTO searchByName(@QueryParam("q") String query);
+
+    @POST
+    @Path("/collection")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    ScryfallCollectionResponseDTO collection(ScryfallCollectionRequestDTO request);
 }

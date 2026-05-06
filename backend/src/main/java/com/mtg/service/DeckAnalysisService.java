@@ -13,6 +13,7 @@ import org.jboss.logging.Logger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @ApplicationScoped
 public class DeckAnalysisService {
@@ -48,21 +49,16 @@ public class DeckAnalysisService {
         int removalCount = 0;
         Map<Integer, Integer> manaCurve = new HashMap<>();
 
-        // per-execution cache to avoid repeated remote lookups
-        Map<String, CardResponseDTO> cache = new HashMap<>();
+        Map<String, CardResponseDTO> cardDetailsByName = cardService.findByNames(cards.stream()
+                .map(DeckCard::getName)
+                .filter(Objects::nonNull)
+                .toList());
 
         for (DeckCard dc : cards) {
             String name = dc.getName();
             int qty = dc.getQuantity();
 
-            CardResponseDTO card = cache.computeIfAbsent(name, n -> {
-                try {
-                    List<CardResponseDTO> results = cardService.searchByName(n);
-                    return results.isEmpty() ? null : results.get(0);
-                } catch (Exception e) {
-                    return null;
-                }
-            });
+            CardResponseDTO card = cardDetailsByName.get(cardService.normalizeLookupName(name));
 
             double cmc = card != null && card.cmc() != null ? card.cmc() : 0.0;
 

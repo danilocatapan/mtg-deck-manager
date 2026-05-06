@@ -3,6 +3,8 @@ package com.mtg.service;
 import com.mtg.client.ScryfallClient;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.ScryfallCardDTO;
+import com.mtg.dto.ScryfallCollectionRequestDTO;
+import com.mtg.dto.ScryfallCollectionResponseDTO;
 import com.mtg.dto.ScryfallResponseDTO;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -10,10 +12,13 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -22,11 +27,13 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 public class CardService {
 
     private static final Logger LOG = Logger.getLogger(CardService.class);
+    private static final int SCRYFALL_COLLECTION_LIMIT = 75;
 
     @ConfigProperty(name = "scryfall.api.url")
     String scryfallApiUrl;
 
     private final ScryfallClient scryfallClient;
+    private final Map<String, CardResponseDTO> cardLookupCache = new ConcurrentHashMap<>();
 
     @Inject
     public CardService(@RestClient ScryfallClient scryfallClient) {
@@ -46,6 +53,7 @@ public class CardService {
         try {
             ScryfallResponseDTO response = scryfallClient.searchByName(query);
             List<CardResponseDTO> cards = mapResponse(response);
+            cards.stream().findFirst().ifPresent(card -> cardLookupCache.put(normalizeLookupName(normalizedName), card));
             LOG.debugv("event=scryfall.search.success name={0} resultCount={1}", normalizedName, cards.size());
             return cards;
         } catch (NotFoundException exception) {
@@ -55,6 +63,65 @@ public class CardService {
             LOG.errorv(exception, "event=scryfall.search.failure name={0}", normalizedName);
             throw new ExternalServiceException("Failed to fetch cards from Scryfall", exception);
         }
+    }
+
+    public Map<String, CardResponseDTO> findByNames(List<String> names) {
+        if (names == null || names.isEmpty()) {
+            return Map.of();
+        }
+
+        List<String> uniqueNames = names.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(name -> !name.isBlank())
+                .distinct()
+                .toList();
+
+        if (uniqueNames.isEmpty()) {
+            return Map.of();
+        }
+
+        LOG.infov("event=cards.collection.request count={0}", uniqueNames.size());
+
+        Map<String, CardResponseDTO> cardsByName = new LinkedHashMap<>();
+        List<String> uncachedNames = new ArrayList<>();
+        for (String name : uniqueNames) {
+            CardResponseDTO cachedCard = cardLookupCache.get(normalizeLookupName(name));
+            if (cachedCard == null) {
+                uncachedNames.add(name);
+            } else {
+                cardsByName.put(normalizeLookupName(name), cachedCard);
+            }
+        }
+
+        if (uncachedNames.isEmpty()) {
+            LOG.debugv("event=cards.collection.cache.hit requested={0}", uniqueNames.size());
+            return Map.copyOf(cardsByName);
+        }
+
+        List<String> misses = new ArrayList<>();
+
+        for (int start = 0; start < uncachedNames.size(); start += SCRYFALL_COLLECTION_LIMIT) {
+            List<String> chunk = uncachedNames.subList(start, Math.min(start + SCRYFALL_COLLECTION_LIMIT, uncachedNames.size()));
+            try {
+                ScryfallCollectionResponseDTO response = scryfallClient.collection(toCollectionRequest(chunk));
+                mapCollectionResponse(response).forEach((name, card) -> cardsByName.putIfAbsent(name, card));
+                if (response != null && response.notFound() != null) {
+                    response.notFound().stream()
+                            .map(ScryfallCollectionRequestDTO.CardIdentifier::name)
+                            .filter(Objects::nonNull)
+                            .forEach(misses::add);
+                }
+            } catch (WebApplicationException | ProcessingException exception) {
+                LOG.warnv(exception, "event=cards.collection.failure count={0}", chunk.size());
+                misses.addAll(chunk);
+            }
+        }
+
+        fetchMissesIndividually(misses, cardsByName);
+        cardsByName.forEach(cardLookupCache::put);
+        LOG.debugv("event=cards.collection.success requested={0} resolved={1}", uniqueNames.size(), cardsByName.size());
+        return Map.copyOf(cardsByName);
     }
 
     @CacheResult(cacheName = "cards-by-query")
@@ -92,6 +159,45 @@ public class CardService {
         return "\"" + name.replace("\"", "\\\"") + "\"";
     }
 
+    private ScryfallCollectionRequestDTO toCollectionRequest(List<String> names) {
+        List<ScryfallCollectionRequestDTO.CardIdentifier> identifiers = names.stream()
+                .map(ScryfallCollectionRequestDTO.CardIdentifier::new)
+                .toList();
+
+        return new ScryfallCollectionRequestDTO(identifiers);
+    }
+
+    private Map<String, CardResponseDTO> mapCollectionResponse(ScryfallCollectionResponseDTO response) {
+        if (response == null || response.data() == null) {
+            return Map.of();
+        }
+
+        Map<String, CardResponseDTO> cardsByName = new LinkedHashMap<>();
+        response.data().stream()
+                .map(this::toCardResponse)
+                .forEach(card -> cardsByName.putIfAbsent(normalizeLookupName(card.name()), card));
+
+        return cardsByName;
+    }
+
+    private void fetchMissesIndividually(List<String> misses, Map<String, CardResponseDTO> cardsByName) {
+        for (String name : misses) {
+            String lookupName = normalizeLookupName(name);
+            if (cardsByName.containsKey(lookupName)) {
+                continue;
+            }
+
+            try {
+                List<CardResponseDTO> results = searchByName(name);
+                if (!results.isEmpty()) {
+                    cardsByName.put(lookupName, results.get(0));
+                }
+            } catch (RuntimeException exception) {
+                LOG.warnv(exception, "event=cards.collection.miss.fallback.failed name={0}", name);
+            }
+        }
+    }
+
     private List<CardResponseDTO> mapResponse(ScryfallResponseDTO response) {
         if (response == null || response.data() == null) {
             return List.of();
@@ -115,5 +221,9 @@ public class CardService {
                 card.colorIdentity(),
                 java.util.List.of()
         );
+    }
+
+    public String normalizeLookupName(String name) {
+        return name == null ? "" : name.trim().toLowerCase(Locale.ROOT);
     }
 }
