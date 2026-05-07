@@ -51,6 +51,8 @@ class DeckControllerRecommendationTest {
                 .body("size()", org.hamcrest.Matchers.equalTo(3))
                 .body("[0].add", org.hamcrest.Matchers.equalTo("Greater Good"))
                 .body("[0].remove", org.hamcrest.Matchers.equalTo("Arcane Encyclopedia"))
+                .body("[0].source", org.hamcrest.Matchers.equalTo("heuristic_fallback"))
+                .body("[0].confidence", org.hamcrest.Matchers.equalTo("medium"))
                 .extract().asString();
 
         assertTrue(body.startsWith("[{\"reasoning\""));

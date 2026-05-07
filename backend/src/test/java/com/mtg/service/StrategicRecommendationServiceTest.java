@@ -135,6 +135,10 @@ class StrategicRecommendationServiceTest {
 
         assertFalse(recommendations.isEmpty());
         assertEquals("Greater Good", recommendations.getFirst().add());
+        assertEquals("meta_profile", recommendations.getFirst().source());
+        assertEquals("mid", recommendations.getFirst().bracket());
+        assertTrue(recommendations.getFirst().tags().contains("meta"));
+        assertTrue(recommendations.getFirst().tags().contains("draw"));
         assertTrue(recommendations.getFirst().reasoning().contains("listas similares"));
         assertTrue(recommendations.getFirst().reasoning().contains("95%"));
     }
@@ -203,6 +207,7 @@ class StrategicRecommendationServiceTest {
 
         assertFalse(recommendations.isEmpty());
         assertTrue(recommendations.stream().noneMatch(recommendation -> recommendation.reasoning().contains("listas similares")));
+        assertTrue(recommendations.stream().allMatch(recommendation -> recommendation.source().equals("heuristic_fallback")));
     }
 
     @Test

@@ -134,7 +134,7 @@ public class StrategicRecommendationService {
         );
         LOG.infov("event=recommendation.cut_candidates.generated count={0}", cuts.size());
 
-        List<StrategicRecommendation> recommendations = pairer.pair(adds, cuts, profile, roles, maxRecommendations);
+        List<StrategicRecommendation> recommendations = pairer.pair(adds, cuts, profile, roles, maxRecommendations, bracket);
         LOG.infov(
                 "event=recommendation.strategic.completed deckId={0} recommendations={1}",
                 deckId,

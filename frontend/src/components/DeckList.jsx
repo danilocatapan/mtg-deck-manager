@@ -1,4 +1,3 @@
-import React from 'react'
 import Button from './ui/Button'
 import createIcon from '../assets/icons/create.png'
 import importIcon from '../assets/icons/import.png'

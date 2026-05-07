@@ -1,5 +1,3 @@
-import React from 'react'
-
 export default function Input({ label, error, id, ...props }) {
   return (
     <label style={{ display: 'block' }} htmlFor={id}>

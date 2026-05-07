@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import DeckForm from '../components/DeckForm'
 import DeckAnalysis from '../components/DeckAnalysis'
-import Recommendations from '../components/Recommendations'
-import RecommendationForm from '../components/RecommendationForm'
+import RecommendationPanel from '../components/recommendations/RecommendationPanel'
+import RecommendationSettings from '../components/recommendations/RecommendationSettings'
 import { createDeck, getCommanderMeta, getDeckAnalysis, getMetaSources, getRecommendations, updateDeck } from '../services/api'
 import Button from '../components/ui/Button'
 import analyzeIcon from '../assets/icons/analyze.png'
@@ -16,6 +16,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
   const [recommendationParams, setRecommendationParams] = useState({ bracket: 'casual' })
   const [loadingAnalysis, setLoadingAnalysis] = useState(false)
   const [loadingRec, setLoadingRec] = useState(false)
+  const [recommendationError, setRecommendationError] = useState(null)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
   const [activePanel, setActivePanel] = useState('editor')
@@ -75,19 +76,27 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
     if (!canAnalyze) return
     try {
       setError(null)
+      setRecommendationError(null)
       setLoadingRec(true)
       setRecommendationParams(params)
+      console.info('event=recommendation.request.started', { deckId: deck.id, bracket: params?.bracket || 'casual' })
       const recommendations = await getRecommendations(deck.id, params)
       const profile = await getCommanderMeta(deck.commander, {
         bracket: params?.bracket || 'casual',
       })
       console.log('recommendations', recommendations)
+      console.info('event=recommendation.request.completed', { deckId: deck.id, count: Array.isArray(recommendations) ? recommendations.length : 0 })
+      if (!profile || Number(profile.sampleSize || 0) < 3) {
+        console.info('event=recommendation.fallback.rendered', { deckId: deck.id })
+      }
       setRec(recommendations)
       setMetaProfile(profile)
       setActivePanel('recommendations')
-      setMessage('Strategic recommendations generated from local meta cache.')
+      setMessage(`${Array.isArray(recommendations) ? recommendations.length : 0} strategic recommendations generated.`)
     } catch (e) {
       console.error('recommendations error', e)
+      console.info('event=recommendation.request.failed', { deckId: deck.id })
+      setRecommendationError(e.message || 'Failed to get recommendations.')
       setError(e.message || 'Failed to get recommendations.')
     } finally {
       setLoadingRec(false)
@@ -160,18 +169,20 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
               <p>Bracket-aware swaps explain the problem, why the add helps, and why the cut is the least painful slot.</p>
             </div>
           </div>
-          <RecommendationForm
+          <RecommendationSettings
             onSubmit={handleRecommend}
             onParamsChange={setRecommendationParams}
             disabled={!canAnalyze || loadingRec}
+            loading={loadingRec}
           />
-          <div className="recommendation-source-summary">
-            <span>Nivel: {recommendationParams.bracket || 'casual'}</span>
-            <span>Runtime: cache local</span>
-            <span>Saida: 3 a 5 trocas</span>
-          </div>
-          {loadingRec && <div className="loading">Loading recommendations...</div>}
-          {rec ? <Recommendations rec={rec} metaProfile={metaProfile} metaSources={metaSources} /> : <div className="empty-inline">Generate recommendations after saving a valid deck.</div>}
+          <RecommendationPanel
+            recommendations={rec}
+            loading={loadingRec}
+            error={recommendationError}
+            bracket={recommendationParams.bracket || 'casual'}
+            metaProfile={metaProfile}
+            metaSources={metaSources}
+          />
         </div>
       )}
 

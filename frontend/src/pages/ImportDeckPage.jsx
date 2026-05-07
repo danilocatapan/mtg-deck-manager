@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { importDeck } from '../services/api'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'

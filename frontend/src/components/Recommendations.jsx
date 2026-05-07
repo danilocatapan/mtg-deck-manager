@@ -1,5 +1,3 @@
-import React from 'react'
-
 function motivationBadges(reasoning = '') {
   const text = reasoning.toLowerCase()
   return [

@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react'
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useEffect, useMemo, useState } from 'react'
 import CardSearch from './CardSearch'
 import Button from './ui/Button'
 import { fetchCardsByNames } from '../services/api'

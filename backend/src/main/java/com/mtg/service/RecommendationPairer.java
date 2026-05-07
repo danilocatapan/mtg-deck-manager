@@ -31,6 +31,17 @@ public class RecommendationPairer {
             DeckRoleSummary roles,
             int maxRecommendations
     ) {
+        return pair(adds, cuts, profile, roles, maxRecommendations, "casual");
+    }
+
+    public List<StrategicRecommendation> pair(
+            List<StrategicCandidate> adds,
+            List<StrategicCandidate> cuts,
+            CommanderArchetypeProfile profile,
+            DeckRoleSummary roles,
+            int maxRecommendations,
+            String bracket
+    ) {
         List<StrategicRecommendation> recommendations = new ArrayList<>();
         Set<String> usedAdds = new HashSet<>();
         Set<String> usedCuts = new HashSet<>();
@@ -51,11 +62,42 @@ public class RecommendationPairer {
             recommendations.add(new StrategicRecommendation(
                     reasoningBuilder.build(add, cut, profile, roles),
                     add.card().name(),
-                    cut.card().name()
+                    cut.card().name(),
+                    tagsFor(add),
+                    add.metaDriven() ? "meta_profile" : "heuristic_fallback",
+                    bracket,
+                    confidenceFor(add)
             ));
         }
 
         return recommendations;
+    }
+
+    private List<String> tagsFor(StrategicCandidate add) {
+        List<String> tags = new ArrayList<>();
+        if (add.metaDriven()) {
+            tags.add("meta");
+        } else {
+            tags.add("fallback");
+        }
+        if (add.role() != null && !add.role().isBlank()) {
+            tags.add(add.role());
+        }
+        if (add.score() >= 0.72) {
+            tags.add("efficiency");
+        }
+        tags.add("synergy");
+        return tags.stream().distinct().toList();
+    }
+
+    private String confidenceFor(StrategicCandidate add) {
+        if (add.metaDriven() && add.inclusionRate() >= 0.70) {
+            return "high";
+        }
+        if (add.score() >= 0.55) {
+            return "medium";
+        }
+        return "low";
     }
 
     private StrategicCandidate bestCutFor(StrategicCandidate add, List<StrategicCandidate> cuts, Set<String> usedCuts) {

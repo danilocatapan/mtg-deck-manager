@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { searchCards } from '../services/api'
 import Button from './ui/Button'
 import Input from './ui/Input'
@@ -10,7 +10,7 @@ export default function CardSearch({ onSelect }) {
   const [debouncing, setDebouncing] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
 
-  async function doSearch(q = query) {
+  const doSearch = useCallback(async (q) => {
     const trimmed = q.trim()
     if (!trimmed) return
 
@@ -20,23 +20,17 @@ export default function CardSearch({ onSelect }) {
     setResults(res)
     setLoading(false)
     setHasSearched(true)
-  }
+  }, [])
 
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([])
-      setHasSearched(false)
-      return undefined
-    }
+    if (!query.trim()) return undefined
 
-    setDebouncing(true)
     const timer = setTimeout(() => {
-      doSearch(query)
-      setDebouncing(false)
+      doSearch(query).finally(() => setDebouncing(false))
     }, 350)
 
     return () => clearTimeout(timer)
-  }, [query])
+  }, [doSearch, query])
 
   function handleAdd(card) {
     if (onSelect) onSelect(card)
@@ -48,7 +42,17 @@ export default function CardSearch({ onSelect }) {
         <Input
           id="card-search"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            const nextQuery = e.target.value
+            setQuery(nextQuery)
+            if (!nextQuery.trim()) {
+              setResults([])
+              setHasSearched(false)
+              setDebouncing(false)
+            } else {
+              setDebouncing(true)
+            }
+          }}
           placeholder="Search by card name"
           onKeyDown={async (e) => {
             if (e.key === 'Enter') {
@@ -56,12 +60,12 @@ export default function CardSearch({ onSelect }) {
               if (results.length > 0) {
                 handleAdd(results[0])
               } else {
-                await doSearch()
+                await doSearch(query)
               }
             }
           }}
         />
-        <Button type="button" onClick={() => doSearch()} disabled={!query.trim() || loading}>
+        <Button type="button" onClick={() => doSearch(query)} disabled={!query.trim() || loading}>
           {loading || debouncing ? 'Searching...' : 'Search'}
         </Button>
       </div>

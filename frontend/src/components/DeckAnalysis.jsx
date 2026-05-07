@@ -1,5 +1,3 @@
-import React from 'react'
-
 export default function DeckAnalysis({ analysis }) {
   if (!analysis) return null
 

@@ -1,5 +1,3 @@
-import React from 'react'
-
 export default function Button({ children, variant = 'primary', loading = false, disabled = false, onClick, type = 'button', className = '', ...props }) {
   const base = 'btn'
   const vclass = variant === 'secondary' ? 'secondary' : variant === 'danger' ? 'danger' : 'primary'
