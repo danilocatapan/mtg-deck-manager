@@ -2,8 +2,17 @@ import { getAuthToken } from './auth'
 
 const API_ORIGIN = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 const BASE_URL = normalizeApiOrigin(API_ORIGIN)
-const REQUEST_TIMEOUT_MS = 12000
+const REQUEST_TIMEOUT_MS = 25000
+const API_STARTUP_RETRY_DELAYS_MS = [1500, 3000, 5000]
 const CARD_COLLECTION_BATCH_SIZE = 75
+
+export class ApiStartingError extends Error {
+  constructor(message = 'A API esta iniciando. Tente novamente em alguns instantes.') {
+    super(message)
+    this.name = 'ApiStartingError'
+    this.code = 'API_STARTING'
+  }
+}
 
 function normalizeApiOrigin(origin) {
   try {
@@ -18,6 +27,28 @@ function normalizeApiOrigin(origin) {
 }
 
 async function request(path, options = {}) {
+  const retryDelays = options.retryOnStartup === false ? [] : API_STARTUP_RETRY_DELAYS_MS
+  const requestOptions = { ...options }
+  delete requestOptions.retryOnStartup
+  let lastError = null
+
+  for (let attempt = 0; attempt <= retryDelays.length; attempt += 1) {
+    try {
+      return await requestOnce(path, requestOptions)
+    } catch (error) {
+      lastError = error
+      if (!isStartupTransientError(error) || attempt === retryDelays.length) {
+        throw error
+      }
+      console.info('event=api.startup.waiting', { baseUrl: BASE_URL, attempt: attempt + 1 })
+      await wait(retryDelays[attempt])
+    }
+  }
+
+  throw lastError
+}
+
+async function requestOnce(path, options = {}) {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
   const token = getAuthToken()
@@ -29,6 +60,7 @@ async function request(path, options = {}) {
       headers: {
         Accept: 'application/json',
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        'X-Request-Id': createRequestId(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
@@ -42,9 +74,31 @@ async function request(path, options = {}) {
 
     if (res.status === 204) return null
     return await res.json()
+  } catch (error) {
+    if (isStartupTransientError(error)) {
+      throw new ApiStartingError()
+    }
+    throw error
   } finally {
     window.clearTimeout(timeout)
   }
+}
+
+function isStartupTransientError(error) {
+  return error?.name === 'AbortError'
+    || error?.code === 'API_STARTING'
+    || error instanceof TypeError
+}
+
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+function createRequestId() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID()
+  }
+  return `web-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
 async function readErrorMessage(res) {
@@ -58,11 +112,14 @@ async function readErrorMessage(res) {
   return text.slice(0, 200) || res.statusText
 }
 
-export async function fetchDecks() {
+export async function fetchDecks({ throwOnError = false } = {}) {
   try {
     return await request('/decks')
   } catch (e) {
     console.error('fetchDecks error', e)
+    if (throwOnError) {
+      throw e
+    }
     return []
   }
 }

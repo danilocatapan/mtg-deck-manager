@@ -7,19 +7,19 @@ import jakarta.ws.rs.ext.Provider;
 import org.jboss.logging.Logger;
 
 @Provider
-public class BadRequestExceptionMapper implements ExceptionMapper<IllegalArgumentException> {
-    private static final Logger LOG = Logger.getLogger(BadRequestExceptionMapper.class);
+public class IllegalStateExceptionMapper implements ExceptionMapper<IllegalStateException> {
+    private static final Logger LOG = Logger.getLogger(IllegalStateExceptionMapper.class);
 
     @Override
-    public Response toResponse(IllegalArgumentException exception) {
+    public Response toResponse(IllegalStateException exception) {
         String message = exception.getMessage() == null || exception.getMessage().isBlank()
-                ? "Invalid request"
+                ? "Invalid request state"
                 : exception.getMessage();
         StructuredRestLog.validation(
                 LOG,
                 Response.Status.BAD_REQUEST.getStatusCode(),
                 "Requisicao rejeitada por violacao de regra de negocio.",
-                "INVALID_REQUEST",
+                "BUSINESS_RULE",
                 null,
                 message
         );

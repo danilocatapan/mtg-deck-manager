@@ -5,7 +5,9 @@ import DeckEditorPage from './DeckEditorPage'
 import ImportDeckPage from './ImportDeckPage'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
+import StateMessage from '../components/ui/StateMessage'
 import { getAuthToken, subscribeAuth } from '../services/auth'
+import { ApiStartingError } from '../services/api'
 import createIcon from '../assets/icons/create.png'
 import importIcon from '../assets/icons/import.png'
 
@@ -16,17 +18,27 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getAuthToken()))
   const [loading, setLoading] = useState(() => isAuthenticated)
   const [message, setMessage] = useState(null)
+  const [apiStatus, setApiStatus] = useState(null)
 
   async function load() {
     if (!getAuthToken()) {
       setDecks([])
       setLoading(false)
+      setApiStatus(null)
       return
     }
     setLoading(true)
-    const loadedDecks = await fetchDecks()
-    setDecks(loadedDecks)
-    setLoading(false)
+    setApiStatus(null)
+    try {
+      const loadedDecks = await fetchDecks({ throwOnError: true })
+      setDecks(loadedDecks)
+    } catch (error) {
+      console.error('load decks failed', error)
+      setApiStatus(error instanceof ApiStartingError ? 'starting' : 'unavailable')
+      setDecks([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -36,12 +48,25 @@ export default function Home() {
         mounted = false
       }
     }
-    fetchDecks().then((loadedDecks) => {
-      if (mounted) {
-        setDecks(loadedDecks)
-        setLoading(false)
-      }
-    })
+    fetchDecks({ throwOnError: true })
+      .then((loadedDecks) => {
+        if (mounted) {
+          setDecks(loadedDecks)
+          setApiStatus(null)
+        }
+      })
+      .catch((error) => {
+        console.error('load decks failed', error)
+        if (mounted) {
+          setDecks([])
+          setApiStatus(error instanceof ApiStartingError ? 'starting' : 'unavailable')
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setLoading(false)
+        }
+      })
     return () => {
       mounted = false
     }
@@ -53,6 +78,7 @@ export default function Home() {
     if (!nextIsAuthenticated) {
       setDecks([])
       setLoading(false)
+      setApiStatus(null)
     }
   }), [])
 
@@ -151,8 +177,18 @@ export default function Home() {
           Sign in with Google to create, import, edit, list, or delete your decks.
         </div>
       )}
+      {apiStatus === 'starting' && (
+        <StateMessage tone="neutral" title="API iniciando">
+          O servidor gratuito pode levar cerca de 50 segundos para acordar apos inatividade. Mantivemos a tela estavel; tente novamente em alguns instantes.
+        </StateMessage>
+      )}
+      {apiStatus === 'unavailable' && (
+        <StateMessage tone="error" title="API indisponivel">
+          Nao foi possivel conectar com o backend agora. Aguarde alguns segundos e tente recarregar a biblioteca.
+        </StateMessage>
+      )}
       {loading ? (
-        <Card><div className="loading">Loading decks...</div></Card>
+        <Card><div className="loading">Carregando decks e aguardando a API responder...</div></Card>
       ) : (
         <Card className="zone zone-library">
           <DeckList

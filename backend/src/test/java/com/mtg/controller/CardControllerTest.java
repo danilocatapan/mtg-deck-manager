@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.blankOrNullString;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -32,6 +34,7 @@ class CardControllerTest {
                 .get("/cards")
                 .then()
                 .statusCode(200)
+                .header("X-Request-Id", not(blankOrNullString()))
                 .body("size()", equalTo(1))
                 .body("[0].name", equalTo("Sol Ring"))
                 .body("[0].manaCost", equalTo("{1}"))
@@ -41,10 +44,12 @@ class CardControllerTest {
     @Test
     void shouldReturnBadRequestWhenNameIsMissing() {
         given()
+                .header("X-Request-Id", "test-request-id")
                 .when()
                 .get("/cards")
                 .then()
                 .statusCode(400)
+                .header("X-Request-Id", equalTo("test-request-id"))
                 .body("message", equalTo("Query parameter 'name' is required"));
     }
 

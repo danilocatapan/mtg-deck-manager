@@ -8,6 +8,7 @@ import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
 import com.mtg.dto.ErrorResponseDTO;
 import com.mtg.dto.RecommendationParamsDTO;
+import com.mtg.config.StructuredRestLog;
 import com.mtg.service.DeckAnalysisService;
 import com.mtg.service.DeckService;
 import com.mtg.service.RecommendationService;
@@ -32,11 +33,13 @@ import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.jboss.logging.Logger;
 
 @Path("/decks")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class DeckController {
+    private static final Logger LOG = Logger.getLogger(DeckController.class);
 
     @Inject
     DeckService deckService;
@@ -218,6 +221,14 @@ public class DeckController {
 
     private Response badRequest(String message) {
         String safeMessage = message == null || message.isBlank() ? "Invalid request" : message;
+        StructuredRestLog.validation(
+                LOG,
+                Response.Status.BAD_REQUEST.getStatusCode(),
+                "Requisicao rejeitada por violacao de regra de negocio.",
+                "INVALID_DECK_REQUEST",
+                null,
+                safeMessage
+        );
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new ErrorResponseDTO(safeMessage))
                 .build();

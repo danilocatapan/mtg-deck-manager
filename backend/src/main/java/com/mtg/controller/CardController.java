@@ -3,6 +3,7 @@ package com.mtg.controller;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.CardCollectionRequestDTO;
 import com.mtg.dto.ErrorResponseDTO;
+import com.mtg.config.StructuredRestLog;
 import com.mtg.service.CardService;
 import com.mtg.service.ExternalServiceException;
 import com.mtg.service.RateLimitedExternalServiceException;
@@ -73,32 +74,38 @@ public class CardController {
             @Parameter(description = "Card name to search for", required = true)
             @QueryParam("name") String name
     ) {
-        LOG.infov("event=cards.endpoint.request name={0}", name);
+        LOG.info("event=cards.endpoint.request");
 
         if (name == null || name.isBlank()) {
-            return RestResponse.status(
-                    RestResponse.Status.BAD_REQUEST,
-                    new ErrorResponseDTO("Query parameter 'name' is required")
-            );
+            return badRequest("Query parameter 'name' is required", "name", "Parametro obrigatorio ausente.");
         }
         if (name.length() > MAX_CARD_NAME_LENGTH) {
-            return RestResponse.status(
-                    RestResponse.Status.BAD_REQUEST,
-                    new ErrorResponseDTO("Query parameter 'name' is too long")
-            );
+            return badRequest("Query parameter 'name' is too long", "name", "Parametro excede o tamanho maximo.");
         }
 
         try {
             List<CardResponseDTO> cards = cardService.searchByName(name);
             return RestResponse.ok(cards);
         } catch (RateLimitedExternalServiceException exception) {
-            LOG.warnv("event=cards.endpoint.rate_limited name={0}", name);
+            LOG.warn("event=cards.endpoint.rate_limited");
+            StructuredRestLog.exception(
+                    LOG,
+                    exception,
+                    RestResponse.Status.TOO_MANY_REQUESTS.getStatusCode(),
+                    "Erro ao consultar servico externo."
+            );
             return RestResponse.status(
                     RestResponse.Status.TOO_MANY_REQUESTS,
                     new ErrorResponseDTO("Scryfall rate limit reached. Please try again shortly.")
             );
         } catch (ExternalServiceException exception) {
-            LOG.errorv(exception, "event=cards.endpoint.failure name={0}", name);
+            LOG.error("event=cards.endpoint.failure", exception);
+            StructuredRestLog.exception(
+                    LOG,
+                    exception,
+                    RestResponse.Status.BAD_GATEWAY.getStatusCode(),
+                    "Erro ao consultar servico externo."
+            );
             return RestResponse.status(
                     RestResponse.Status.BAD_GATEWAY,
                     new ErrorResponseDTO("Unable to fetch cards from Scryfall")
@@ -111,10 +118,7 @@ public class CardController {
     @Operation(summary = "Fetch cards by exact names", description = "Uses Scryfall collection lookup and local cache to resolve many cards with fewer upstream requests.")
     public RestResponse<?> findByNames(CardCollectionRequestDTO request) {
         if (request == null || request.names() == null || request.names().isEmpty()) {
-            return RestResponse.status(
-                    RestResponse.Status.BAD_REQUEST,
-                    new ErrorResponseDTO("Body field 'names' is required")
-            );
+            return badRequest("Body field 'names' is required", "names", "Campo obrigatorio ausente.");
         }
 
         List<String> names = request.names().stream()
@@ -125,22 +129,13 @@ public class CardController {
                 .toList();
 
         if (names.isEmpty()) {
-            return RestResponse.status(
-                    RestResponse.Status.BAD_REQUEST,
-                    new ErrorResponseDTO("Body field 'names' must contain at least one card name")
-            );
+            return badRequest("Body field 'names' must contain at least one card name", "names", "Lista nao possui nomes validos.");
         }
         if (names.size() > MAX_COLLECTION_SIZE) {
-            return RestResponse.status(
-                    RestResponse.Status.BAD_REQUEST,
-                    new ErrorResponseDTO("Body field 'names' accepts at most " + MAX_COLLECTION_SIZE + " cards")
-            );
+            return badRequest("Body field 'names' accepts at most " + MAX_COLLECTION_SIZE + " cards", "names", "Lista excede o limite permitido.");
         }
         if (names.stream().anyMatch(name -> name.length() > MAX_CARD_NAME_LENGTH)) {
-            return RestResponse.status(
-                    RestResponse.Status.BAD_REQUEST,
-                    new ErrorResponseDTO("Card names must be at most " + MAX_CARD_NAME_LENGTH + " characters")
-            );
+            return badRequest("Card names must be at most " + MAX_CARD_NAME_LENGTH + " characters", "names", "Um ou mais nomes excedem o tamanho maximo.");
         }
 
         LOG.infov("event=cards.collection.endpoint.request count={0}", names.size());
@@ -150,5 +145,17 @@ public class CardController {
                 .filter(Objects::nonNull)
                 .toList();
         return RestResponse.ok(cards);
+    }
+
+    private RestResponse<ErrorResponseDTO> badRequest(String message, String field, String reason) {
+        StructuredRestLog.validation(
+                LOG,
+                RestResponse.Status.BAD_REQUEST.getStatusCode(),
+                "Requisicao rejeitada por violacao de regra de negocio.",
+                "INVALID_CARD_REQUEST",
+                field,
+                reason
+        );
+        return RestResponse.status(RestResponse.Status.BAD_REQUEST, new ErrorResponseDTO(message));
     }
 }
