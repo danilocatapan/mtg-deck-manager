@@ -25,7 +25,8 @@ public class CandidateCutSelector {
 
     public List<StrategicCandidate> select(Deck deck, Map<String, CardResponseDTO> cardsByName, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket) {
         return deck.getCards().stream()
-                .map(deckCard -> toCandidate(deckCard, cardsByName.get(normalize(deckCard.getName())), profile, roles, bracket))
+                .filter(deckCard -> !normalize(deckCard.getName()).equals(normalize(deck.getCommander())))
+                .map(deckCard -> toCandidate(deckCard, fallbackCard(deckCard), cardsByName.get(normalize(deckCard.getName())), profile, roles, bracket))
                 .filter(candidate -> candidate.card() != null)
                 .filter(candidate -> !"land".equals(candidate.role()) || roles.lands() > minLandTarget(bracket))
                 .filter(candidate -> roleProtectionAllowsCut(candidate.role(), candidate.card(), roles, bracket))
@@ -34,10 +35,8 @@ public class CandidateCutSelector {
                 .toList();
     }
 
-    private StrategicCandidate toCandidate(DeckCard deckCard, CardResponseDTO card, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket) {
-        if (card == null) {
-            return new StrategicCandidate(null, "unknown", 0.0, "sem dados suficientes para avaliar");
-        }
+    private StrategicCandidate toCandidate(DeckCard deckCard, CardResponseDTO fallbackCard, CardResponseDTO resolvedCard, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket) {
+        CardResponseDTO card = resolvedCard == null ? fallbackCard : resolvedCard;
 
         String role = classifyRole(card);
         double lowSynergy = 1.0 - synergyEngine.computeSynergy(synergyEngine.tagsForCard(card), roles.deckTags(), profile.commanderTags());
@@ -54,6 +53,22 @@ public class CandidateCutSelector {
         }
 
         return new StrategicCandidate(card, role, score, cutReason(role, card));
+    }
+
+    private CardResponseDTO fallbackCard(DeckCard deckCard) {
+        String name = deckCard == null ? null : deckCard.getName();
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        String normalized = normalize(name);
+        if (isBasicLand(normalized)) {
+            return new CardResponseDTO(name, "", "Basic Land", "Add one mana.", 0.0, List.of(), List.of());
+        }
+        return new CardResponseDTO(name, "", "", "", 4.0, List.of(), List.of());
+    }
+
+    private boolean isBasicLand(String normalizedName) {
+        return Set.of("plains", "island", "swamp", "mountain", "forest", "wastes").contains(normalizedName);
     }
 
     private String classifyRole(CardResponseDTO card) {

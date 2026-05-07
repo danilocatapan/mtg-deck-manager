@@ -17,6 +17,7 @@ export default function RecommendationPanel({
   metaSources = [],
 }) {
   const items = Array.isArray(recommendations) ? recommendations : []
+  const hasGenerated = Array.isArray(recommendations)
   const source = profileSource(metaProfile, items)
   const hasFallback = source === 'fallback'
 
@@ -60,9 +61,15 @@ export default function RecommendationPanel({
         </StateMessage>
       )}
 
-      {!loading && !error && items.length === 0 && (
+      {!loading && !error && !hasGenerated && (
         <StateMessage title="Gere recomendacoes para visualizar trocas sugeridas.">
           Escolha o bracket e deixe o motor comparar o deck atual com o perfil do comandante.
+        </StateMessage>
+      )}
+
+      {!loading && !error && hasGenerated && items.length === 0 && (
+        <StateMessage tone="warning" title="Nenhuma troca foi gerada para esta rodada.">
+          O deck foi selecionado, mas o motor nao encontrou um par add/remove seguro. Tente atualizar a analise ou gerar novamente.
         </StateMessage>
       )}
 

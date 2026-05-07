@@ -235,6 +235,27 @@ class StrategicRecommendationServiceTest {
         });
     }
 
+    @Test
+    void shouldStillRecommendForCedhWhenCardMetadataIsUnavailable() {
+        Deck deck = xenagosDeck();
+
+        when(deckRepository.findById(1L)).thenReturn(deck);
+        when(commanderMetaProfileService.findByCommanderAndBracket("Xenagos, God of Revels", "cedh")).thenReturn(null);
+        when(metaProvider.getTopCards("Xenagos, God of Revels")).thenReturn(List.of());
+        when(cardService.findByNames(Mockito.anyList())).thenReturn(Map.of());
+
+        List<StrategicRecommendation> recommendations = sut.recommend(1L, new RecommendationParamsDTO(null, "cedh", null, null));
+
+        assertFalse(recommendations.isEmpty());
+        assertTrue(recommendations.size() >= 3);
+        assertTrue(recommendations.stream().allMatch(recommendation -> recommendation.bracket().equals("cedh")));
+        assertTrue(recommendations.stream().noneMatch(recommendation -> recommendation.remove().equals("Forest")));
+        recommendations.forEach(recommendation -> {
+            assertFalse(recommendation.add().isBlank());
+            assertFalse(recommendation.remove().isBlank());
+        });
+    }
+
     private static Map.Entry<String, CardResponseDTO> entry(CardResponseDTO card) {
         return Map.entry(card.name().toLowerCase(), card);
     }
