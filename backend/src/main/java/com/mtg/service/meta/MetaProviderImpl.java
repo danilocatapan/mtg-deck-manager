@@ -1,6 +1,7 @@
 package com.mtg.service.meta;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
 import java.time.OffsetDateTime;
@@ -15,6 +16,9 @@ public class MetaProviderImpl implements MetaProvider {
 
     @Inject
     BracketMetaPolicy bracketMetaPolicy;
+
+    @Inject
+    Instance<MetaSourceAdapter> adapters;
 
     @Override
     public List<MetaCard> getTopCards(String commander) {
@@ -54,6 +58,14 @@ public class MetaProviderImpl implements MetaProvider {
 
     @Override
     public List<MetaSourceStatus> getSourceStatuses() {
+        if (adapters != null) {
+            List<MetaSourceStatus> adapterStatuses = adapters.stream()
+                    .map(MetaSourceAdapter::status)
+                    .toList();
+            if (!adapterStatuses.isEmpty()) {
+                return adapterStatuses;
+            }
+        }
         return policy().sourceStatuses();
     }
 

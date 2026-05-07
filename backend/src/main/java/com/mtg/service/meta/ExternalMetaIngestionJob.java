@@ -21,9 +21,28 @@ public class ExternalMetaIngestionJob {
             return statuses;
         }
         for (MetaSourceAdapter adapter : adapters) {
-            LOG.infov("event=meta.sync.source source={0} mode=offline-cache", adapter.sourceName());
-            statuses.add(adapter.status());
+            String source = adapter.sourceName();
+            LOG.infov("event=meta.sync.started source={0}", source);
+            try {
+                List<MetaDeck> decks = adapter.sync();
+                LOG.infov("event=meta.sync.completed source={0} decks={1}", source, decks.size());
+            } catch (Exception exception) {
+                LOG.errorv(exception, "event=meta.sync.failed source={0}", source);
+            } finally {
+                statuses.add(adapter.status());
+            }
         }
         return statuses;
+    }
+
+    public List<MetaDeck> cachedDecks() {
+        List<MetaDeck> decks = new ArrayList<>();
+        if (adapters == null) {
+            return decks;
+        }
+        for (MetaSourceAdapter adapter : adapters) {
+            decks.addAll(adapter.fetchDecks(null));
+        }
+        return decks;
     }
 }

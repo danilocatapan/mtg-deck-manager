@@ -7,4 +7,8 @@ public interface MetaSourceAdapter {
     List<String> supportedBrackets();
     List<MetaDeck> fetchDecks(String bracket);
     MetaSourceStatus status();
+
+    default List<MetaDeck> sync() {
+        return fetchDecks(null);
+    }
 }

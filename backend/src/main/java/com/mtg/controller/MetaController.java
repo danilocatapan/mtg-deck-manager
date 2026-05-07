@@ -2,6 +2,7 @@ package com.mtg.controller;
 
 import com.mtg.service.meta.CommanderMetaProfile;
 import com.mtg.service.meta.ExternalMetaIngestionJob;
+import com.mtg.service.meta.MetaDeck;
 import com.mtg.service.meta.MetaProvider;
 import com.mtg.service.meta.MetaSourceStatus;
 import jakarta.inject.Inject;
@@ -49,6 +50,12 @@ public class MetaController {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         return Response.ok(Map.of("sources", ingestionJob.sync())).build();
+    }
+
+    @GET
+    @Path("/decks")
+    public Map<String, List<MetaDeck>> decks() {
+        return Map.of("decks", ingestionJob.cachedDecks());
     }
 
     @GET
