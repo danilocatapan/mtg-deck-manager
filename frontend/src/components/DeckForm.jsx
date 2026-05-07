@@ -3,11 +3,14 @@ import CardSearch from './CardSearch'
 import Button from './ui/Button'
 import { fetchCardsByNames } from '../services/api'
 
-const CARD_IMAGE_CACHE_KEY = 'mtg-card-image-cache-v1'
+const CARD_IMAGE_CACHE_KEY = 'mtg-card-image-cache-v2'
 
 function readImageCache() {
   try {
-    return JSON.parse(window.localStorage.getItem(CARD_IMAGE_CACHE_KEY) || '{}')
+    const cache = JSON.parse(window.localStorage.getItem(CARD_IMAGE_CACHE_KEY) || '{}')
+    return Object.fromEntries(
+      Object.entries(cache).filter(([, imageUrl]) => typeof imageUrl === 'string' && imageUrl.length > 0),
+    )
   } catch {
     return {}
   }
@@ -27,6 +30,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   const [cards, setCards] = useState([])
   const [deckView, setDeckView] = useState('list')
   const [cardImages, setCardImages] = useState(() => readImageCache())
+  const [unavailableImages, setUnavailableImages] = useState({})
   const [loadingImages, setLoadingImages] = useState(false)
   const [error, setError] = useState(null)
   const [savedMessage, setSavedMessage] = useState(null)
@@ -41,7 +45,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
 
   useEffect(() => {
     if (deckView !== 'images' || cards.length === 0) return
-    const missingCards = cards.filter((card) => card.name && cardImages[card.name] === undefined)
+    const missingCards = cards.filter((card) => card.name && !cardImages[card.name] && !unavailableImages[card.name])
     if (missingCards.length === 0) return
 
     let cancelled = false
@@ -52,14 +56,24 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       const fetchedByName = new Map(fetchedCards.map((card) => [card.name?.toLowerCase(), card]))
       for (const deckCard of missingCards) {
         const fetched = fetchedByName.get(deckCard.name.toLowerCase())
-        nextImages[deckCard.name] = fetched?.imageUrl || null
+        if (fetched?.imageUrl) {
+          nextImages[deckCard.name] = fetched.imageUrl
+        }
       }
       if (!cancelled) {
-        setCardImages((prev) => {
-          const merged = { ...prev, ...nextImages }
-          writeImageCache(merged)
-          return merged
-        })
+        if (Object.keys(nextImages).length > 0) {
+          setCardImages((prev) => {
+            const merged = { ...prev, ...nextImages }
+            writeImageCache(merged)
+            return merged
+          })
+        }
+        const unavailable = missingCards
+          .filter((card) => !nextImages[card.name])
+          .reduce((acc, card) => ({ ...acc, [card.name]: true }), {})
+        if (Object.keys(unavailable).length > 0) {
+          setUnavailableImages((prev) => ({ ...prev, ...unavailable }))
+        }
         setLoadingImages(false)
       }
     }
@@ -67,7 +81,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
     return () => {
       cancelled = true
     }
-  }, [deckView, cards, cardImages])
+  }, [deckView, cards, cardImages, unavailableImages])
 
   const totalCards = useMemo(() => cards.reduce((sum, card) => sum + Number(card.quantity || 0), 0), [cards])
   const isOverLimit = totalCards > 99
@@ -96,8 +110,10 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   }
 
   function markImageUnavailable(cardName) {
+    setUnavailableImages((prev) => ({ ...prev, [cardName]: true }))
     setCardImages((prev) => {
-      const merged = { ...prev, [cardName]: null }
+      const merged = { ...prev }
+      delete merged[cardName]
       writeImageCache(merged)
       return merged
     })
