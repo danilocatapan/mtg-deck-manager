@@ -20,6 +20,9 @@ public class MetaProviderImpl implements MetaProvider {
     @Inject
     Instance<MetaSourceAdapter> adapters;
 
+    @Inject
+    CommanderMetaProfileService commanderMetaProfileService;
+
     @Override
     public List<MetaCard> getTopCards(String commander) {
         if (commander == null) return List.of();
@@ -35,6 +38,13 @@ public class MetaProviderImpl implements MetaProvider {
         BracketMetaPolicy policy = policy();
         String normalizedBracket = policy.normalizeBracket(bracket);
         String normalizedSourceMode = policy.normalizeSourceMode(sourceMode);
+        CommanderMetaProfile localProfile = commanderMetaProfileService == null
+                ? null
+                : commanderMetaProfileService.find(commander, normalizedBracket);
+        if (localProfile != null && localProfile.sampleSize() > 0) {
+            return localProfile;
+        }
+
         List<String> sources = policy.sourcesFor(normalizedBracket, normalizedSourceMode);
         List<MetaCard> cards = loader.getCardsForCommander(commander).stream()
                 .map(card -> weightForBracket(card, normalizedBracket, sources))

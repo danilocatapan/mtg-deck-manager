@@ -15,6 +15,9 @@ public class ExternalMetaIngestionJob {
     @Inject
     Instance<MetaSourceAdapter> adapters;
 
+    @Inject
+    MetaDatasetService datasetService;
+
     public List<MetaSourceStatus> sync() {
         List<MetaSourceStatus> statuses = new ArrayList<>();
         if (adapters == null) {
@@ -25,6 +28,9 @@ public class ExternalMetaIngestionJob {
             LOG.infov("event=meta.sync.started source={0}", source);
             try {
                 List<MetaDeck> decks = adapter.sync();
+                if (!decks.isEmpty()) {
+                    datasetService.replaceBySource(source, decks);
+                }
                 LOG.infov("event=meta.sync.completed source={0} decks={1}", source, decks.size());
             } catch (Exception exception) {
                 LOG.errorv(exception, "event=meta.sync.failed source={0}", source);
@@ -36,13 +42,6 @@ public class ExternalMetaIngestionJob {
     }
 
     public List<MetaDeck> cachedDecks() {
-        List<MetaDeck> decks = new ArrayList<>();
-        if (adapters == null) {
-            return decks;
-        }
-        for (MetaSourceAdapter adapter : adapters) {
-            decks.addAll(adapter.fetchDecks(null));
-        }
-        return decks;
+        return datasetService.findAll();
     }
 }

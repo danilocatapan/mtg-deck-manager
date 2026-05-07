@@ -9,6 +9,7 @@ frontend/dist/
 
 # Java
 backend/target/
+data/
 
 # IDE
 .vscode/

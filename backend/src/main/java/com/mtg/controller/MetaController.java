@@ -1,6 +1,7 @@
 package com.mtg.controller;
 
 import com.mtg.service.meta.CommanderMetaProfile;
+import com.mtg.service.meta.CommanderMetaProfileService;
 import com.mtg.service.meta.ExternalMetaIngestionJob;
 import com.mtg.service.meta.MetaDeck;
 import com.mtg.service.meta.MetaProvider;
@@ -34,6 +35,9 @@ public class MetaController {
     @Inject
     ExternalMetaIngestionJob ingestionJob;
 
+    @Inject
+    CommanderMetaProfileService profileService;
+
     @ConfigProperty(name = "meta.sync.api-key")
     Optional<String> syncApiKey;
 
@@ -56,6 +60,15 @@ public class MetaController {
     @Path("/decks")
     public Map<String, List<MetaDeck>> decks() {
         return Map.of("decks", ingestionJob.cachedDecks());
+    }
+
+    @POST
+    @Path("/rebuild-profiles")
+    public Response rebuildProfiles(@HeaderParam("X-Admin-Key") String adminKey) {
+        if (syncApiKey.isPresent() && !syncApiKey.get().equals(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        return Response.ok(Map.of("profilesBuilt", profileService.rebuild())).build();
     }
 
     @GET
