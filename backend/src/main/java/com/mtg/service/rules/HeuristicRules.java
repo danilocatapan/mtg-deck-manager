@@ -14,9 +14,16 @@ public final class HeuristicRules {
     public static Map<String, Integer> calculateGaps(int rampCount, int drawCount, int removalCount, double averageCmc, String bracket) {
         Map<String, Integer> gaps = new HashMap<>();
 
-        int rampThreshold = "high".equalsIgnoreCase(bracket) ? 12 : 10;
-        int drawThreshold = "high".equalsIgnoreCase(bracket) ? 10 : 8;
-        int removalThreshold = "high".equalsIgnoreCase(bracket) ? 10 : 8;
+        String normalized = bracket == null ? "casual" : bracket.trim().toLowerCase().replace("_", "-");
+        boolean highPower = normalized.equals("4") || normalized.equals("5")
+                || normalized.equals("high")
+                || normalized.equals("high-power")
+                || normalized.equals("highpower")
+                || normalized.equals("cedh");
+
+        int rampThreshold = highPower ? 12 : 10;
+        int drawThreshold = highPower ? 10 : 8;
+        int removalThreshold = highPower ? 10 : 8;
 
         if (rampCount < rampThreshold) gaps.put("ramp", rampThreshold - rampCount);
         if (drawCount < drawThreshold) gaps.put("draw", drawThreshold - drawCount);

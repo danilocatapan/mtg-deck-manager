@@ -1,7 +1,11 @@
 package com.mtg.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.mtg.dto.ApplyRecommendationSwapDTO;
 import com.mtg.dto.CardResponseDTO;
+import com.mtg.dto.CommanderDTO;
 import com.mtg.dto.DeckCardDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
@@ -16,6 +20,9 @@ import org.jboss.logging.Logger;
 import com.mtg.dto.DeckImportDTO;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -25,10 +32,12 @@ import java.util.stream.Collectors;
 public class DeckService {
 
     private static final Logger LOG = Logger.getLogger(DeckService.class);
+    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final int MAX_DECK_NAME_LENGTH = 120;
     private static final int MAX_CARD_NAME_LENGTH = 120;
     private static final int MAX_DECK_CARDS = 120;
     private static final int MAX_COMMANDER_MAIN_DECK_CARDS = 99;
+    private static final Set<String> COMMANDER_ROLES = Set.of("commander", "background", "partner");
     private static final Set<String> BASIC_LANDS = Set.of(
             "plains",
             "island",
@@ -56,11 +65,14 @@ public class DeckService {
         validateRequest(request);
         validateOwner(ownerId);
         LOG.debug("Creating deck: " + request);
-        validateCardsExist(request.commander(), request.cards());
+        List<CommanderDTO> commanders = normalizeCommanders(request.commander(), request.commanders());
+        Map<String, CardResponseDTO> resolved = validateCardsExist(commanders, request.cards());
 
         List<DeckCard> cards = toEntities(request.cards());
-        Deck deck = new Deck(request.name().trim(), request.commander().trim(), cards);
+        Deck deck = new Deck(request.name().trim(), primaryCommander(commanders), cards);
         deck.setOwnerId(ownerId);
+        deck.setCommandersJson(toCommandersJson(commanders));
+        deck.setColorIdentity(toColorIdentity(commanders, resolved));
         deckRepository.persist(deck);
         LOG.info("Deck created: " + deck.getId());
 
@@ -76,20 +88,23 @@ public class DeckService {
         if (dto.content() != null && dto.content().length() > 16_000) {
             throw new IllegalArgumentException("Import payload is too large");
         }
+        List<CommanderDTO> commanders = normalizeCommanders(dto.commander(), dto.commanders());
 
         var cards = importService.parse(dto.content());
         int total = cards.stream().mapToInt(DeckCard::getQuantity).sum();
         if (total > 99) {
             throw new IllegalArgumentException("Imported deck has " + total + " cards; maximum is 99.");
         }
-        validateCardsExist(dto.commander(), cards.stream()
+        Map<String, CardResponseDTO> resolved = validateCardsExist(commanders, cards.stream()
                 .map(card -> new DeckCardDTO(card.getName(), card.getQuantity()))
                 .toList());
 
         Deck deck = new Deck();
         deck.setName(dto.name().trim());
-        deck.setCommander(dto.commander().trim());
+        deck.setCommander(primaryCommander(commanders));
         deck.setOwnerId(ownerId);
+        deck.setCommandersJson(toCommandersJson(commanders));
+        deck.setColorIdentity(toColorIdentity(commanders, resolved));
         deck.setCards(cards);
         deckRepository.persist(deck);
         return toDto(deck);
@@ -118,9 +133,12 @@ public class DeckService {
             return null;
         }
         LOG.debug("Updating deck: " + id);
-        validateCardsExist(request.commander(), request.cards());
+        List<CommanderDTO> commanders = normalizeCommanders(request.commander(), request.commanders());
+        Map<String, CardResponseDTO> resolved = validateCardsExist(commanders, request.cards());
         deck.setName(request.name().trim());
-        deck.setCommander(request.commander().trim());
+        deck.setCommander(primaryCommander(commanders));
+        deck.setCommandersJson(toCommandersJson(commanders));
+        deck.setColorIdentity(toColorIdentity(commanders, resolved));
         deck.setCards(toEntities(request.cards()));
         deckRepository.persist(deck);
         LOG.info("Deck updated: " + id);
@@ -207,7 +225,7 @@ public class DeckService {
             throw new IllegalArgumentException("Deck name is required");
         }
         validateDeckName(request.name());
-        validateCommander(request.commander());
+        normalizeCommanders(request.commander(), request.commanders());
         if (request.cards() == null || request.cards().isEmpty()) {
             throw new IllegalArgumentException("Deck must contain at least one card");
         }
@@ -251,9 +269,9 @@ public class DeckService {
         }
     }
 
-    private void validateCardsExist(String commander, List<DeckCardDTO> cards) {
+    private Map<String, CardResponseDTO> validateCardsExist(List<CommanderDTO> commanders, List<DeckCardDTO> cards) {
         List<String> names = new java.util.ArrayList<>();
-        names.add(commander);
+        commanders.stream().map(CommanderDTO::name).forEach(names::add);
         cards.stream().map(DeckCardDTO::name).forEach(names::add);
 
         Map<String, CardResponseDTO> resolved = cardService.findByNames(names);
@@ -263,6 +281,7 @@ public class DeckService {
                 throw new IllegalArgumentException("Card not found: " + name.trim());
             }
         }
+        return resolved;
     }
 
     private void validateCardExists(String name, String message) {
@@ -351,6 +370,98 @@ public class DeckService {
 
     private DeckResponseDTO toDto(Deck deck) {
         List<DeckCardDTO> cards = deck.getCards().stream().map(c -> new DeckCardDTO(c.getName(), c.getQuantity())).collect(Collectors.toList());
-        return new DeckResponseDTO(deck.getId(), deck.getName(), deck.getCommander(), cards);
+        return new DeckResponseDTO(deck.getId(), deck.getName(), deck.getCommander(), cards, deck.getColorIdentity(), commandersFor(deck));
+    }
+
+    private List<CommanderDTO> normalizeCommanders(String legacyCommander, List<CommanderDTO> requestedCommanders) {
+        List<CommanderDTO> source = requestedCommanders == null || requestedCommanders.isEmpty()
+                ? List.of(new CommanderDTO(legacyCommander, "commander"))
+                : requestedCommanders;
+        List<CommanderDTO> normalized = new ArrayList<>();
+
+        for (CommanderDTO commander : source) {
+            if (commander == null || commander.name() == null || commander.name().isBlank()) {
+                throw new IllegalArgumentException("Commander is required");
+            }
+            validateCommander(commander.name());
+            String role = commander.role() == null || commander.role().isBlank()
+                    ? "commander"
+                    : commander.role().trim().toLowerCase(Locale.ROOT).replace("_", "-");
+            if (!COMMANDER_ROLES.contains(role)) {
+                throw new IllegalArgumentException("Commander role must be commander, background, or partner");
+            }
+            normalized.add(new CommanderDTO(commander.name().trim(), role));
+        }
+
+        boolean hasMainCommander = normalized.stream().anyMatch(commander -> "commander".equals(commander.role()));
+        if (!hasMainCommander) {
+            throw new IllegalArgumentException("At least one primary commander is required");
+        }
+        return normalized.stream()
+                .sorted(Comparator.comparing((CommanderDTO commander) -> roleSort(commander.role())).thenComparing(CommanderDTO::name))
+                .toList();
+    }
+
+    private int roleSort(String role) {
+        return switch (role) {
+            case "commander" -> 0;
+            case "partner" -> 1;
+            case "background" -> 2;
+            default -> 3;
+        };
+    }
+
+    private String primaryCommander(List<CommanderDTO> commanders) {
+        return commanders.stream()
+                .filter(commander -> "commander".equals(commander.role()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("At least one primary commander is required"))
+                .name();
+    }
+
+    private String toCommandersJson(List<CommanderDTO> commanders) {
+        try {
+            return MAPPER.writeValueAsString(commanders);
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Unable to serialize commanders");
+        }
+    }
+
+    private List<CommanderDTO> commandersFor(Deck deck) {
+        if (deck.getCommandersJson() != null && !deck.getCommandersJson().isBlank()) {
+            try {
+                return MAPPER.readValue(deck.getCommandersJson(), new TypeReference<List<CommanderDTO>>() {});
+            } catch (Exception exception) {
+                LOG.warnv(exception, "event=deck.commanders_json.invalid deckId={0}", deck.getId());
+            }
+        }
+        return List.of(new CommanderDTO(deck.getCommander(), "commander"));
+    }
+
+    private String toColorIdentity(List<CommanderDTO> commanders, Map<String, CardResponseDTO> resolvedCards) {
+        LinkedHashSet<String> colors = new LinkedHashSet<>();
+        for (CommanderDTO commander : commanders) {
+            CardResponseDTO card = resolvedCards.get(cardService.normalizeLookupName(commander.name()));
+            if (card != null && card.colorIdentity() != null) {
+                colors.addAll(card.colorIdentity());
+            }
+        }
+        return colors.stream()
+                .map(color -> color == null ? "" : color.trim().toUpperCase(Locale.ROOT))
+                .filter(color -> Set.of("W", "U", "B", "R", "G", "C").contains(color))
+                .sorted(Comparator.comparingInt(this::colorSort))
+                .collect(Collectors.joining());
+    }
+
+    private int colorSort(String color) {
+        return switch (color) {
+            case "W" -> 0;
+            case "U" -> 1;
+            case "B" -> 2;
+            case "R" -> 3;
+            case "G" -> 4;
+            case "C" -> 5;
+            default -> 6;
+        };
     }
 }

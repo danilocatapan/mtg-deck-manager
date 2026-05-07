@@ -63,6 +63,9 @@ class DeckServiceTest {
 
         assertNotNull(resp.id());
         assertEquals("My Deck", resp.name());
+        assertEquals("R", resp.colorIdentity());
+        assertEquals(1, resp.commanders().size());
+        assertEquals("Commander", resp.commanders().getFirst().name());
         verify(deckRepository).persist(org.mockito.ArgumentMatchers.<Deck>argThat(deck -> OWNER_ID.equals(deck.getOwnerId())));
     }
 
@@ -263,9 +266,20 @@ class DeckServiceTest {
             if (name == null || name.isBlank() || normalize(name).equals("missing card")) {
                 continue;
             }
-            cards.put(normalize(name), new CardResponseDTO(name.trim(), "", "", "", 0.0, List.of(), List.of()));
+            cards.put(normalize(name), cardFor(name));
         }
         return cards;
+    }
+
+    private CardResponseDTO cardFor(String name) {
+        String normalized = normalize(name);
+        if (normalized.equals("commander") || normalized.equals("cmd")) {
+            return new CardResponseDTO(name.trim(), "{2}{R}", "Legendary Creature - Warrior", "", 3.0, List.of("R"), List.of());
+        }
+        if (normalized.equals("forest")) {
+            return new CardResponseDTO(name.trim(), "", "Basic Land - Forest", "Add {G}.", 0.0, List.of("G"), List.of());
+        }
+        return new CardResponseDTO(name.trim(), "", "", "", 0.0, List.of(), List.of());
     }
 
     private String normalize(String name) {

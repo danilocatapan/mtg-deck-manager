@@ -22,6 +22,9 @@ public class Deck {
     @Column(name = "color_identity")
     private String colorIdentity;
 
+    @Column(name = "commanders_json", length = 2000)
+    private String commandersJson;
+
     @OneToMany(mappedBy = "deck", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<DeckCard> cards = new ArrayList<>();
 
@@ -68,6 +71,10 @@ public class Deck {
     public String getColorIdentity() { return colorIdentity; }
 
     public void setColorIdentity(String colorIdentity) { this.colorIdentity = colorIdentity; }
+
+    public String getCommandersJson() { return commandersJson; }
+
+    public void setCommandersJson(String commandersJson) { this.commandersJson = commandersJson; }
 
     public List<DeckCard> getCards() {
         return cards;

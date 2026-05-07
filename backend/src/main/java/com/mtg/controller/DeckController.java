@@ -4,6 +4,7 @@ import com.mtg.domain.DeckAnalysis;
 import com.mtg.domain.DeckRecommendations;
 import com.mtg.domain.StrategicRecommendation;
 import com.mtg.dto.ApplyRecommendationSwapDTO;
+import com.mtg.dto.DeckLegalityDTO;
 import com.mtg.dto.DeckImportDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
@@ -11,6 +12,7 @@ import com.mtg.dto.ErrorResponseDTO;
 import com.mtg.dto.RecommendationParamsDTO;
 import com.mtg.config.StructuredRestLog;
 import com.mtg.service.DeckAnalysisService;
+import com.mtg.service.DeckLegalityService;
 import com.mtg.service.DeckService;
 import com.mtg.service.RecommendationService;
 import com.mtg.service.StrategicRecommendationService;
@@ -47,6 +49,9 @@ public class DeckController {
 
     @Inject
     DeckAnalysisService deckAnalysisService;
+
+    @Inject
+    DeckLegalityService deckLegalityService;
 
     @Inject
     RecommendationService recommendationService;
@@ -173,6 +178,23 @@ public class DeckController {
         try {
             DeckAnalysis analysis = deckAnalysisService.analyzeDeck(id, currentUserId());
             return Response.ok(analysis).build();
+        } catch (NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+    }
+
+    @GET
+    @Path("{id}/legality")
+    @Authenticated
+    @Operation(summary = "Check Commander deck legality")
+    @APIResponse(responseCode = "200", description = "Commander legality report")
+    public Response legality(@Parameter(description = "Deck id") @PathParam("id") String idStr) {
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
+        try {
+            DeckLegalityDTO legality = deckLegalityService.check(id, currentUserId());
+            return Response.ok(legality).build();
         } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }

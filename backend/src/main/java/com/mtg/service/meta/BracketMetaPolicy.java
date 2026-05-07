@@ -1,5 +1,7 @@
 package com.mtg.service.meta;
 
+import com.mtg.service.rules.CommanderBracketService;
+import jakarta.inject.Inject;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.time.OffsetDateTime;
@@ -9,14 +11,13 @@ import java.util.Locale;
 @ApplicationScoped
 public class BracketMetaPolicy {
 
+    @Inject
+    CommanderBracketService commanderBracketService;
+
     public String normalizeBracket(String bracket) {
-        if (bracket == null || bracket.isBlank()) return "casual";
-        String normalized = bracket.trim().toLowerCase(Locale.ROOT).replace("_", "-");
-        if (normalized.equals("highpower")) return "high-power";
-        return switch (normalized) {
-            case "casual", "mid", "high-power", "cedh" -> normalized;
-            default -> "casual";
-        };
+        CommanderBracketService service = commanderBracketService == null ? new CommanderBracketService() : commanderBracketService;
+        String normalized = service.normalizeAlias(bracket);
+        return "precon".equals(normalized) ? "casual" : normalized;
     }
 
     public String normalizeSourceMode(String sourceMode) {

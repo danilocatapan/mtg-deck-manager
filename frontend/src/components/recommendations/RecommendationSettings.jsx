@@ -2,10 +2,30 @@ import { useState } from 'react'
 import Button from '../ui/Button'
 
 const BRACKETS = [
-  { value: 'casual', label: 'Casual', detail: 'Sinergia tematica, curva jogavel e upgrades sem empurrar o deck para cEDH.' },
-  { value: 'mid', label: 'Mid', detail: 'Equilibrio entre plano do comandante, eficiencia e staples razoaveis.' },
-  { value: 'high-power', label: 'High-power', detail: 'Eficiencia, curva baixa, interacao, protecao e cortes mais duros.' },
-  { value: 'cedh', label: 'cEDH', detail: 'Performance competitiva, velocidade, interacao de stack e win conditions compactas.' },
+  {
+    value: 'casual',
+    label: 'Bracket 2 - Core / Casual',
+    shortLabel: 'Casual',
+    detail: 'Deck focado em tema e jogo social, parecido com precon ajustado. Evite combos infinitos intencionais de duas cartas, mass land denial e excesso de Game Changers.',
+  },
+  {
+    value: 'mid',
+    label: 'Bracket 3 - Upgraded',
+    shortLabel: 'Mid',
+    detail: 'Deck acima de um precon: curva mais consistente, mais ramp/compra/remocao e ate algumas staples fortes, mas ainda sem plano de vencer cedo ou lockar a mesa.',
+  },
+  {
+    value: 'high-power',
+    label: 'Bracket 4 - Optimized',
+    shortLabel: 'High-power',
+    detail: 'Deck otimizado para ganhar com eficiencia. Pode usar cartas muito fortes, combos e linhas duras, desde que a mesa saiba que a intencao e jogar high power.',
+  },
+  {
+    value: 'cedh',
+    label: 'Bracket 5 - cEDH',
+    shortLabel: 'cEDH',
+    detail: 'Deck competitivo, pensado para meta, velocidade, interacao de stack, mulligans agressivos e linhas compactas de vitoria. A prioridade e performance.',
+  },
 ]
 
 export default function RecommendationSettings({ onSubmit, disabled = false, loading = false, onParamsChange }) {
@@ -42,6 +62,31 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
       <Button type="submit" loading={loading} disabled={disabled}>
         Gerar trocas
       </Button>
+
+      <details className="bracket-guide">
+        <summary>Como escolher o bracket correto?</summary>
+        <div className="bracket-guide-content">
+          <p>
+            Use o bracket como uma conversa de mesa, nao como nota absoluta. O ponto principal e a intencao do deck:
+            tema e experiencia social nos brackets 1-3, otimizacao forte no 4, competicao e meta no 5.
+          </p>
+          <div className="bracket-guide-grid">
+            {BRACKETS.map((item) => (
+              <article key={item.value}>
+                <strong>{item.label}</strong>
+                <span>{item.detail}</span>
+              </article>
+            ))}
+          </div>
+          <p>
+            Regra pratica: se o deck ainda joga como precon melhorado, use Casual. Se ja tem upgrades claros mas evita vencer cedo, use Bracket 3.
+            Se aceita combos, staples de alto impacto e jogo mais duro, use Bracket 4. Se foi montado para torneio ou mesas cEDH, use Bracket 5.
+          </p>
+          <a href="https://magic.wizards.com/en/content/commander-format#brackets" target="_blank" rel="noreferrer">
+            Ver explicacao oficial de Commander Brackets na Wizards
+          </a>
+        </div>
+      </details>
     </form>
   )
 }

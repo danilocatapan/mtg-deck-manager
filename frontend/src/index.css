@@ -1655,6 +1655,58 @@ dt {
   margin-top: 14px;
 }
 
+.bracket-guide {
+  grid-column: 1 / -1;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(8, 17, 12, 0.56);
+}
+
+.bracket-guide summary {
+  cursor: pointer;
+  color: var(--color-value);
+  font-weight: 800;
+}
+
+.bracket-guide-content {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.bracket-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.bracket-guide-grid article {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(214, 168, 79, 0.28);
+  border-radius: 8px;
+  background: rgba(20, 36, 25, 0.7);
+}
+
+.bracket-guide-grid strong {
+  color: var(--color-text);
+}
+
+.bracket-guide-grid span {
+  color: var(--color-muted);
+}
+
+.bracket-guide a {
+  width: fit-content;
+  color: var(--color-value);
+  font-weight: 800;
+}
+
 .recommendation-panel {
   display: grid;
   gap: 14px;
