@@ -4,6 +4,7 @@ import com.mtg.dto.DeckCardDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
 import com.mtg.dto.ApplyRecommendationSwapDTO;
+import com.mtg.dto.CardResponseDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
 import com.mtg.repository.DeckRepository;
@@ -15,9 +16,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,12 +36,18 @@ class DeckServiceTest {
     @Mock
     DeckImportService importService;
 
+    @Mock
+    CardService cardService;
+
     @InjectMocks
     DeckService deckService;
 
     @BeforeEach
     void setup() {
         deckService.importService = importService;
+        deckService.cardService = cardService;
+        lenient().when(cardService.normalizeLookupName(anyString())).thenAnswer(invocation -> normalize(invocation.getArgument(0)));
+        lenient().when(cardService.findByNames(any())).thenAnswer(invocation -> resolvedCards(invocation.getArgument(0)));
     }
 
     @Test
@@ -59,6 +70,19 @@ class DeckServiceTest {
     void createDeck_validationFails() {
         DeckRequestDTO request = new DeckRequestDTO(" ", "Commander", List.of());
         assertThrows(IllegalArgumentException.class, () -> deckService.createDeck(request, OWNER_ID));
+    }
+
+    @Test
+    void createDeck_failsWhenCommanderOrCardDoesNotExist() {
+        DeckRequestDTO request = new DeckRequestDTO("My Deck", "Commander", List.of(new DeckCardDTO("Missing Card", 1)));
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> deckService.createDeck(request, OWNER_ID)
+        );
+
+        assertEquals("Card not found: Missing Card", exception.getMessage());
+        verify(deckRepository, never()).persist(any(Deck.class));
     }
 
     @Test
@@ -166,6 +190,20 @@ class DeckServiceTest {
     }
 
     @Test
+    void applyRecommendationSwap_failsWhenAddDoesNotExist() {
+        Deck deck = new Deck("My Deck", "Cmd", List.of(new DeckCard("Naturalize", 1)));
+        when(deckRepository.findByIdAndOwner(1L, OWNER_ID)).thenReturn(deck);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> deckService.applyRecommendationSwap(1L, new ApplyRecommendationSwapDTO("Missing Card", "Naturalize"), OWNER_ID)
+        );
+
+        assertEquals("Card to add was not found: Missing Card", exception.getMessage());
+        verify(deckRepository, never()).persist(deck);
+    }
+
+    @Test
     void applyRecommendationSwap_failsWhenAddAlreadyExists() {
         Deck deck = new Deck("My Deck", "Cmd", List.of(
                 new DeckCard("Beast Within", 1),
@@ -217,5 +255,20 @@ class DeckServiceTest {
                 () -> deckService.applyRecommendationSwap(1L, new ApplyRecommendationSwapDTO("Beast Within", "Naturalize"), OWNER_ID)
         );
         verify(deckRepository, never()).persist(deck);
+    }
+
+    private Map<String, CardResponseDTO> resolvedCards(List<String> names) {
+        Map<String, CardResponseDTO> cards = new LinkedHashMap<>();
+        for (String name : names) {
+            if (name == null || name.isBlank() || normalize(name).equals("missing card")) {
+                continue;
+            }
+            cards.put(normalize(name), new CardResponseDTO(name.trim(), "", "", "", 0.0, List.of(), List.of()));
+        }
+        return cards;
+    }
+
+    private String normalize(String name) {
+        return name == null ? "" : name.trim().toLowerCase(Locale.ROOT);
     }
 }

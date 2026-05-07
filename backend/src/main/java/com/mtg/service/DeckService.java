@@ -1,6 +1,7 @@
 package com.mtg.service;
 
 import com.mtg.dto.ApplyRecommendationSwapDTO;
+import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.DeckCardDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
@@ -16,6 +17,7 @@ import com.mtg.dto.DeckImportDTO;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -42,6 +44,9 @@ public class DeckService {
     DeckImportService importService;
 
     @Inject
+    CardService cardService;
+
+    @Inject
     public DeckService(DeckRepository deckRepository) {
         this.deckRepository = deckRepository;
     }
@@ -51,6 +56,7 @@ public class DeckService {
         validateRequest(request);
         validateOwner(ownerId);
         LOG.debug("Creating deck: " + request);
+        validateCardsExist(request.commander(), request.cards());
 
         List<DeckCard> cards = toEntities(request.cards());
         Deck deck = new Deck(request.name().trim(), request.commander().trim(), cards);
@@ -76,6 +82,9 @@ public class DeckService {
         if (total > 99) {
             throw new IllegalArgumentException("Imported deck has " + total + " cards; maximum is 99.");
         }
+        validateCardsExist(dto.commander(), cards.stream()
+                .map(card -> new DeckCardDTO(card.getName(), card.getQuantity()))
+                .toList());
 
         Deck deck = new Deck();
         deck.setName(dto.name().trim());
@@ -109,6 +118,7 @@ public class DeckService {
             return null;
         }
         LOG.debug("Updating deck: " + id);
+        validateCardsExist(request.commander(), request.cards());
         deck.setName(request.name().trim());
         deck.setCommander(request.commander().trim());
         deck.setCards(toEntities(request.cards()));
@@ -142,6 +152,7 @@ public class DeckService {
 
         String add = dto.add().trim();
         String remove = dto.remove().trim();
+        validateCardExists(add, "Card to add was not found");
         DeckCard removeCard = findCard(deck, remove);
         if (removeCard == null) {
             logInvalidSwap(deckId, "remove_card_not_found");
@@ -237,6 +248,28 @@ public class DeckService {
         }
         if (card.quantity() < 1 || card.quantity() > 99) {
             throw new IllegalArgumentException("Card quantity must be between 1 and 99");
+        }
+    }
+
+    private void validateCardsExist(String commander, List<DeckCardDTO> cards) {
+        List<String> names = new java.util.ArrayList<>();
+        names.add(commander);
+        cards.stream().map(DeckCardDTO::name).forEach(names::add);
+
+        Map<String, CardResponseDTO> resolved = cardService.findByNames(names);
+        for (String name : names) {
+            if (!resolved.containsKey(cardService.normalizeLookupName(name))) {
+                LOG.warnv("event=deck.card_validation.failed card=\"{0}\"", name);
+                throw new IllegalArgumentException("Card not found: " + name.trim());
+            }
+        }
+    }
+
+    private void validateCardExists(String name, String message) {
+        Map<String, CardResponseDTO> resolved = cardService.findByNames(List.of(name));
+        if (!resolved.containsKey(cardService.normalizeLookupName(name))) {
+            LOG.warnv("event=deck.card_validation.failed card=\"{0}\"", name);
+            throw new IllegalArgumentException(message + ": " + name.trim());
         }
     }
 

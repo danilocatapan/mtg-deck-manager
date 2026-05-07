@@ -3,21 +3,40 @@ package com.mtg.controller;
 import com.mtg.dto.DeckCardDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.ApplyRecommendationSwapDTO;
+import com.mtg.dto.CardResponseDTO;
+import com.mtg.service.CardService;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 
 @QuarkusTest
 class DeckControllerTest {
+
+    @InjectMock
+    CardService cardService;
+
+    @BeforeEach
+    void setup() {
+        lenient().when(cardService.normalizeLookupName(anyString())).thenAnswer(invocation -> normalize(invocation.getArgument(0)));
+        lenient().when(cardService.findByNames(any())).thenAnswer(invocation -> resolvedCards(invocation.getArgument(0)));
+    }
 
     @Test
     @TestSecurity(user = "google-user-1")
@@ -146,5 +165,34 @@ class DeckControllerTest {
                 .body(new ApplyRecommendationSwapDTO("Beast Within", "Naturalize"))
                 .when().post("/decks/999999/recommendations/apply-swap")
                 .then().statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "google-user-1")
+    void createDeck_returnsBadRequestWhenCardDoesNotExist() {
+        DeckRequestDTO request = new DeckRequestDTO("MyDeck", "Cmd", List.of(new DeckCardDTO("Missing Card", 1)));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when().post("/decks")
+                .then()
+                .statusCode(400)
+                .body("message", is("Card not found: Missing Card"));
+    }
+
+    private Map<String, CardResponseDTO> resolvedCards(List<String> names) {
+        Map<String, CardResponseDTO> cards = new LinkedHashMap<>();
+        for (String name : names) {
+            if (name == null || name.isBlank() || normalize(name).equals("missing card")) {
+                continue;
+            }
+            cards.put(normalize(name), new CardResponseDTO(name.trim(), "", "", "", 0.0, List.of(), List.of()));
+        }
+        return cards;
+    }
+
+    private String normalize(String name) {
+        return name == null ? "" : name.trim().toLowerCase(Locale.ROOT);
     }
 }
