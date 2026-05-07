@@ -1,0 +1,57 @@
+{
+  "source": "Commander Spellbook / EDH-Combos local snapshot",
+  "notes": [
+    "Small offline seed used for deterministic deck diagnostics.",
+    "Future ingestion can replace this file with a larger Commander Spellbook or EDH-Combos export."
+  ],
+  "combos": [
+    {
+      "name": "Basalt Monolith + Rings of Brighthearth",
+      "cards": ["Basalt Monolith", "Rings of Brighthearth"],
+      "result": "mana infinito incolor",
+      "source": "Commander Spellbook"
+    },
+    {
+      "name": "Dramatic Reversal + Isochron Scepter",
+      "cards": ["Dramatic Reversal", "Isochron Scepter"],
+      "result": "mana infinito com rochas que geram 3+ mana",
+      "source": "Commander Spellbook"
+    },
+    {
+      "name": "Kiki-Jiki + Zealous Conscripts",
+      "cards": ["Kiki-Jiki, Mirror Breaker", "Zealous Conscripts"],
+      "result": "criaturas infinitas com haste",
+      "source": "Commander Spellbook"
+    },
+    {
+      "name": "Thassa's Oracle + Demonic Consultation",
+      "cards": ["Thassa's Oracle", "Demonic Consultation"],
+      "result": "vitoria imediata ao esvaziar o grimorio",
+      "source": "Commander Spellbook"
+    },
+    {
+      "name": "Heliod + Walking Ballista",
+      "cards": ["Heliod, Sun-Crowned", "Walking Ballista"],
+      "result": "dano infinito com lifelink e marcadores",
+      "source": "Commander Spellbook"
+    },
+    {
+      "name": "Aggravated Assault + Savage Ventmaw",
+      "cards": ["Aggravated Assault", "Savage Ventmaw"],
+      "result": "combates repetidos e potencial dano letal",
+      "source": "EDH-Combos"
+    },
+    {
+      "name": "Sanguine Bond + Exquisite Blood",
+      "cards": ["Sanguine Bond", "Exquisite Blood"],
+      "result": "dreno infinito de vida",
+      "source": "Commander Spellbook"
+    },
+    {
+      "name": "Peregrine Drake + Deadeye Navigator",
+      "cards": ["Peregrine Drake", "Deadeye Navigator"],
+      "result": "mana infinito ao reutilizar terrenos",
+      "source": "Commander Spellbook"
+    }
+  ]
+}

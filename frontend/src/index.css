@@ -2004,6 +2004,85 @@ dt {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+.analysis-note {
+  margin: 8px 0 14px;
+  color: var(--color-muted);
+}
+
+.mana-diagnostic-grid,
+.color-grid,
+.combo-grid,
+.curve-type-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mana-diagnostic-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.color-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.color-item,
+.combo-section,
+.curve-type-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(6, 18, 12, 0.48);
+}
+
+.color-item {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.color-item span,
+.color-item small,
+.curve-type-card span,
+.combo-section article span,
+.combo-section article small {
+  color: var(--color-muted);
+}
+
+.color-item strong,
+.curve-type-card strong,
+.combo-section article strong {
+  color: var(--color-value);
+}
+
+.combo-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.combo-section {
+  display: grid;
+  gap: 10px;
+}
+
+.combo-section article {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(214, 168, 79, 0.25);
+  border-radius: 8px;
+  background: rgba(20, 36, 25, 0.62);
+}
+
+.curve-type-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.curve-type-card {
+  display: grid;
+  gap: 6px;
+}
+
 .recommendation-card {
   display: grid;
   gap: 10px;
@@ -2052,7 +2131,8 @@ dt {
   .recommendation-form,
   .recommendation-settings,
   .swap-route,
-  .meta-context-grid {
+  .meta-context-grid,
+  .color-grid {
     grid-template-columns: 1fr;
   }
 
