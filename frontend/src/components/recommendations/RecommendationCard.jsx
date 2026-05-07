@@ -31,7 +31,7 @@ function opportunityFrom(reasoning) {
   return firstSentence || 'Troca sugerida para melhorar o encaixe do deck no bracket escolhido'
 }
 
-export default function RecommendationCard({ item, index, bracket }) {
+export default function RecommendationCard({ item, index, bracket, onApply, applying = false, applied = false }) {
   const source = item?.source || (String(item?.reasoning || '').toLowerCase().includes('listas similares') ? 'meta_profile' : 'heuristic_fallback')
   const tags = inferTags(item).filter((tag) => tag !== 'fallback' && tag !== 'meta')
   const confidence = item?.confidence || 'medium'
@@ -79,7 +79,14 @@ export default function RecommendationCard({ item, index, bracket }) {
           <summary>Detalhes</summary>
           <p>{sourceLabel(source)}.</p>
         </details>
-        <Button variant="secondary" disabled title="Aplicar troca sera implementado em uma fase futura.">Em breve</Button>
+        <Button
+          variant={applied ? 'secondary' : 'primary'}
+          loading={applying}
+          disabled={applied || !item?.add || !item?.remove}
+          onClick={() => onApply && onApply(item)}
+        >
+          {applied ? 'Aplicado' : 'Aplicar troca'}
+        </Button>
       </footer>
     </article>
   )

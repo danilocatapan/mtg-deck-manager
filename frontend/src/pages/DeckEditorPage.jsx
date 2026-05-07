@@ -3,7 +3,7 @@ import DeckForm from '../components/DeckForm'
 import DeckAnalysis from '../components/DeckAnalysis'
 import RecommendationPanel from '../components/recommendations/RecommendationPanel'
 import RecommendationSettings from '../components/recommendations/RecommendationSettings'
-import { createDeck, getCommanderMeta, getDeckAnalysis, getMetaSources, getRecommendations, updateDeck } from '../services/api'
+import { applyRecommendationSwap, createDeck, getCommanderMeta, getDeckAnalysis, getMetaSources, getRecommendations, updateDeck } from '../services/api'
 import Button from '../components/ui/Button'
 import analyzeIcon from '../assets/icons/analyze.png'
 import recommendIcon from '../assets/icons/recommend.png'
@@ -20,10 +20,13 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
   const [activePanel, setActivePanel] = useState('editor')
+  const [currentDeck, setCurrentDeck] = useState(deck)
+  const [applyingSwapKey, setApplyingSwapKey] = useState(null)
+  const [appliedSwapKeys, setAppliedSwapKeys] = useState(() => new Set())
 
-  const initial = mode === 'edit' ? deck : null
-  const savedCardCount = useMemo(() => deck?.cards?.reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0, [deck])
-  const canAnalyze = mode === 'edit' && deck?.id && savedCardCount > 0 && savedCardCount <= 99
+  const initial = mode === 'edit' ? currentDeck : null
+  const savedCardCount = useMemo(() => currentDeck?.cards?.reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0, [currentDeck])
+  const canAnalyze = mode === 'edit' && currentDeck?.id && savedCardCount > 0 && savedCardCount <= 99
 
   useEffect(() => {
     if (!canAnalyze) return
@@ -44,7 +47,8 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
         console.log('Deck created', created)
         onDone && onDone(`Created ${created.name}. Open it to analyze and optimize.`)
       } else {
-        const updated = await updateDeck(deck.id, payload)
+        const updated = await updateDeck(currentDeck.id, payload)
+        setCurrentDeck(updated)
         console.log('Deck updated', updated)
         onDone && onDone(`Saved ${updated.name}.`)
       }
@@ -59,7 +63,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
     try {
       setError(null)
       setLoadingAnalysis(true)
-      const deckAnalysis = await getDeckAnalysis(deck.id)
+      const deckAnalysis = await getDeckAnalysis(currentDeck.id)
       console.log('analysis', deckAnalysis)
       setAnalysis(deckAnalysis)
       setActivePanel('analysis')
@@ -79,15 +83,15 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       setRecommendationError(null)
       setLoadingRec(true)
       setRecommendationParams(params)
-      console.info('event=recommendation.request.started', { deckId: deck.id, bracket: params?.bracket || 'casual' })
-      const recommendations = await getRecommendations(deck.id, params)
-      const profile = await getCommanderMeta(deck.commander, {
+      console.info('event=recommendation.request.started', { deckId: currentDeck.id, bracket: params?.bracket || 'casual' })
+      const recommendations = await getRecommendations(currentDeck.id, params)
+      const profile = await getCommanderMeta(currentDeck.commander, {
         bracket: params?.bracket || 'casual',
       })
       console.log('recommendations', recommendations)
-      console.info('event=recommendation.request.completed', { deckId: deck.id, count: Array.isArray(recommendations) ? recommendations.length : 0 })
+      console.info('event=recommendation.request.completed', { deckId: currentDeck.id, count: Array.isArray(recommendations) ? recommendations.length : 0 })
       if (!profile || Number(profile.sampleSize || 0) < 3) {
-        console.info('event=recommendation.fallback.rendered', { deckId: deck.id })
+        console.info('event=recommendation.fallback.rendered', { deckId: currentDeck.id })
       }
       setRec(recommendations)
       setMetaProfile(profile)
@@ -95,11 +99,40 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       setMessage(`${Array.isArray(recommendations) ? recommendations.length : 0} strategic recommendations generated.`)
     } catch (e) {
       console.error('recommendations error', e)
-      console.info('event=recommendation.request.failed', { deckId: deck.id })
+      console.info('event=recommendation.request.failed', { deckId: currentDeck.id })
       setRecommendationError(e.message || 'Failed to get recommendations.')
       setError(e.message || 'Failed to get recommendations.')
     } finally {
       setLoadingRec(false)
+    }
+  }
+
+  async function handleApplyRecommendation(item) {
+    if (!canAnalyze || !item?.add || !item?.remove) return
+    const confirmed = window.confirm(`Aplicar troca: adicionar ${item.add} e remover ${item.remove}?`)
+    if (!confirmed) return
+
+    const key = recommendationKey(item)
+    try {
+      setError(null)
+      setRecommendationError(null)
+      setApplyingSwapKey(key)
+      const updatedDeck = await applyRecommendationSwap(currentDeck.id, {
+        add: item.add,
+        remove: item.remove,
+      })
+      setCurrentDeck(updatedDeck)
+      setAppliedSwapKeys((previous) => new Set(previous).add(key))
+      const deckAnalysis = await getDeckAnalysis(currentDeck.id)
+      setAnalysis(deckAnalysis)
+      setMessage(`Troca aplicada: ${item.add} entrou no lugar de ${item.remove}.`)
+      console.info('event=recommendation.swap.applied', { deckId: currentDeck.id, add: item.add, remove: item.remove })
+    } catch (e) {
+      console.error('apply recommendation swap error', e)
+      setRecommendationError(e.message || 'Nao foi possivel aplicar a troca.')
+      setError(e.message || 'Nao foi possivel aplicar a troca.')
+    } finally {
+      setApplyingSwapKey(null)
     }
   }
 
@@ -108,7 +141,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       <div className="zone zone-command page-heading">
         <div>
           <p className="eyebrow">Command Zone</p>
-          <h1>{mode === 'create' ? 'Create Deck' : deck?.name || 'Edit Deck'}</h1>
+          <h1>{mode === 'create' ? 'Create Deck' : currentDeck?.name || 'Edit Deck'}</h1>
           <p className="page-description">
             {mode === 'create'
               ? 'Build the list first. After saving, reopen the deck to analyze and request recommendations.'
@@ -182,6 +215,9 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
             bracket={recommendationParams.bracket || 'casual'}
             metaProfile={metaProfile}
             metaSources={metaSources}
+            onApplyRecommendation={handleApplyRecommendation}
+            applyingKey={applyingSwapKey}
+            appliedKeys={appliedSwapKeys}
           />
         </div>
       )}
@@ -204,4 +240,8 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       </div>
     </section>
   )
+}
+
+function recommendationKey(item) {
+  return `${item?.add || ''}|||${item?.remove || ''}`.toLowerCase()
 }

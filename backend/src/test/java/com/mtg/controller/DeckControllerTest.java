@@ -2,6 +2,7 @@ package com.mtg.controller;
 
 import com.mtg.dto.DeckCardDTO;
 import com.mtg.dto.DeckRequestDTO;
+import com.mtg.dto.ApplyRecommendationSwapDTO;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.quarkus.test.security.TestSecurity;
@@ -86,5 +87,64 @@ class DeckControllerTest {
     @TestSecurity(user = "google-user-1")
     void exportDeck_notFound() {
         given().when().get("/decks/999999/export").then().statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "google-user-1")
+    void applyRecommendationSwap_updatesDeck() {
+        DeckRequestDTO request = new DeckRequestDTO("MyDeck", "Cmd", List.of(
+                new DeckCardDTO("Sol Ring", 1),
+                new DeckCardDTO("Naturalize", 1)
+        ));
+
+        Response created = given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when().post("/decks")
+                .then().statusCode(201)
+                .extract().response();
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(new ApplyRecommendationSwapDTO("Beast Within", "Naturalize"))
+                .when().post(created.getHeader("Location") + "/recommendations/apply-swap")
+                .then()
+                .statusCode(200)
+                .body("cards.name", org.hamcrest.Matchers.hasItem("Beast Within"))
+                .body("cards.name", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("Naturalize")));
+    }
+
+    @Test
+    @TestSecurity(user = "google-user-1")
+    void applyRecommendationSwap_returnsBadRequestForInvalidSwap() {
+        DeckRequestDTO request = new DeckRequestDTO("MyDeck", "Cmd", List.of(
+                new DeckCardDTO("Sol Ring", 1),
+                new DeckCardDTO("Naturalize", 1)
+        ));
+
+        Response created = given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when().post("/decks")
+                .then().statusCode(201)
+                .extract().response();
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(new ApplyRecommendationSwapDTO("Sol Ring", "Naturalize"))
+                .when().post(created.getHeader("Location") + "/recommendations/apply-swap")
+                .then()
+                .statusCode(400)
+                .body("message", is("Card to add already exists in deck"));
+    }
+
+    @Test
+    @TestSecurity(user = "google-user-1")
+    void applyRecommendationSwap_returnsNotFound() {
+        given()
+                .contentType(ContentType.JSON)
+                .body(new ApplyRecommendationSwapDTO("Beast Within", "Naturalize"))
+                .when().post("/decks/999999/recommendations/apply-swap")
+                .then().statusCode(404);
     }
 }

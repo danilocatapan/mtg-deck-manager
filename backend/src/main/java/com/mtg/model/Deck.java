@@ -33,7 +33,7 @@ public class Deck {
         this.commander = commander;
         if (cards != null) {
             cards.forEach(c -> c.setDeck(this));
-            this.cards = cards;
+            this.cards = new ArrayList<>(cards);
         }
     }
 

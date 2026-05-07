@@ -22,6 +22,9 @@ export default function RecommendationPanel({
   bracket = 'casual',
   metaProfile = null,
   metaSources = [],
+  onApplyRecommendation,
+  applyingKey = null,
+  appliedKeys = new Set(),
 }) {
   const items = Array.isArray(recommendations) ? recommendations : []
   const hasGenerated = Array.isArray(recommendations)
@@ -101,6 +104,9 @@ export default function RecommendationPanel({
               item={item}
               index={index}
               bracket={item.bracket || bracket}
+              onApply={onApplyRecommendation}
+              applying={applyingKey === recommendationKey(item)}
+              applied={appliedKeys.has(recommendationKey(item))}
             />
           ))}
         </div>
@@ -120,4 +126,8 @@ export default function RecommendationPanel({
       )}
     </section>
   )
+}
+
+function recommendationKey(item) {
+  return `${item?.add || ''}|||${item?.remove || ''}`.toLowerCase()
 }

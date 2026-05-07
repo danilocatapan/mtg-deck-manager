@@ -3,6 +3,7 @@ package com.mtg.controller;
 import com.mtg.domain.DeckAnalysis;
 import com.mtg.domain.DeckRecommendations;
 import com.mtg.domain.StrategicRecommendation;
+import com.mtg.dto.ApplyRecommendationSwapDTO;
 import com.mtg.dto.DeckImportDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
@@ -206,6 +207,30 @@ public class DeckController {
         } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
         } catch (IllegalStateException e) {
+            return badRequest(e.getMessage());
+        }
+    }
+
+    @POST
+    @Path("{id}/recommendations/apply-swap")
+    @Authenticated
+    @Operation(summary = "Apply a recommended deck swap")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Swap applied"),
+            @APIResponse(responseCode = "400", description = "Invalid swap"),
+            @APIResponse(responseCode = "404", description = "Deck not found")
+    })
+    public Response applyRecommendationSwap(@PathParam("id") String idStr, ApplyRecommendationSwapDTO dto) {
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
+        try {
+            DeckResponseDTO updated = deckService.applyRecommendationSwap(id, dto, currentUserId());
+            if (updated == null) {
+                return Response.status(Response.Status.NOT_FOUND).build();
+            }
+            return Response.ok(updated).build();
+        } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
         }
     }

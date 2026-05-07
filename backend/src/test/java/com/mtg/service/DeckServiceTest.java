@@ -3,6 +3,7 @@ package com.mtg.service;
 import com.mtg.dto.DeckCardDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
+import com.mtg.dto.ApplyRecommendationSwapDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
 import com.mtg.repository.DeckRepository;
@@ -115,5 +116,106 @@ class DeckServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> deckService.createDeck(request, " "));
         verify(deckRepository, never()).persist(any(Deck.class));
+    }
+
+    @Test
+    void applyRecommendationSwap_validSwap() {
+        Deck deck = new Deck("My Deck", "Cmd", List.of(
+                new DeckCard("Naturalize", 1),
+                new DeckCard("Sol Ring", 1)
+        ));
+        deck.setId(1L);
+        deck.setOwnerId(OWNER_ID);
+        when(deckRepository.findByIdAndOwner(1L, OWNER_ID)).thenReturn(deck);
+
+        DeckResponseDTO response = deckService.applyRecommendationSwap(
+                1L,
+                new ApplyRecommendationSwapDTO("Beast Within", "Naturalize"),
+                OWNER_ID
+        );
+
+        assertEquals(2, response.cards().stream().mapToInt(DeckCardDTO::quantity).sum());
+        assertTrue(response.cards().stream().anyMatch(card -> card.name().equals("Beast Within") && card.quantity() == 1));
+        assertTrue(response.cards().stream().noneMatch(card -> card.name().equals("Naturalize")));
+        verify(deckRepository).persist(deck);
+    }
+
+    @Test
+    void applyRecommendationSwap_returnsNullWhenDeckDoesNotExist() {
+        when(deckRepository.findByIdAndOwner(999L, OWNER_ID)).thenReturn(null);
+
+        DeckResponseDTO response = deckService.applyRecommendationSwap(
+                999L,
+                new ApplyRecommendationSwapDTO("Beast Within", "Naturalize"),
+                OWNER_ID
+        );
+
+        assertNull(response);
+        verify(deckRepository, never()).persist(any(Deck.class));
+    }
+
+    @Test
+    void applyRecommendationSwap_failsWhenRemoveDoesNotExist() {
+        Deck deck = new Deck("My Deck", "Cmd", List.of(new DeckCard("Sol Ring", 1)));
+        when(deckRepository.findByIdAndOwner(1L, OWNER_ID)).thenReturn(deck);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> deckService.applyRecommendationSwap(1L, new ApplyRecommendationSwapDTO("Beast Within", "Naturalize"), OWNER_ID)
+        );
+    }
+
+    @Test
+    void applyRecommendationSwap_failsWhenAddAlreadyExists() {
+        Deck deck = new Deck("My Deck", "Cmd", List.of(
+                new DeckCard("Beast Within", 1),
+                new DeckCard("Naturalize", 1)
+        ));
+        when(deckRepository.findByIdAndOwner(1L, OWNER_ID)).thenReturn(deck);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> deckService.applyRecommendationSwap(1L, new ApplyRecommendationSwapDTO("Beast Within", "Naturalize"), OWNER_ID)
+        );
+    }
+
+    @Test
+    void applyRecommendationSwap_allowsExistingBasicLand() {
+        Deck deck = new Deck("My Deck", "Cmd", List.of(
+                new DeckCard("Forest", 8),
+                new DeckCard("Naturalize", 1)
+        ));
+        when(deckRepository.findByIdAndOwner(1L, OWNER_ID)).thenReturn(deck);
+
+        DeckResponseDTO response = deckService.applyRecommendationSwap(
+                1L,
+                new ApplyRecommendationSwapDTO("Forest", "Naturalize"),
+                OWNER_ID
+        );
+
+        assertTrue(response.cards().stream().anyMatch(card -> card.name().equals("Forest") && card.quantity() == 9));
+        assertEquals(9, response.cards().stream().mapToInt(DeckCardDTO::quantity).sum());
+    }
+
+    @Test
+    void applyRecommendationSwap_failsWhenPayloadIsInvalid() {
+        assertThrows(IllegalArgumentException.class, () -> deckService.applyRecommendationSwap(1L, null, OWNER_ID));
+        assertThrows(IllegalArgumentException.class, () -> deckService.applyRecommendationSwap(1L, new ApplyRecommendationSwapDTO(" ", "Naturalize"), OWNER_ID));
+        assertThrows(IllegalArgumentException.class, () -> deckService.applyRecommendationSwap(1L, new ApplyRecommendationSwapDTO("Naturalize", "naturalize"), OWNER_ID));
+    }
+
+    @Test
+    void applyRecommendationSwap_failsWhenDeckAlreadyExceeds99Cards() {
+        Deck deck = new Deck("My Deck", "Cmd", List.of(
+                new DeckCard("Forest", 99),
+                new DeckCard("Naturalize", 1)
+        ));
+        when(deckRepository.findByIdAndOwner(1L, OWNER_ID)).thenReturn(deck);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> deckService.applyRecommendationSwap(1L, new ApplyRecommendationSwapDTO("Beast Within", "Naturalize"), OWNER_ID)
+        );
+        verify(deckRepository, never()).persist(deck);
     }
 }

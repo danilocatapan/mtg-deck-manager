@@ -223,6 +223,21 @@ export async function getStrategicRecommendations(id, params) {
   }
 }
 
+export async function applyRecommendationSwap(deckId, payload) {
+  try {
+    if (deckId === undefined || deckId === null || isNaN(Number(deckId))) {
+      throw new Error('Invalid deck id')
+    }
+    return await request(`/decks/${deckId}/recommendations/apply-swap`, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    })
+  } catch (e) {
+    console.error('applyRecommendationSwap error', e)
+    throw e
+  }
+}
+
 export async function getMetaSources() {
   try {
     const json = await request('/meta/sources')
@@ -266,6 +281,7 @@ export default {
   getDeckAnalysis,
   getRecommendations,
   getStrategicRecommendations,
+  applyRecommendationSwap,
   getMetaSources,
   getCommanderMeta,
 }
