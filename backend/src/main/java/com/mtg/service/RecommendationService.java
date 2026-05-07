@@ -41,9 +41,13 @@ public class RecommendationService {
     DeckCompleter deckCompleter;
 
     public DeckRecommendations recommend(Long deckId, RecommendationParamsDTO params) {
+        return recommend(deckId, params, null);
+    }
+
+    public DeckRecommendations recommend(Long deckId, RecommendationParamsDTO params, String ownerId) {
         LOG.infov("recommendation.started deckId={0} params={1}", deckId, params);
 
-        Deck deck = deckRepository.findById(deckId);
+        Deck deck = ownerId == null ? deckRepository.findById(deckId) : deckRepository.findByIdAndOwner(deckId, ownerId);
         if (deck == null) {
             LOG.errorv("recommendation.failed deck not found {0}", deckId);
             throw new NotFoundException("Deck not found");
@@ -54,7 +58,9 @@ public class RecommendationService {
             throw new IllegalStateException("Deck inválido > 99 cartas");
         }
 
-        DeckAnalysis analysis = deckAnalysisService.analyzeDeck(deckId);
+        DeckAnalysis analysis = ownerId == null
+                ? deckAnalysisService.analyzeDeck(deckId)
+                : deckAnalysisService.analyzeDeck(deckId, ownerId);
 
         String bracket = params != null && params.bracket() != null ? params.bracket() : "casual";
 

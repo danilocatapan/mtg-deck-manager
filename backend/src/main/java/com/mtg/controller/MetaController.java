@@ -21,11 +21,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
 
 @Path("/meta")
 @Produces(MediaType.APPLICATION_JSON)
 public class MetaController {
 
+    private static final Logger LOG = Logger.getLogger(MetaController.class);
     private static final int MAX_COMMANDER_LENGTH = 120;
     private static final int MAX_OPTION_LENGTH = 40;
 
@@ -50,7 +52,7 @@ public class MetaController {
     @POST
     @Path("/sync")
     public Response sync(@HeaderParam("X-Admin-Key") String adminKey) {
-        if (syncApiKey.isPresent() && !syncApiKey.get().equals(adminKey)) {
+        if (!isAdminAuthorized(adminKey)) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         return Response.ok(Map.of("sources", ingestionJob.sync())).build();
@@ -58,14 +60,17 @@ public class MetaController {
 
     @GET
     @Path("/decks")
-    public Map<String, List<MetaDeck>> decks() {
-        return Map.of("decks", ingestionJob.cachedDecks());
+    public Response decks(@HeaderParam("X-Admin-Key") String adminKey) {
+        if (!isAdminAuthorized(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        return Response.ok(Map.of("decks", ingestionJob.cachedDecks())).build();
     }
 
     @POST
     @Path("/rebuild-profiles")
     public Response rebuildProfiles(@HeaderParam("X-Admin-Key") String adminKey) {
-        if (syncApiKey.isPresent() && !syncApiKey.get().equals(adminKey)) {
+        if (!isAdminAuthorized(adminKey)) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         return Response.ok(Map.of("profilesBuilt", profileService.rebuild())).build();
@@ -88,5 +93,13 @@ public class MetaController {
         if (value != null && value.length() > maxLength) {
             throw new IllegalArgumentException(field + " is too long");
         }
+    }
+
+    private boolean isAdminAuthorized(String adminKey) {
+        if (syncApiKey.isEmpty() || syncApiKey.get().isBlank()) {
+            LOG.warn("event=meta.admin.denied reason=missing_admin_key_config");
+            return false;
+        }
+        return syncApiKey.get().equals(adminKey);
     }
 }

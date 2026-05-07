@@ -163,6 +163,7 @@ public class DeckController {
 
     @GET
     @Path("{id}/analysis")
+    @Authenticated
     @Operation(summary = "Analyze deck")
     @APIResponse(responseCode = "200", description = "Deck analysis")
     public Response analyzeDeck(@Parameter(description = "Deck id") @PathParam("id") String idStr) {
@@ -170,7 +171,7 @@ public class DeckController {
         if (id == null) return badRequest("Invalid deck id");
 
         try {
-            DeckAnalysis analysis = deckAnalysisService.analyzeDeck(id);
+            DeckAnalysis analysis = deckAnalysisService.analyzeDeck(id, currentUserId());
             return Response.ok(analysis).build();
         } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -179,6 +180,7 @@ public class DeckController {
 
     @POST
     @Path("{id}/recommendations")
+    @Authenticated
     @Operation(summary = "Recommend deck improvements")
     @APIResponse(responseCode = "200", description = "Recommendations generated")
     public Response recommend(@PathParam("id") String idStr, RecommendationParamsDTO params) {
@@ -186,7 +188,7 @@ public class DeckController {
         if (id == null) return badRequest("Invalid deck id");
 
         try {
-            DeckRecommendations recs = recommendationService.recommend(id, params);
+            DeckRecommendations recs = recommendationService.recommend(id, params, currentUserId());
             return Response.ok(recs).build();
         } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -195,6 +197,7 @@ public class DeckController {
 
     @POST
     @Path("{id}/recommendations/strategic")
+    @Authenticated
     @Operation(summary = "Recommend strategic deck improvements")
     @APIResponse(responseCode = "200", description = "Strategic recommendations generated")
     public Response strategicRecommendations(@PathParam("id") String idStr, RecommendationParamsDTO params) {
@@ -202,7 +205,7 @@ public class DeckController {
         if (id == null) return badRequest("Invalid deck id");
 
         try {
-            List<StrategicRecommendation> recommendations = strategicRecommendationService.recommend(id, params);
+            List<StrategicRecommendation> recommendations = strategicRecommendationService.recommend(id, params, currentUserId());
             return Response.ok(recommendations).build();
         } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();

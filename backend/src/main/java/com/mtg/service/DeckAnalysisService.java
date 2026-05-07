@@ -39,6 +39,21 @@ public class DeckAnalysisService {
             throw new NotFoundException("Deck not found");
         }
 
+        return analyze(deck, id);
+    }
+
+    public DeckAnalysis analyzeDeck(Long id, String ownerId) {
+        LOG.infov("analysis.started deckId={0} owner={1}", id, ownerId);
+        Deck deck = deckRepository.findByIdAndOwner(id, ownerId);
+        if (deck == null) {
+            LOG.errorv("analysis.failed deck not found or not owned {0}", id);
+            throw new NotFoundException("Deck not found");
+        }
+
+        return analyze(deck, id);
+    }
+
+    private DeckAnalysis analyze(Deck deck, Long id) {
         List<DeckCard> cards = deck.getCards();
         LOG.debugv("analysis.cardCount deckId={0} count={1}", id, cards.size());
 

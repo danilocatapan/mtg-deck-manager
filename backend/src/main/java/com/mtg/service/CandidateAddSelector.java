@@ -3,6 +3,7 @@ package com.mtg.service;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
+import com.mtg.service.rules.CommanderBanlistService;
 import com.mtg.service.meta.MetaCard;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -18,21 +19,14 @@ import java.util.Set;
 @ApplicationScoped
 public class CandidateAddSelector {
 
-    private static final Set<String> COMMANDER_BANNED = Set.of(
-            "ancestral recall", "balance", "black lotus", "channel", "chaos orb", "falling star",
-            "flash", "golos, tireless pilgrim", "hullbreacher", "iona, shield of emeria",
-            "leovold, emissary of trest", "limited resources", "lutri, the spellchaser",
-            "mox emerald", "mox jet", "mox pearl", "mox ruby", "mox sapphire", "primeval titan",
-            "prophet of kruphix", "recurring nightmare", "rofelos, llanowar emissary",
-            "sway of the stars", "sylvan primordial", "time vault", "time walk", "tinker",
-            "tolarian academy", "trade secrets", "upheaval"
-    );
-
     @Inject
     CardService cardService;
 
     @Inject
     com.mtg.service.synergy.SynergyEngine synergyEngine;
+
+    @Inject
+    CommanderBanlistService commanderBanlistService;
 
     public List<StrategicCandidate> select(
             Deck deck,
@@ -151,10 +145,17 @@ public class CandidateAddSelector {
         if (card == null || card.name() == null) return false;
         String normalizedName = normalize(card.name());
         if (existingNames.contains(normalizedName)) return false;
-        if (COMMANDER_BANNED.contains(normalizedName)) return false;
+        if (commanderBanlist().isBanned(card.name())) return false;
         if (!ColorIdentityMatcher.matches(card, commanderColors)) return false;
         String typeLine = card.typeLine() == null ? "" : card.typeLine().toLowerCase(Locale.ROOT);
         return !typeLine.contains("plane") && !typeLine.contains("scheme") && !typeLine.contains("conspiracy");
+    }
+
+    private CommanderBanlistService commanderBanlist() {
+        if (commanderBanlistService == null) {
+            commanderBanlistService = new CommanderBanlistService();
+        }
+        return commanderBanlistService;
     }
 
     private String classifyRole(CardResponseDTO card) {

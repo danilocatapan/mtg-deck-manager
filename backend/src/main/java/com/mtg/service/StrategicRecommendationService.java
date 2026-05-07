@@ -56,7 +56,11 @@ public class StrategicRecommendationService {
     BracketMetaPolicy bracketMetaPolicy;
 
     public List<StrategicRecommendation> recommend(Long deckId, com.mtg.dto.RecommendationParamsDTO params) {
-        Deck deck = deckRepository.findById(deckId);
+        return recommend(deckId, params, null);
+    }
+
+    public List<StrategicRecommendation> recommend(Long deckId, com.mtg.dto.RecommendationParamsDTO params, String ownerId) {
+        Deck deck = ownerId == null ? deckRepository.findById(deckId) : deckRepository.findByIdAndOwner(deckId, ownerId);
         if (deck == null) {
             throw new NotFoundException("Deck not found");
         }
