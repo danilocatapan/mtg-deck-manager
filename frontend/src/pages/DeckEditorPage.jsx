@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import DeckForm from '../components/DeckForm'
 import DeckAnalysis from '../components/DeckAnalysis'
 import Recommendations from '../components/Recommendations'
@@ -9,23 +9,18 @@ import analyzeIcon from '../assets/icons/analyze.png'
 import recommendIcon from '../assets/icons/recommend.png'
 
 export default function DeckEditorPage({ mode = 'create', deck = null, onDone }) {
-  const [initial, setInitial] = useState(null)
   const [analysis, setAnalysis] = useState(null)
   const [rec, setRec] = useState(null)
   const [metaProfile, setMetaProfile] = useState(null)
   const [metaSources, setMetaSources] = useState([])
-  const [recommendationParams, setRecommendationParams] = useState({ bracket: 'casual', sourceMode: 'auto' })
+  const [recommendationParams, setRecommendationParams] = useState({ bracket: 'casual' })
   const [loadingAnalysis, setLoadingAnalysis] = useState(false)
   const [loadingRec, setLoadingRec] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
   const [activePanel, setActivePanel] = useState('editor')
 
-  useEffect(() => {
-    if (mode === 'edit' && deck) setInitial(deck)
-    if (mode === 'create') setInitial(null)
-  }, [mode, deck])
-
+  const initial = mode === 'edit' ? deck : null
   const savedCardCount = useMemo(() => deck?.cards?.reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0, [deck])
   const canAnalyze = mode === 'edit' && deck?.id && savedCardCount > 0 && savedCardCount <= 99
 
@@ -33,6 +28,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
     if (!canAnalyze) return
     getMetaSources().then(setMetaSources)
   }, [canAnalyze])
+
   const steps = [
     { key: 'editor', label: 'Editor', state: activePanel === 'editor' ? 'active' : 'complete' },
     { key: 'analysis', label: 'Analysis', state: activePanel === 'analysis' ? 'active' : analysis ? 'complete' : 'locked' },
@@ -84,7 +80,6 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       const recommendations = await getRecommendations(deck.id, params)
       const profile = await getCommanderMeta(deck.commander, {
         bracket: params?.bracket || 'casual',
-        sourceMode: params?.sourceMode || 'auto',
       })
       console.log('recommendations', recommendations)
       setRec(recommendations)
@@ -171,9 +166,9 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
             disabled={!canAnalyze || loadingRec}
           />
           <div className="recommendation-source-summary">
-            <span>Modo atual: {recommendationParams.sourceMode || 'auto'}</span>
-            <span>Nível: {recommendationParams.bracket || 'casual'}</span>
+            <span>Nivel: {recommendationParams.bracket || 'casual'}</span>
             <span>Runtime: cache local</span>
+            <span>Saida: 3 a 5 trocas</span>
           </div>
           {loadingRec && <div className="loading">Loading recommendations...</div>}
           {rec ? <Recommendations rec={rec} metaProfile={metaProfile} metaSources={metaSources} /> : <div className="empty-inline">Generate recommendations after saving a valid deck.</div>}

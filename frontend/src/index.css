@@ -1535,7 +1535,6 @@ dt {
 }
 
 .recommendation-intel,
-.advanced-source-panel,
 .recommendation-source-summary,
 .meta-context-panel,
 .strategic-swap-card {
@@ -1557,20 +1556,6 @@ dt {
 
 .recommendation-intel p {
   color: var(--color-muted);
-}
-
-.advanced-source-panel {
-  grid-column: 1 / -1;
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-}
-
-.advanced-toggle {
-  width: fit-content;
-  background: #101810;
-  color: var(--color-primary);
-  border-color: var(--color-border);
 }
 
 .recommendation-source-summary {
