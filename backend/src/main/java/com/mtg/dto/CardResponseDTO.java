@@ -11,8 +11,22 @@ public record CardResponseDTO(
         Double cmc,
         java.util.List<String> colorIdentity,
         java.util.List<String> keywords,
-        String imageUrl
+        String imageUrl,
+        Double estimatedPrice
 ) {
+    public CardResponseDTO(
+            String name,
+            String manaCost,
+            String typeLine,
+            String oracleText,
+            Double cmc,
+            java.util.List<String> colorIdentity,
+            java.util.List<String> keywords,
+            String imageUrl
+    ) {
+        this(name, manaCost, typeLine, oracleText, cmc, colorIdentity, keywords, imageUrl, null);
+    }
+
     public CardResponseDTO(
             String name,
             String manaCost,

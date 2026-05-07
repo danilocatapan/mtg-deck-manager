@@ -39,7 +39,8 @@ public class CandidateCutSelector {
         CardResponseDTO card = resolvedCard == null ? fallbackCard : resolvedCard;
 
         String role = classifyRole(card);
-        double lowSynergy = 1.0 - synergyEngine.computeSynergy(synergyEngine.tagsForCard(card), roles.deckTags(), profile.commanderTags());
+        double synergy = synergyEngine.computeSynergy(synergyEngine.tagsForCard(card), roles.deckTags(), profile.commanderTags());
+        double lowSynergy = 1.0 - synergy;
         double lowEfficiency = lowEfficiency(card);
         double redundancy = redundancy(role, roles);
         double curvePressure = card.cmc() != null && card.cmc() >= 5.0 && roles.averageCmc() > 3.5 ? 1.0 : 0.2;
@@ -52,7 +53,7 @@ public class CandidateCutSelector {
             score += weakRoleFit * 0.05;
         }
 
-        return new StrategicCandidate(card, role, score, cutReason(role, card));
+        return new StrategicCandidate(card, role, score, cutReason(role, card), false, 0.0, synergy, "deck_current");
     }
 
     private CardResponseDTO fallbackCard(DeckCard deckCard) {

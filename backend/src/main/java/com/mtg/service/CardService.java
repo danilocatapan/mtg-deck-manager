@@ -251,8 +251,27 @@ public class CardService {
                 card.cmc(),
                 card.colorIdentity(),
                 java.util.List.of(),
-                imageUrl(card)
+                imageUrl(card),
+                estimatedPrice(card)
         );
+    }
+
+    private Double estimatedPrice(ScryfallCardDTO card) {
+        if (card == null || card.prices() == null) {
+            return null;
+        }
+        return parsePrice(card.prices().usd());
+    }
+
+    private Double parsePrice(String price) {
+        if (price == null || price.isBlank()) {
+            return null;
+        }
+        try {
+            return Double.valueOf(price);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
     }
 
     private String imageUrl(ScryfallCardDTO card) {

@@ -137,10 +137,41 @@ class StrategicRecommendationServiceTest {
         assertEquals("Greater Good", recommendations.getFirst().add());
         assertEquals("meta_profile", recommendations.getFirst().source());
         assertEquals("mid", recommendations.getFirst().bracket());
+        assertEquals("consistency", recommendations.getFirst().recommendationMode());
+        assertEquals("meta_profile", recommendations.getFirst().sourceContext().kind());
+        assertEquals(4, recommendations.getFirst().sourceContext().sampleSize());
+        assertEquals("Greater Good", recommendations.getFirst().addInsight().name());
+        assertEquals(0.95, recommendations.getFirst().addInsight().inclusionRate(), 0.001);
+        assertFalse(recommendations.getFirst().comparisons().isEmpty());
         assertTrue(recommendations.getFirst().tags().contains("meta"));
         assertTrue(recommendations.getFirst().tags().contains("draw"));
         assertTrue(recommendations.getFirst().reasoning().contains("listas similares"));
         assertTrue(recommendations.getFirst().reasoning().contains("95%"));
+    }
+
+    @Test
+    void shouldRespectBudgetIntentAndExposePriceEstimate() {
+        Deck deck = xenagosDeck();
+        CommanderMetaProfile profile = profile("Xenagos, God of Revels", "mid", 4, List.of(
+                new MetaCard("Greater Good", 0.95, "draw", 4.0),
+                new MetaCard("Nature's Lore", 0.80, "ramp", 2.0)
+        ));
+
+        Map<String, CardResponseDTO> cards = new java.util.HashMap<>(xenagosCards());
+        cards.put("greater good", card("Greater Good", "{2}{G}{G}", "Enchantment", "Sacrifice a creature: Draw cards equal to the sacrificed creature's power.", 4.0, List.of("G"), 20.0));
+        cards.put("nature's lore", card("Nature's Lore", "{1}{G}", "Sorcery", "Search your library for a Forest card and put it onto the battlefield.", 2.0, List.of("G"), 2.0));
+
+        when(deckRepository.findById(1L)).thenReturn(deck);
+        when(commanderMetaProfileService.findByCommanderAndBracket("Xenagos, God of Revels", "mid")).thenReturn(profile);
+        when(cardService.findByNames(Mockito.anyList())).thenReturn(cards);
+
+        List<StrategicRecommendation> recommendations = sut.recommend(1L, new RecommendationParamsDTO(5.0, "mid", "budget", null));
+
+        assertFalse(recommendations.isEmpty());
+        StrategicRecommendation first = recommendations.getFirst();
+        assertEquals("budget", first.recommendationMode());
+        assertEquals(5.0, first.budget());
+        assertTrue(first.addInsight().estimatedPrice() == null || first.addInsight().estimatedPrice() <= 5.0);
     }
 
     @Test
@@ -309,5 +340,9 @@ class StrategicRecommendationServiceTest {
 
     private static CardResponseDTO card(String name, String manaCost, String typeLine, String oracle, Double cmc, List<String> colors) {
         return new CardResponseDTO(name, manaCost, typeLine, oracle, cmc, colors, List.of());
+    }
+
+    private static CardResponseDTO card(String name, String manaCost, String typeLine, String oracle, Double cmc, List<String> colors, Double estimatedPrice) {
+        return new CardResponseDTO(name, manaCost, typeLine, oracle, cmc, colors, List.of(), null, estimatedPrice);
     }
 }

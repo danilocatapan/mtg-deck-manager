@@ -75,6 +75,8 @@ public class StrategicRecommendationService {
         BracketMetaPolicy policy = bracketMetaPolicy == null ? new BracketMetaPolicy() : bracketMetaPolicy;
         String bracket = policy.normalizeBracket(params != null ? params.bracket() : null);
         String sourceMode = policy.normalizeSourceMode(params != null ? params.sourceMode() : null);
+        String recommendationMode = normalizeRecommendationMode(params == null ? null : params.strategy());
+        Double budget = params == null ? null : params.budget();
         int maxRecommendations = maxRecommendations(params);
 
         LOG.infov("event=recommendation.strategic.started deckId={0} bracket={1}", deckId, bracket);
@@ -118,7 +120,7 @@ public class StrategicRecommendationService {
         DeckRoleSummary roles = deckRoleAnalyzer.analyze(deck, knownCards, bracket);
         CommanderArchetypeProfile profile = archetypeDetector.detect(deck.getCommander(), commanderCard, roles, persistedColors(deck.getColorIdentity()));
 
-        List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket, hasUsefulMeta);
+        List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket, hasUsefulMeta, recommendationMode, budget);
         List<StrategicCandidate> cuts = cutSelector.select(deck, knownCards, profile, roles, bracket);
 
         LOG.infov(
@@ -138,7 +140,18 @@ public class StrategicRecommendationService {
         );
         LOG.infov("event=recommendation.cut_candidates.generated count={0}", cuts.size());
 
-        List<StrategicRecommendation> recommendations = pairer.pair(adds, cuts, profile, roles, maxRecommendations, bracket);
+        List<StrategicRecommendation> recommendations = pairer.pair(
+                adds,
+                cuts,
+                profile,
+                roles,
+                maxRecommendations,
+                bracket,
+                metaProfile.sampleSize(),
+                metaProfile.sourcesUsed(),
+                recommendationMode,
+                budget
+        );
         LOG.infov(
                 "event=recommendation.strategic.completed deckId={0} recommendations={1}",
                 deckId,
@@ -191,5 +204,19 @@ public class StrategicRecommendationService {
             return 5;
         }
         return Math.max(3, Math.min(5, requested));
+    }
+
+    private String normalizeRecommendationMode(String strategy) {
+        if (strategy == null || strategy.isBlank()) {
+            return "consistency";
+        }
+        String normalized = strategy.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "casual", "mais casual" -> "casual";
+            case "budget", "cheap", "mais barato" -> "budget";
+            case "competitive", "power", "mais competitivo" -> "competitive";
+            case "theme", "thematic", "mais fiel ao tema" -> "theme";
+            default -> "consistency";
+        };
     }
 }

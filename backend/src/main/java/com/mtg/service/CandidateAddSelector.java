@@ -48,6 +48,20 @@ public class CandidateAddSelector {
             String bracket,
             boolean metaProfileDriven
     ) {
+        return select(deck, metaCards, knownCards, profile, roles, bracket, metaProfileDriven, null, null);
+    }
+
+    public List<StrategicCandidate> select(
+            Deck deck,
+            List<MetaCard> metaCards,
+            Map<String, CardResponseDTO> knownCards,
+            CommanderArchetypeProfile profile,
+            DeckRoleSummary roles,
+            String bracket,
+            boolean metaProfileDriven,
+            String recommendationMode,
+            Double budget
+    ) {
         Set<String> existingNames = new HashSet<>();
         deck.getCards().stream().map(DeckCard::getName).map(this::normalize).forEach(existingNames::add);
         List<CardResponseDTO> cards = new ArrayList<>();
@@ -72,14 +86,14 @@ public class CandidateAddSelector {
         }
 
         return cards.stream()
-                .map(card -> toCandidate(card, metaCards, profile, roles, bracket, metaProfileDriven))
+                .map(card -> toCandidate(card, metaCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget))
                 .sorted(Comparator.comparingDouble(StrategicCandidate::score).reversed())
                 .distinct()
                 .limit(12)
                 .toList();
     }
 
-    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, boolean metaProfileDriven) {
+    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, boolean metaProfileDriven, String recommendationMode, Double budget) {
         String role = classifyRole(card);
         double commanderSynergy = synergyEngine.computeSynergy(synergyEngine.tagsForCard(card), roles.deckTags(), profile.commanderTags());
         double gapScore = roles.gaps().containsKey(role) || ("curve".equals(role) && roles.gaps().containsKey("curve")) ? 1.0 : 0.3;
@@ -93,7 +107,52 @@ public class CandidateAddSelector {
         double metaScore = metaCard == null ? 0.2 : Math.min(1.0, inclusionRate * metaCard.getBracketWeight() + metaCard.getPerformanceWeight());
         double bracketFit = bracketFit(card, bracket, metaCard);
         double score = scoreForBracket(bracket, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore, bracketFit, role);
-        return new StrategicCandidate(card, role, score, addReason(role, profile), metaProfileDriven && metaCard != null, inclusionRate);
+        score = applyIntent(score, recommendationMode, budget, card, role, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore);
+        String source = metaCard == null ? "heuristic_fallback" : nullSafeSource(metaCard.getSource());
+        return new StrategicCandidate(card, role, score, addReason(role, profile), metaProfileDriven && metaCard != null, inclusionRate, commanderSynergy, source);
+    }
+
+    private double applyIntent(double score, String mode, Double budget, CardResponseDTO card, String role, double synergy, double gapScore, double efficiency, double archetypeFit, double metaScore) {
+        String normalizedMode = mode == null || mode.isBlank() ? "consistency" : mode.toLowerCase(Locale.ROOT);
+        double adjusted = score;
+        switch (normalizedMode) {
+            case "budget", "mais barato" -> adjusted = adjusted * 0.82 + budgetFit(card, budget) * 0.18;
+            case "competitive", "mais competitivo" -> adjusted = adjusted * 0.65 + efficiency * 0.20 + metaScore * 0.15;
+            case "theme", "mais fiel ao tema" -> adjusted = adjusted * 0.60 + archetypeFit * 0.25 + synergy * 0.15;
+            case "casual", "mais casual" -> adjusted = adjusted * 0.72 + Math.min(synergy, archetypeFit) * 0.18 + casualFit(card) * 0.10;
+            default -> adjusted = adjusted * 0.85 + gapScore * 0.10 + efficiency * 0.05;
+        }
+        if ("budget".equals(normalizedMode) && budget != null && card.estimatedPrice() != null && card.estimatedPrice() > budget) {
+            adjusted *= 0.55;
+        }
+        if ("theme".equals(normalizedMode) && "value".equals(role)) {
+            adjusted *= 0.92;
+        }
+        return adjusted;
+    }
+
+    private double budgetFit(CardResponseDTO card, Double budget) {
+        Double price = card.estimatedPrice();
+        if (price == null) {
+            return 0.55;
+        }
+        if (budget == null || budget <= 0.0) {
+            return price <= 2.0 ? 1.0 : price <= 8.0 ? 0.75 : 0.35;
+        }
+        return price <= budget ? 1.0 : Math.max(0.15, budget / price);
+    }
+
+    private double casualFit(CardResponseDTO card) {
+        double cmc = card.cmc() == null ? 0.0 : card.cmc();
+        String oracle = text(card.oracleText());
+        if (oracle.contains("win the game") || oracle.contains("extra turn")) {
+            return 0.25;
+        }
+        return cmc <= 5.0 ? 0.85 : 0.55;
+    }
+
+    private String nullSafeSource(String source) {
+        return source == null || source.isBlank() ? "LOCAL" : source;
     }
 
     private List<String> prioritizedGapRoles(DeckRoleSummary roles, CommanderArchetypeProfile profile) {
@@ -213,7 +272,7 @@ public class CandidateAddSelector {
         return switch (bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT)) {
             case "cedh" -> meta * 0.35 + efficiency * 0.30 + comboOrInteractionDensity * 0.15 + synergy * 0.10 + gapFix * 0.10;
             case "high-power" -> efficiency * 0.30 + meta * 0.25 + synergy * 0.20 + gapFix * 0.15 + archetypeFit * 0.10;
-            case "mid" -> synergy * 0.30 + gapFix * 0.25 + efficiency * 0.20 + meta * 0.15 + archetypeFit * 0.10;
+            case "mid" -> synergy * 0.30 + gapFix * 0.25 + meta * 0.25 + archetypeFit * 0.10 + efficiency * 0.10;
             default -> synergy * 0.35 + gapFix * 0.25 + archetypeFit * 0.20 + efficiency * 0.10 + Math.min(meta, bracketFit) * 0.10;
         };
     }

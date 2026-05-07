@@ -60,6 +60,27 @@ class CardServiceTest {
     }
 
     @Test
+    void shouldExposeUsdPriceEstimateWhenAvailable() {
+        when(scryfallClient.searchByName("\"Nature's Lore\"")).thenReturn(
+                new ScryfallResponseDTO(List.of(new ScryfallCardDTO(
+                        "Nature's Lore",
+                        "{1}{G}",
+                        2.0,
+                        "Sorcery",
+                        "Search your library for a Forest card.",
+                        java.util.List.of("G"),
+                        null,
+                        null,
+                        new ScryfallCardDTO.PricesDTO("2.35", null, null, null)
+                )))
+        );
+
+        List<CardResponseDTO> cards = cardService.searchByName("Nature's Lore");
+
+        assertEquals(2.35, cards.getFirst().estimatedPrice());
+    }
+
+    @Test
     void shouldThrowIllegalArgumentExceptionWhenNameIsBlank() {
         assertThrows(IllegalArgumentException.class, () -> cardService.searchByName("  "));
     }

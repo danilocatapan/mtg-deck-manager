@@ -14,7 +14,8 @@ public record ScryfallCardDTO(
         @JsonProperty("oracle_text") String oracleText,
         @JsonProperty("color_identity") java.util.List<String> colorIdentity,
         @JsonProperty("image_uris") ImageUris imageUris,
-        @JsonProperty("card_faces") java.util.List<CardFaceDTO> cardFaces
+        @JsonProperty("card_faces") java.util.List<CardFaceDTO> cardFaces,
+        PricesDTO prices
 ) {
     public ScryfallCardDTO(
             String name,
@@ -24,7 +25,7 @@ public record ScryfallCardDTO(
             String oracleText,
             java.util.List<String> colorIdentity
     ) {
-        this(name, manaCost, cmc, typeLine, oracleText, colorIdentity, null, null);
+        this(name, manaCost, cmc, typeLine, oracleText, colorIdentity, null, null, null);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -39,6 +40,15 @@ public record ScryfallCardDTO(
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record CardFaceDTO(
             @JsonProperty("image_uris") ImageUris imageUris
+    ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record PricesDTO(
+            String usd,
+            @JsonProperty("usd_foil") String usdFoil,
+            String eur,
+            String tix
     ) {
     }
 }
