@@ -6,6 +6,11 @@ record StrategicCandidate(
         CardResponseDTO card,
         String role,
         double score,
-        String reason
+        String reason,
+        boolean metaDriven,
+        double inclusionRate
 ) {
+    StrategicCandidate(CardResponseDTO card, String role, double score, String reason) {
+        this(card, role, score, reason, false, 0.0);
+    }
 }

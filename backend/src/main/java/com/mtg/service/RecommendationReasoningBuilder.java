@@ -7,9 +7,15 @@ public class RecommendationReasoningBuilder {
 
     public String build(StrategicCandidate add, StrategicCandidate cut, CommanderArchetypeProfile profile, DeckRoleSummary roles) {
         String priority = strategicPriority(add.role(), roles);
-        return "Troque " + cut.card().name() + " por " + add.card().name() + ". "
-                + priority + " A adicao " + add.reason() + "; o corte " + cut.reason()
-                + ". Resultado: mais foco no plano " + profile.archetype() + ".";
+        String metaContext = add.metaDriven()
+                ? " Em listas similares de " + profile.commanderName()
+                + ", essa carta aparece com frequencia relevante ("
+                + String.format(java.util.Locale.ROOT, "%.0f%%", add.inclusionRate() * 100.0)
+                + "), reforcando o encaixe no plano."
+                : "";
+        return priority + " " + add.card().name() + " melhora esse ponto porque " + add.reason()
+                + "." + metaContext + " " + cut.card().name() + " e um corte melhor porque "
+                + cut.reason() + ".";
     }
 
     private String strategicPriority(String role, DeckRoleSummary roles) {

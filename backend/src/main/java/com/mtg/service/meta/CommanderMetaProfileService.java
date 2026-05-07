@@ -95,6 +95,10 @@ public class CommanderMetaProfileService {
         return profile;
     }
 
+    public CommanderMetaProfile findByCommanderAndBracket(String commander, String bracket) {
+        return find(commander, bracket);
+    }
+
     private CommanderMetaProfile buildProfile(List<MetaDeck> group) {
         MetaDeck first = group.getFirst();
         int sampleSize = group.size();

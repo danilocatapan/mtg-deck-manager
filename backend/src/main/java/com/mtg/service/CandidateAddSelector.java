@@ -42,11 +42,23 @@ public class CandidateAddSelector {
             DeckRoleSummary roles,
             String bracket
     ) {
+        return select(deck, metaCards, knownCards, profile, roles, bracket, true);
+    }
+
+    public List<StrategicCandidate> select(
+            Deck deck,
+            List<MetaCard> metaCards,
+            Map<String, CardResponseDTO> knownCards,
+            CommanderArchetypeProfile profile,
+            DeckRoleSummary roles,
+            String bracket,
+            boolean metaProfileDriven
+    ) {
         Set<String> existingNames = new HashSet<>();
         deck.getCards().stream().map(DeckCard::getName).map(this::normalize).forEach(existingNames::add);
         List<CardResponseDTO> cards = new ArrayList<>();
 
-        for (MetaCard metaCard : metaCards) {
+        for (MetaCard metaCard : metaCards.stream().limit(50).toList()) {
             CardResponseDTO card = knownCards.get(normalize(metaCard.getName()));
             if (isLegalAdd(card, existingNames, profile.colors())) {
                 cards.add(card);
@@ -66,14 +78,14 @@ public class CandidateAddSelector {
         }
 
         return cards.stream()
-                .map(card -> toCandidate(card, metaCards, profile, roles, bracket))
+                .map(card -> toCandidate(card, metaCards, profile, roles, bracket, metaProfileDriven))
                 .sorted(Comparator.comparingDouble(StrategicCandidate::score).reversed())
                 .distinct()
                 .limit(12)
                 .toList();
     }
 
-    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket) {
+    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, boolean metaProfileDriven) {
         String role = classifyRole(card);
         double commanderSynergy = synergyEngine.computeSynergy(synergyEngine.tagsForCard(card), roles.deckTags(), profile.commanderTags());
         double gapScore = roles.gaps().containsKey(role) || ("curve".equals(role) && roles.gaps().containsKey("curve")) ? 1.0 : 0.3;
@@ -83,10 +95,11 @@ public class CandidateAddSelector {
                 .filter(meta -> meta.getName().equalsIgnoreCase(card.name()))
                 .findFirst()
                 .orElse(null);
-        double metaScore = metaCard == null ? 0.2 : Math.min(1.0, metaCard.getInclusion() * metaCard.getBracketWeight() + metaCard.getPerformanceWeight());
+        double inclusionRate = metaCard == null ? 0.0 : Math.min(1.0, metaCard.getInclusion());
+        double metaScore = metaCard == null ? 0.2 : Math.min(1.0, inclusionRate * metaCard.getBracketWeight() + metaCard.getPerformanceWeight());
         double bracketFit = bracketFit(card, bracket, metaCard);
         double score = scoreForBracket(bracket, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore, bracketFit, role);
-        return new StrategicCandidate(card, role, score, addReason(role, profile));
+        return new StrategicCandidate(card, role, score, addReason(role, profile), metaProfileDriven && metaCard != null, inclusionRate);
     }
 
     private List<String> prioritizedGapRoles(DeckRoleSummary roles, CommanderArchetypeProfile profile) {
@@ -101,22 +114,37 @@ public class CandidateAddSelector {
     }
 
     private List<CardResponseDTO> fallbackCards(String role) {
-        String query = switch (role) {
-            case "ramp", "curve" -> "oracle:\"search your library for a land\" OR oracle:\"add {\"";
-            case "draw" -> "oracle:draw";
-            case "removal" -> "oracle:destroy OR oracle:exile";
-            case "protection" -> "oracle:hexproof OR oracle:indestructible OR oracle:\"phase out\"";
-            case "finisher" -> "type:creature cmc>=5";
-            default -> "";
+        return switch (role) {
+            case "ramp", "curve" -> List.of(
+                    card("Nature's Lore", "{1}{G}", "Sorcery", "Search your library for a Forest card and put it onto the battlefield.", 2.0, "G"),
+                    card("Farseek", "{1}{G}", "Sorcery", "Search your library for a Plains, Island, Swamp, or Mountain card and put it onto the battlefield tapped.", 2.0, "G"),
+                    card("Arcane Signet", "{2}", "Artifact", "Add one mana of any color in your commander's color identity.", 2.0)
+            );
+            case "draw" -> List.of(
+                    card("Greater Good", "{2}{G}{G}", "Enchantment", "Sacrifice a creature: Draw cards equal to the sacrificed creature's power, then discard three cards.", 4.0, "G"),
+                    card("Harmonize", "{2}{G}{G}", "Sorcery", "Draw three cards.", 4.0, "G"),
+                    card("Village Rites", "{B}", "Instant", "As an additional cost to cast this spell, sacrifice a creature. Draw two cards.", 1.0, "B")
+            );
+            case "removal" -> List.of(
+                    card("Beast Within", "{2}{G}", "Instant", "Destroy target permanent.", 3.0, "G"),
+                    card("Generous Gift", "{2}{W}", "Instant", "Destroy target permanent.", 3.0, "W"),
+                    card("Chaos Warp", "{2}{R}", "Instant", "The owner of target permanent shuffles it into their library.", 3.0, "R")
+            );
+            case "protection" -> List.of(
+                    card("Heroic Intervention", "{1}{G}", "Instant", "Permanents you control gain hexproof and indestructible until end of turn.", 2.0, "G"),
+                    card("Swiftfoot Boots", "{2}", "Artifact - Equipment", "Equipped creature has hexproof and haste.", 2.0),
+                    card("Boros Charm", "{R}{W}", "Instant", "Permanents you control gain indestructible until end of turn.", 2.0, "R", "W")
+            );
+            case "finisher" -> List.of(
+                    card("Overwhelming Stampede", "{3}{G}{G}", "Sorcery", "Creatures you control gain trample and get +X/+X until end of turn.", 5.0, "G"),
+                    card("Craterhoof Behemoth", "{5}{G}{G}{G}", "Creature - Beast", "When this creature enters, creatures you control gain trample and get +X/+X until end of turn.", 8.0, "G")
+            );
+            default -> List.of();
         };
-        if (query.isBlank()) {
-            return List.of();
-        }
-        try {
-            return cardService.searchByQuery(query).stream().limit(20).toList();
-        } catch (ExternalServiceException exception) {
-            return List.of();
-        }
+    }
+
+    private CardResponseDTO card(String name, String manaCost, String typeLine, String oracle, Double cmc, String... colors) {
+        return new CardResponseDTO(name, manaCost, typeLine, oracle, cmc, List.of(colors), List.of());
     }
 
     private boolean isLegalAdd(CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors) {

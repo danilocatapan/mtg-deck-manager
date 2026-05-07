@@ -7,6 +7,7 @@ import com.mtg.model.DeckCard;
 import com.mtg.repository.DeckRepository;
 import com.mtg.service.meta.BracketMetaPolicy;
 import com.mtg.service.meta.CommanderMetaProfile;
+import com.mtg.service.meta.CommanderMetaProfileService;
 import com.mtg.service.meta.MetaCard;
 import com.mtg.service.meta.MetaProvider;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -32,6 +33,9 @@ public class StrategicRecommendationService {
 
     @Inject
     MetaProvider metaProvider;
+
+    @Inject
+    CommanderMetaProfileService commanderMetaProfileService;
 
     @Inject
     DeckRoleAnalyzer deckRoleAnalyzer;
@@ -68,8 +72,27 @@ public class StrategicRecommendationService {
         String bracket = policy.normalizeBracket(params != null ? params.bracket() : null);
         String sourceMode = policy.normalizeSourceMode(params != null ? params.sourceMode() : null);
         int maxRecommendations = maxRecommendations(params);
-        CommanderMetaProfile metaProfile = metaProvider.getCommanderProfile(deck.getCommander(), bracket, sourceMode);
-        if (metaProfile == null) {
+
+        LOG.infov("event=recommendation.strategic.started deckId={0} bracket={1}", deckId, bracket);
+
+        CommanderMetaProfile metaProfile = commanderMetaProfileService == null
+                ? null
+                : commanderMetaProfileService.findByCommanderAndBracket(deck.getCommander(), bracket);
+        boolean hasUsefulMeta = hasUsefulMeta(metaProfile);
+        if (hasUsefulMeta) {
+            LOG.infov(
+                    "event=recommendation.meta_profile.loaded commander={0} bracket={1} sampleSize={2}",
+                    deck.getCommander(),
+                    bracket,
+                    metaProfile.sampleSize()
+            );
+        } else {
+            LOG.infov(
+                    "event=recommendation.meta_profile.unavailable commander={0} bracket={1}",
+                    deck.getCommander(),
+                    bracket
+            );
+            LOG.infov("event=recommendation.fallback.used reason={0}", metaProfile == null ? "profile_not_found" : "sample_too_small");
             List<MetaCard> legacyCards = metaProvider.getTopCards(deck.getCommander());
             metaProfile = new CommanderMetaProfile(
                     deck.getCommander(),
@@ -91,7 +114,7 @@ public class StrategicRecommendationService {
         DeckRoleSummary roles = deckRoleAnalyzer.analyze(deck, knownCards, bracket);
         CommanderArchetypeProfile profile = archetypeDetector.detect(deck.getCommander(), commanderCard, roles, persistedColors(deck.getColorIdentity()));
 
-        List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket);
+        List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket, hasUsefulMeta);
         List<StrategicCandidate> cuts = cutSelector.select(deck, knownCards, profile, roles, bracket);
 
         LOG.infov(
@@ -102,10 +125,29 @@ public class StrategicRecommendationService {
                 sourceMode,
                 metaProfile.sampleSize(),
                 metaProfile.sourcesUsed(),
-                metaCards.isEmpty()
+                !hasUsefulMeta
         );
+        LOG.infov(
+                "event=recommendation.add_candidates.generated count={0} source={1}",
+                adds.size(),
+                hasUsefulMeta ? "meta_profile" : "heuristic"
+        );
+        LOG.infov("event=recommendation.cut_candidates.generated count={0}", cuts.size());
 
-        return pairer.pair(adds, cuts, profile, roles, maxRecommendations);
+        List<StrategicRecommendation> recommendations = pairer.pair(adds, cuts, profile, roles, maxRecommendations);
+        LOG.infov(
+                "event=recommendation.strategic.completed deckId={0} recommendations={1}",
+                deckId,
+                recommendations.size()
+        );
+        return recommendations;
+    }
+
+    private boolean hasUsefulMeta(CommanderMetaProfile profile) {
+        return profile != null
+                && profile.sampleSize() >= 3
+                && profile.topCards() != null
+                && !profile.topCards().isEmpty();
     }
 
     private Map<String, CardResponseDTO> preloadCards(Deck deck, List<MetaCard> metaCards) {
