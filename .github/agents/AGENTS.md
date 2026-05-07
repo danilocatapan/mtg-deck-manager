@@ -25,6 +25,13 @@ Regras globais inegociaveis
 - Sempre validar contratos observaveis (endpoints + testes) antes de alterar comportamento.
 - Nao alterar regra negocial, fluxo negocial, criterio de decisao, side effects ou contratos observaveis sem pedido explicito: registre como achado e consulte stakeholders.
 
+Controle de complexidade
+------------------------
+- Implementar sempre a solucao mais simples que resolve a necessidade atual.
+- Nao criar camadas preventivas como novos adapters, ingestion services, normalizers, persistence abstractions ou DTOs paralelos sem pelo menos uma necessidade concreta imediata.
+- Reusar componentes existentes antes de criar pacotes novos; novas abstracoes so entram quando reduzem duplicacao real, isolam uma integracao externa ja usada ou simplificam comportamento observavel.
+- Em meta/recomendacoes, manter o runtime sem chamadas externas diretas; ingestao/cache deve evoluir dentro da estrutura existente antes de abrir nova arquitetura.
+
 Congelamento de regra negocial
 ------------------------------
 Qualquer mudanca que possa impactar o comportamento esperado pelo usuario (por ex., remocao de validacao, alteracao de calculo, mudanca de contrato REST) deve ser tratada como alteracao negocial e precisa de aprovacao explicita.
