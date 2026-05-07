@@ -10,6 +10,9 @@ const LABELS = {
   finisher: 'Finalizador',
   efficiency: 'Eficiencia',
   fallback: 'Heuristico',
+  high: 'Alta confianca',
+  medium: 'Media confianca',
+  low: 'Baixa confianca',
   value: 'Valor',
 }
 

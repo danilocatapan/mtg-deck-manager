@@ -40,7 +40,7 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
       </label>
 
       <Button type="submit" loading={loading} disabled={disabled}>
-        Gerar recomendacoes
+        Gerar trocas
       </Button>
     </form>
   )

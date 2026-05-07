@@ -20,9 +20,20 @@ function sourceLabel(source) {
   return source === 'meta_profile' ? 'Baseado em perfil meta local' : 'Baseado em analise heuristica'
 }
 
+function confidenceLabel(confidence) {
+  if (confidence === 'high') return 'Alta'
+  if (confidence === 'low') return 'Baixa'
+  return 'Media'
+}
+
+function opportunityFrom(reasoning) {
+  const firstSentence = String(reasoning || '').split('.').map((part) => part.trim()).find(Boolean)
+  return firstSentence || 'Troca sugerida para melhorar o encaixe do deck no bracket escolhido'
+}
+
 export default function RecommendationCard({ item, index, bracket }) {
   const source = item?.source || (String(item?.reasoning || '').toLowerCase().includes('listas similares') ? 'meta_profile' : 'heuristic_fallback')
-  const tags = inferTags(item)
+  const tags = inferTags(item).filter((tag) => tag !== 'fallback' && tag !== 'meta')
   const confidence = item?.confidence || 'medium'
 
   return (
@@ -34,16 +45,22 @@ export default function RecommendationCard({ item, index, bracket }) {
         </div>
         <div className="recommendation-card-badges" aria-label="Motivos da recomendacao">
           <RecommendationBadge variant={source === 'meta_profile' ? 'meta' : 'fallback'} />
+          <RecommendationBadge variant={confidence} />
           {tags.map((tag) => <RecommendationBadge key={tag} variant={tag} />)}
         </div>
       </header>
+
+      <section className="recommendation-opportunity">
+        <span className="rec-label">Oportunidade identificada</span>
+        <p>{opportunityFrom(item?.reasoning)}</p>
+      </section>
 
       <div className="swap-route" aria-label="Troca sugerida">
         <section className="swap-card add">
           <span>Adicionar</span>
           <strong>+ {item.add}</strong>
         </section>
-        <span className="swap-arrow" aria-hidden="true">→</span>
+        <span className="swap-arrow" aria-hidden="true">-&gt;</span>
         <section className="swap-card remove">
           <span>Remover</span>
           <strong>- {item.remove}</strong>
@@ -57,8 +74,12 @@ export default function RecommendationCard({ item, index, bracket }) {
 
       <footer className="recommendation-card-footer">
         <span>Bracket: {item.bracket || bracket || 'casual'}</span>
-        <span>Confianca: {confidence}</span>
-        <Button variant="secondary" disabled title="Aplicar troca sera implementado em uma fase futura.">Aplicar troca em breve</Button>
+        <span>Confianca: {confidenceLabel(confidence)}</span>
+        <details>
+          <summary>Detalhes</summary>
+          <p>{sourceLabel(source)}.</p>
+        </details>
+        <Button variant="secondary" disabled title="Aplicar troca sera implementado em uma fase futura.">Em breve</Button>
       </footer>
     </article>
   )

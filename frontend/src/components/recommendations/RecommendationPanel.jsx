@@ -8,6 +8,13 @@ function profileSource(metaProfile, recommendations) {
   return 'fallback'
 }
 
+function bracketLabel(bracket) {
+  if (bracket === 'cedh') return 'cEDH'
+  if (bracket === 'high-power') return 'High-power'
+  if (bracket === 'mid') return 'Mid'
+  return 'Casual'
+}
+
 export default function RecommendationPanel({
   recommendations,
   loading = false,
@@ -38,9 +45,22 @@ export default function RecommendationPanel({
       </header>
 
       <div className="recommendation-context-strip">
-        <span>{items.length ? `${items.length} trocas sugeridas` : 'Aguardando recomendacoes'}</span>
-        <span>Amostra meta: {metaProfile?.sampleSize ?? 0}</span>
-        <span>Runtime: cache local</span>
+        <div>
+          <span>Trocas</span>
+          <strong>{items.length || '-'}</strong>
+        </div>
+        <div>
+          <span>Bracket</span>
+          <strong>{bracketLabel(bracket)}</strong>
+        </div>
+        <div>
+          <span>Origem</span>
+          <strong>{hasFallback ? 'Heuristica' : 'Meta local'}</strong>
+        </div>
+        <div>
+          <span>Amostra meta</span>
+          <strong>{metaProfile?.sampleSize ?? 0}</strong>
+        </div>
       </div>
 
       {hasFallback && items.length > 0 && (
@@ -68,8 +88,8 @@ export default function RecommendationPanel({
       )}
 
       {!loading && !error && hasGenerated && items.length === 0 && (
-        <StateMessage tone="warning" title="Nenhuma troca foi gerada para esta rodada.">
-          O deck foi selecionado, mas o motor nao encontrou um par add/remove seguro. Tente atualizar a analise ou gerar novamente.
+        <StateMessage tone="warning" title="Nenhuma troca segura foi montada nesta rodada.">
+          O deck foi selecionado, mas faltou um par add/remove confiavel para exibir. Isso normalmente indica poucos candidatos validos ou cortes protegidos pelas regras do deck.
         </StateMessage>
       )}
 

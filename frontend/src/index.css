@@ -1692,22 +1692,31 @@ dt {
 }
 
 .recommendation-context-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
+}
+
+.recommendation-context-strip div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(8, 17, 12, 0.62);
 }
 
 .recommendation-context-strip span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 5px 9px;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: rgba(8, 17, 12, 0.62);
   color: var(--color-muted);
   font-size: 13px;
   font-weight: 750;
+}
+
+.recommendation-context-strip strong {
+  color: var(--color-value);
+  font-size: 18px;
+  overflow-wrap: anywhere;
 }
 
 .state-message {
@@ -1783,10 +1792,23 @@ dt {
 
 .recommendation-badge.fallback,
 .recommendation-badge.curve,
-.recommendation-badge.efficiency {
+.recommendation-badge.efficiency,
+.recommendation-badge.medium {
   border-color: rgba(214, 168, 79, 0.48);
   background: rgba(214, 168, 79, 0.12);
   color: var(--color-value);
+}
+
+.recommendation-badge.high {
+  border-color: rgba(143, 203, 107, 0.45);
+  background: rgba(143, 203, 107, 0.12);
+  color: var(--color-good);
+}
+
+.recommendation-badge.low {
+  border-color: rgba(184, 92, 69, 0.55);
+  background: rgba(184, 92, 69, 0.13);
+  color: #fecaca;
 }
 
 .recommendation-badge.draw,
@@ -1855,6 +1877,7 @@ dt {
   font-weight: 900;
 }
 
+.recommendation-opportunity,
 .reasoning-block {
   display: grid;
   gap: 6px;
@@ -1862,6 +1885,16 @@ dt {
   border: 1px solid rgba(156, 163, 175, 0.24);
   border-radius: 8px;
   background: rgba(8, 17, 12, 0.58);
+}
+
+.recommendation-opportunity {
+  border-color: rgba(56, 189, 248, 0.24);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.recommendation-opportunity p {
+  color: var(--color-text);
+  line-height: 1.5;
 }
 
 .reasoning-block p {
@@ -1873,6 +1906,22 @@ dt {
   align-items: center;
   color: var(--color-muted);
   font-size: 13px;
+}
+
+.recommendation-card-footer details {
+  min-width: 130px;
+}
+
+.recommendation-card-footer summary {
+  cursor: pointer;
+  color: var(--color-value);
+  font-weight: 800;
+}
+
+.recommendation-card-footer details p {
+  margin-top: 6px;
+  color: var(--color-muted);
+  line-height: 1.45;
 }
 
 .recommendation-card-footer .btn {
