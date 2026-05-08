@@ -50,6 +50,12 @@ export default function DeckLegalityPanel({ legality, loading = false, error = n
       ok: legality.companion?.legal,
       detail: legality.companion?.reason || 'Nenhum companion declarado',
     },
+    {
+      label: 'Game Changers',
+      value: `${legality.gameChangerCount || 0}`,
+      ok: Number(legality.gameChangerCount || 0) <= 3 || Number(legality.estimatedBracket?.level || 0) >= 4,
+      detail: legality.gameChangerCount ? joinNames(legality.gameChangers) : 'Nenhum Game Changer detectado',
+    },
   ]
 
   return (
@@ -80,6 +86,18 @@ export default function DeckLegalityPanel({ legality, loading = false, error = n
           <strong>Bracket estimado: {legality.estimatedBracket.level} - {legality.estimatedBracket.label}</strong>
           <span>Estimativa baseada na lista atual; use como apoio para conversa de mesa, nao como nota absoluta.</span>
         </div>
+      )}
+
+      {legality.rulesSnapshot && (
+        <details className="recommendation-source-details">
+          <summary>Snapshot de regras</summary>
+          <div>
+            <span className="source-pill enabled">Banlist: {legality.rulesSnapshot.banlistDate || 'sem data'}</span>
+            <span className="source-pill enabled">Game Changers: {legality.rulesSnapshot.gameChangersDate || 'sem data'}</span>
+            <span className="source-pill enabled">Bracket: {legality.rulesSnapshot.bracketVersion || 'desconhecido'}</span>
+            <span className="source-pill">Scryfall: {legality.rulesSnapshot.scryfallLegalityVersion || 'cache atual'}</span>
+          </div>
+        </details>
       )}
     </section>
   )

@@ -10,6 +10,7 @@ import com.mtg.service.meta.BracketMetaPolicy;
 import com.mtg.service.meta.CommanderMetaProfile;
 import com.mtg.service.meta.CommanderMetaProfileService;
 import com.mtg.service.meta.RoleTargets;
+import com.mtg.service.rules.CommanderGameChangerService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
@@ -32,6 +33,9 @@ public class DeckComparisonService {
     @Inject
     BracketMetaPolicy bracketMetaPolicy;
 
+    @Inject
+    CommanderGameChangerService commanderGameChangerService;
+
     public SimilarDeckComparisonDTO compare(Long deckId, RecommendationParamsDTO params, String ownerId) {
         Deck deck = deckRepository.findByIdAndOwner(deckId, ownerId);
         if (deck == null) {
@@ -53,7 +57,7 @@ public class DeckComparisonService {
         metrics.add(metric("draw", "Compra", analysis.drawCount(), targets.draw(), 1));
         metrics.add(metric("interaction", "Interacao", analysis.interactionCount(), targets.removal(), 1));
         metrics.add(metric("curve", "CMC medio", analysis.averageCmc(), curveTarget(bracket), 0.25, true));
-        metrics.add(metric("gameChangers", "Game Changers", estimateGameChangers(analysis), gameChangerTarget(bracket), 1));
+        metrics.add(metric("gameChangers", "Game Changers", countGameChangers(deck), gameChangerTarget(bracket), 1));
         metrics.add(metric("combos", "Combos", analysis.combos().present().size(), comboTarget(bracket), 1));
 
         return new SimilarDeckComparisonDTO(deck.getCommander(), bracket, sampleSize, sources, metrics);
@@ -108,10 +112,20 @@ public class DeckComparisonService {
         };
     }
 
-    private int estimateGameChangers(DeckAnalysis analysis) {
-        return Math.max(0, analysis.combos().present().size()
-                + analysis.combos().oneCardAway().size() / 2
-                + Math.max(0, analysis.score().threat() - 70) / 15);
+    private int countGameChangers(Deck deck) {
+        if (commanderGameChangerService == null || deck == null) {
+            return 0;
+        }
+        java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
+        if (commanderGameChangerService.isGameChanger(deck.getCommander())) {
+            names.add(deck.getCommander());
+        }
+        deck.getCards().stream()
+                .filter(card -> "main".equals(card.getZone()) || "companion".equals(card.getZone()))
+                .map(com.mtg.model.DeckCard::getName)
+                .filter(commanderGameChangerService::isGameChanger)
+                .forEach(names::add);
+        return names.size();
     }
 
     private double round(double value) {

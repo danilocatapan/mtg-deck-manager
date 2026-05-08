@@ -9,11 +9,15 @@ import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.CommanderDTO;
 import com.mtg.dto.CompanionStatusDTO;
 import com.mtg.dto.DeckLegalityDTO;
+import com.mtg.dto.RulesSnapshotDTO;
+import com.mtg.domain.ComboAnalysis;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
 import com.mtg.repository.DeckRepository;
 import com.mtg.service.rules.CommanderBanlistService;
 import com.mtg.service.rules.CommanderBracketService;
+import com.mtg.service.rules.CommanderBracketService.BracketEstimateInput;
+import com.mtg.service.rules.CommanderGameChangerService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
@@ -58,6 +62,12 @@ public class DeckLegalityService {
     CommanderBanlistService commanderBanlistService;
 
     @Inject
+    CommanderGameChangerService commanderGameChangerService;
+
+    @Inject
+    ComboDetectionService comboDetectionService;
+
+    @Inject
     CommanderBracketService commanderBracketService;
 
     public DeckLegalityDTO check(Long deckId, String ownerId) {
@@ -93,7 +103,25 @@ public class DeckLegalityService {
         int interaction = interactionCount(deck, knownCards);
         int ramp = rampCount(deck, knownCards);
         boolean legal = sizeLegal && singletonLegal && colorIdentityLegal && banlist.legal() && commanderValid && companion.legal();
-        BracketEstimateDTO bracket = commanderBracketService.estimate(mainDeckSize, legal, averageCmc, interaction, ramp);
+        List<String> gameChangers = gameChangers(deck, commanders);
+        BracketSignals signals = bracketSignals(deck, knownCards);
+        int comboDensity = comboDensity(deck);
+        BracketEstimateDTO bracket = commanderBracketService.estimate(new BracketEstimateInput(
+                mainDeckSize,
+                legal,
+                averageCmc,
+                interaction,
+                ramp,
+                gameChangers.size(),
+                comboDensity,
+                signals.tutors(),
+                signals.fastMana(),
+                signals.extraTurns(),
+                signals.massLandDestruction(),
+                estimateWinTurn(averageCmc, ramp, signals.fastMana(), signals.tutors(), comboDensity),
+                null
+        ));
+        RulesSnapshotDTO rulesSnapshot = rulesSnapshot();
 
         return new DeckLegalityDTO(
                 deck.getId(),
@@ -110,6 +138,9 @@ public class DeckLegalityService {
                 commanders,
                 companion,
                 bracket,
+                gameChangers,
+                gameChangers.size(),
+                rulesSnapshot,
                 legal
         );
     }
@@ -252,6 +283,105 @@ public class DeckLegalityService {
         return roleCount(deck, knownCards, Set.of("add ", "search your library for a land"));
     }
 
+    private List<String> gameChangers(Deck deck, List<CommanderDTO> commanders) {
+        LinkedHashSet<String> names = new LinkedHashSet<>();
+        commanders.stream()
+                .map(CommanderDTO::name)
+                .filter(commanderGameChangerService::isGameChanger)
+                .forEach(names::add);
+        mainDeckCards(deck).stream()
+                .map(DeckCard::getName)
+                .filter(commanderGameChangerService::isGameChanger)
+                .forEach(names::add);
+        companionCards(deck).stream()
+                .map(DeckCard::getName)
+                .filter(commanderGameChangerService::isGameChanger)
+                .forEach(names::add);
+        return names.stream().sorted(String.CASE_INSENSITIVE_ORDER).toList();
+    }
+
+    private BracketSignals bracketSignals(Deck deck, Map<String, CardResponseDTO> knownCards) {
+        int tutors = 0;
+        int fastMana = 0;
+        int extraTurns = 0;
+        int massLandDestruction = 0;
+        for (DeckCard card : mainDeckCards(deck)) {
+            CardResponseDTO info = knownCards.get(normalize(card.getName()));
+            if (info == null) {
+                continue;
+            }
+            int quantity = card.getQuantity();
+            String oracle = text(info.oracleText());
+            String type = text(info.typeLine());
+            double cmc = info.cmc() == null ? 0.0 : info.cmc();
+            if (isTutor(oracle)) tutors += quantity;
+            if (isFastMana(card.getName(), oracle, type, cmc)) fastMana += quantity;
+            if (oracle.contains("extra turn")) extraTurns += quantity;
+            if (isMassLandDestruction(oracle)) massLandDestruction += quantity;
+        }
+        return new BracketSignals(tutors, fastMana, extraTurns, massLandDestruction);
+    }
+
+    private int comboDensity(Deck deck) {
+        if (comboDetectionService == null) {
+            return 0;
+        }
+        Set<String> names = mainDeckCards(deck).stream()
+                .map(DeckCard::getName)
+                .collect(Collectors.toSet());
+        ComboAnalysis combos = comboDetectionService.analyze(names);
+        return combos.present().size() + combos.oneCardAway().size();
+    }
+
+    private boolean isTutor(String oracle) {
+        return oracle.contains("search your library")
+                && !oracle.contains("basic land")
+                && !oracle.contains("land card")
+                && !oracle.contains("forest card")
+                && !oracle.contains("plains, island, swamp, or mountain");
+    }
+
+    private boolean isFastMana(String name, String oracle, String type, double cmc) {
+        String normalized = normalize(name);
+        if (Set.of("sol ring", "mana vault", "grim monolith", "chrome mox", "mox diamond", "lion's eye diamond").contains(normalized)) {
+            return true;
+        }
+        return type.contains("artifact")
+                && cmc <= 1.0
+                && oracle.contains("add ")
+                && !oracle.contains("enters tapped");
+    }
+
+    private boolean isMassLandDestruction(String oracle) {
+        return oracle.contains("destroy all lands")
+                || oracle.contains("destroy all nonbasic lands")
+                || oracle.contains("each player sacrifices all lands")
+                || oracle.contains("exile all lands");
+    }
+
+    private int estimateWinTurn(double averageCmc, int ramp, int fastMana, int tutors, int comboDensity) {
+        int estimate = 9;
+        if (comboDensity > 0) estimate -= 2;
+        if (comboDensity >= 2) estimate -= 1;
+        if (fastMana >= 2) estimate -= 1;
+        if (tutors >= 2) estimate -= 1;
+        if (ramp >= 12) estimate -= 1;
+        if (averageCmc <= 2.6) estimate -= 1;
+        return Math.max(3, estimate);
+    }
+
+    private RulesSnapshotDTO rulesSnapshot() {
+        CommanderBanlistService.CommanderBanlistSnapshot banlistSnapshot = commanderBanlistService.load();
+        CommanderGameChangerService.GameChangerSnapshot gameChangerSnapshot = commanderGameChangerService.load();
+        return new RulesSnapshotDTO(
+                banlistSnapshot.effectiveDate(),
+                gameChangerSnapshot.effectiveDate(),
+                gameChangerSnapshot.bracketVersion(),
+                "scryfall-cache-current",
+                List.of("banlist", "gameChangers", "colorIdentity", "singleton", "companion", "commanderValidity")
+        );
+    }
+
     private int roleCount(Deck deck, Map<String, CardResponseDTO> knownCards, Set<String> needles) {
         int count = 0;
         for (DeckCard card : mainDeckCards(deck)) {
@@ -297,5 +427,8 @@ public class DeckLegalityService {
         return deck.getCards().stream()
                 .filter(card -> "companion".equals(card.getZone()))
                 .toList();
+    }
+
+    private record BracketSignals(int tutors, int fastMana, int extraTurns, int massLandDestruction) {
     }
 }

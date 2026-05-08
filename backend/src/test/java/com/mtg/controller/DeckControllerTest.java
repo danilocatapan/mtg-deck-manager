@@ -162,6 +162,9 @@ class DeckControllerTest {
                 .body("commanderValid", is(true))
                 .body("companion.present", is(false))
                 .body("estimatedBracket.level", is(2))
+                .body("gameChangerCount", is(0))
+                .body("rulesSnapshot.banlistDate", is("2026-05-07"))
+                .body("rulesSnapshot.gameChangersDate", is("2026-02-09"))
                 .body("legal", is(true));
     }
 

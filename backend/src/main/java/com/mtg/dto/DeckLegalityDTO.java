@@ -17,6 +17,9 @@ public record DeckLegalityDTO(
         List<CommanderDTO> commanders,
         CompanionStatusDTO companion,
         BracketEstimateDTO estimatedBracket,
+        List<String> gameChangers,
+        int gameChangerCount,
+        RulesSnapshotDTO rulesSnapshot,
         boolean legal
 ) {
     public DeckLegalityDTO {
@@ -24,5 +27,6 @@ public record DeckLegalityDTO(
         colorIdentity = colorIdentity == null ? List.of() : List.copyOf(colorIdentity);
         offColorCards = offColorCards == null ? List.of() : List.copyOf(offColorCards);
         commanders = commanders == null ? List.of() : List.copyOf(commanders);
+        gameChangers = gameChangers == null ? List.of() : List.copyOf(gameChangers);
     }
 }
