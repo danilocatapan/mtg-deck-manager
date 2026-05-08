@@ -24,6 +24,7 @@ Regras globais inegociaveis
 ---------------------------
 - Sempre validar contratos observaveis (endpoints + testes) antes de alterar comportamento.
 - Nao alterar regra negocial, fluxo negocial, criterio de decisao, side effects ou contratos observaveis sem pedido explicito: registre como achado e consulte stakeholders.
+- Sempre registrar mudancas relevantes no `CHANGELOG.md` e, quando houver impacto para usuarios, tambem atualizar as release notes publicas em `frontend/public/release-notes.json`.
 
 Controle de complexidade
 ------------------------

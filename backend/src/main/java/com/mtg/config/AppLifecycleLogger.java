@@ -1,7 +1,9 @@
 package com.mtg.config;
 
+import com.mtg.service.AppInfoService;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
+import jakarta.inject.Inject;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -20,12 +22,17 @@ public class AppLifecycleLogger {
     @ConfigProperty(name = "quarkus.application.version", defaultValue = "unknown")
     String applicationVersion;
 
+    @Inject
+    AppInfoService appInfoService;
+
     void onStart(@Observes StartupEvent event) {
+        var appInfo = appInfoService.currentInfo();
         LOG.infov(
-                "event=api.startup.completed timestamp={0} application={1} version={2} message=\"API pronta para receber requisicoes.\"",
+                "event=api.startup.completed timestamp={0} application={1} version={2} commit={3} message=\"API pronta para receber requisicoes.\"",
                 OffsetDateTime.now(ZoneOffset.UTC),
                 applicationName,
-                applicationVersion
+                appInfo.version(),
+                appInfo.commit()
         );
     }
 

@@ -1,7 +1,8 @@
 import Logo from './Logo'
 import AuthStatus from './AuthStatus'
+import AppFooter from './AppFooter'
 
-export default function Layout({ children }) {
+export default function Layout({ children, onOpenReleaseNotes }) {
   return (
     <div className="app-root">
       <header className="app-header">
@@ -11,6 +12,7 @@ export default function Layout({ children }) {
         </div>
       </header>
       <main className="container app-main">{children}</main>
+      <AppFooter onOpenReleaseNotes={onOpenReleaseNotes} />
     </div>
   )
 }

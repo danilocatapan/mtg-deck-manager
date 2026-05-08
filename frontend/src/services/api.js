@@ -1,6 +1,6 @@
 import { getAuthToken } from './auth'
 
-const API_ORIGIN = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const API_ORIGIN = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8080'
 const BASE_URL = normalizeApiOrigin(API_ORIGIN)
 const REQUEST_TIMEOUT_MS = 25000
 const API_STARTUP_RETRY_DELAYS_MS = [1500, 3000, 5000]
@@ -122,6 +122,10 @@ export async function fetchDecks({ throwOnError = false } = {}) {
     }
     return []
   }
+}
+
+export async function getAppInfo() {
+  return await request('/app/info', { retryOnStartup: false })
 }
 
 export async function searchCards(name) {
@@ -358,4 +362,5 @@ export default {
   getSimilarDeckComparison,
   getMetaSources,
   getCommanderMeta,
+  getAppInfo,
 }

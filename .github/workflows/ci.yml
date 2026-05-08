@@ -10,15 +10,84 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
   pages: write
   id-token: write
 
 jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      commit_short: ${{ steps.version.outputs.commit_short }}
+      branch: ${{ steps.version.outputs.branch }}
+      build_time: ${{ steps.version.outputs.build_time }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine semantic version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          last_tag="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)"
+          if [ -z "$last_tag" ]; then
+            last_tag="v0.0.0"
+          fi
+
+          current="${last_tag#v}"
+          IFS='.' read -r major minor patch <<< "$current"
+          message="$(git log -1 --pretty=%B)"
+          increment="patch"
+
+          if grep -Eiq '(^|[[:space:]])(release:major|BREAKING CHANGE)([[:space:]]|$)' <<< "$message"; then
+            increment="major"
+          elif grep -Eiq '(^|[[:space:]])(release:minor|feat:)([[:space:]]|$)' <<< "$message"; then
+            increment="minor"
+          fi
+
+          case "$increment" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            *)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          version="$major.$minor.$patch"
+          tag="v$version"
+          commit_short="$(git rev-parse --short=7 HEAD)"
+          branch="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
+          build_time="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "commit_short=$commit_short"
+            echo "branch=$branch"
+            echo "build_time=$build_time"
+          } >> "$GITHUB_OUTPUT"
+
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    needs: version
 
     defaults:
       run:
@@ -39,12 +108,26 @@ jobs:
       - name: Make Maven wrapper executable
         run: chmod +x ./mvnw
 
+      - name: Generate backend build metadata
+        run: |
+          cat > src/main/resources/version.properties <<EOF
+          app.name=MTG Deck Manager API
+          app.version=${{ needs.version.outputs.version }}
+          app.commit=${{ needs.version.outputs.commit_short }}
+          app.branch=${{ needs.version.outputs.branch }}
+          app.buildTime=${{ needs.version.outputs.build_time }}
+          app.environment=ci
+          app.creator=Danilo Catapan
+          app.objective=Analise e otimizacao de decks Commander com recomendacoes explicaveis.
+          EOF
+
       - name: Test backend
         run: ./mvnw test
 
   backend-postgres:
     name: Backend PostgreSQL
     runs-on: ubuntu-latest
+    needs: version
 
     services:
       postgres:
@@ -80,6 +163,19 @@ jobs:
       - name: Make Maven wrapper executable
         run: chmod +x ./mvnw
 
+      - name: Generate backend build metadata
+        run: |
+          cat > src/main/resources/version.properties <<EOF
+          app.name=MTG Deck Manager API
+          app.version=${{ needs.version.outputs.version }}
+          app.commit=${{ needs.version.outputs.commit_short }}
+          app.branch=${{ needs.version.outputs.branch }}
+          app.buildTime=${{ needs.version.outputs.build_time }}
+          app.environment=ci-postgres
+          app.creator=Danilo Catapan
+          app.objective=Analise e otimizacao de decks Commander com recomendacoes explicaveis.
+          EOF
+
       - name: Test backend against PostgreSQL
         run: ./mvnw test
         env:
@@ -93,6 +189,7 @@ jobs:
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
+    needs: version
 
     defaults:
       run:
@@ -112,8 +209,49 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint frontend
+        run: npm run lint
+
       - name: Build frontend
         run: npm run build
+        env:
+          VITE_APP_NAME: MTG Deck Manager
+          VITE_APP_VERSION: ${{ needs.version.outputs.version }}
+          VITE_COMMIT_SHA: ${{ github.sha }}
+          VITE_BRANCH: ${{ needs.version.outputs.branch }}
+          VITE_BUILD_TIME: ${{ needs.version.outputs.build_time }}
+          VITE_APP_ENVIRONMENT: ci
+
+  release-tag:
+    name: Create release tag
+    runs-on: ubuntu-latest
+    needs:
+      - version
+      - backend
+      - backend-postgres
+      - frontend
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create version tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ needs.version.outputs.tag }}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Tag $tag already exists."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$tag"
+          git push origin "$tag"
 
   backend-image:
     name: Publish backend image
@@ -121,6 +259,7 @@ jobs:
     needs:
       - backend
       - backend-postgres
+      - version
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     defaults:
@@ -142,10 +281,28 @@ jobs:
       - name: Make Maven wrapper executable
         run: chmod +x ./mvnw
 
+      - name: Generate backend build metadata
+        run: |
+          cat > src/main/resources/version.properties <<EOF
+          app.name=MTG Deck Manager API
+          app.version=${{ needs.version.outputs.version }}
+          app.commit=${{ needs.version.outputs.commit_short }}
+          app.branch=${{ needs.version.outputs.branch }}
+          app.buildTime=${{ needs.version.outputs.build_time }}
+          app.environment=production
+          app.creator=Danilo Catapan
+          app.objective=Analise e otimizacao de decks Commander com recomendacoes explicaveis.
+          EOF
+
       - name: Package backend
         run: ./mvnw package -DskipTests
         env:
           GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID || 'ci-placeholder.apps.googleusercontent.com' }}
+          APP_VERSION: ${{ needs.version.outputs.version }}
+          APP_COMMIT: ${{ needs.version.outputs.commit_short }}
+          APP_BRANCH: ${{ needs.version.outputs.branch }}
+          APP_BUILD_TIME: ${{ needs.version.outputs.build_time }}
+          APP_ENVIRONMENT: production
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
@@ -163,6 +320,7 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/mtg-deck-manager-backend:latest
             ghcr.io/${{ github.repository_owner }}/mtg-deck-manager-backend:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/mtg-deck-manager-backend:${{ needs.version.outputs.tag }}
 
   deploy-backend:
     name: Deploy backend
@@ -247,7 +405,9 @@ jobs:
   deploy-frontend:
     name: Deploy frontend
     runs-on: ubuntu-latest
-    needs: frontend
+    needs:
+      - frontend
+      - version
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     environment:
@@ -276,7 +436,14 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_URL }}
           VITE_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          VITE_APP_NAME: MTG Deck Manager
+          VITE_APP_VERSION: ${{ needs.version.outputs.version }}
+          VITE_COMMIT_SHA: ${{ github.sha }}
+          VITE_BRANCH: ${{ needs.version.outputs.branch }}
+          VITE_BUILD_TIME: ${{ needs.version.outputs.build_time }}
+          VITE_APP_ENVIRONMENT: production
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
