@@ -58,7 +58,7 @@ function opportunityFrom(reasoning) {
   return firstSentence || 'Troca sugerida para melhorar o encaixe do deck no bracket escolhido'
 }
 
-export default function RecommendationCard({ item, index, bracket, onApply, applying = false, applied = false }) {
+export default function RecommendationCard({ item, index, bracket, onApply, onUndo, applying = false, applied = false }) {
   const source = item?.source || (String(item?.reasoning || '').toLowerCase().includes('listas similares') ? 'meta_profile' : 'heuristic_fallback')
   const tags = inferTags(item).filter((tag) => tag !== 'fallback' && tag !== 'meta')
   const confidence = item?.confidence || 'medium'
@@ -81,8 +81,8 @@ export default function RecommendationCard({ item, index, bracket, onApply, appl
       </header>
 
       <section className="recommendation-opportunity">
-        <span className="rec-label">Oportunidade identificada</span>
-        <p>{opportunityFrom(item?.reasoning)}</p>
+        <span className="rec-label">Problema</span>
+        <p>{item?.problem || opportunityFrom(item?.reasoning)}</p>
       </section>
 
       <div className="swap-route" aria-label="Troca sugerida">
@@ -123,7 +123,7 @@ export default function RecommendationCard({ item, index, bracket, onApply, appl
 
           {impact && (
             <div>
-              <span className="rec-label">Impacto esperado</span>
+              <span className="rec-label">Impacto numerico</span>
               <strong>{roleLabel(impact.role)}</strong>
               <p>
                 CMC medio {Number(impact.averageCmcBefore || 0).toFixed(2)}
@@ -136,6 +136,13 @@ export default function RecommendationCard({ item, index, bracket, onApply, appl
                 {' | '}
                 Interacao {impact.removalBefore ?? '-'} para {impact.removalAfter ?? '-'}
               </p>
+            </div>
+          )}
+
+          {item?.risk && (
+            <div>
+              <span className="rec-label">Risco</span>
+              <p>{item.risk}</p>
             </div>
           )}
 
@@ -152,6 +159,7 @@ export default function RecommendationCard({ item, index, bracket, onApply, appl
         <span>Bracket: {item.bracket || bracket || 'casual'}</span>
         <span>Confianca: {confidenceLabel(confidence)}</span>
         <span>Modo: {modeLabel(item.recommendationMode)}</span>
+        <span>Fonte: {sourceLabel(source)}</span>
         <details>
           <summary>Detalhes</summary>
           <p>
@@ -164,11 +172,21 @@ export default function RecommendationCard({ item, index, bracket, onApply, appl
         <Button
           variant={applied ? 'secondary' : 'primary'}
           loading={applying}
-          disabled={applied || !item?.add || !item?.remove}
+          disabled={applied || (!item?.add || !item?.remove) || applying}
           onClick={() => onApply && onApply(item)}
         >
           {applied ? 'Aplicado' : 'Aplicar troca'}
         </Button>
+        {applied && (
+          <Button
+            variant="secondary"
+            loading={applying}
+            disabled={applying}
+            onClick={() => onUndo && onUndo(item)}
+          >
+            Desfazer
+          </Button>
+        )}
       </footer>
     </article>
   )

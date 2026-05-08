@@ -25,6 +25,9 @@ public class Deck {
     @Column(name = "commanders_json", length = 2000)
     private String commandersJson;
 
+    @Column(name = "history_json", columnDefinition = "TEXT")
+    private String historyJson;
+
     @OneToMany(mappedBy = "deck", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<DeckCard> cards = new ArrayList<>();
 
@@ -75,6 +78,10 @@ public class Deck {
     public String getCommandersJson() { return commandersJson; }
 
     public void setCommandersJson(String commandersJson) { this.commandersJson = commandersJson; }
+
+    public String getHistoryJson() { return historyJson; }
+
+    public void setHistoryJson(String historyJson) { this.historyJson = historyJson; }
 
     public List<DeckCard> getCards() {
         return cards;

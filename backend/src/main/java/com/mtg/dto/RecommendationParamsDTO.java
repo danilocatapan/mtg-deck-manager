@@ -9,9 +9,20 @@ public record RecommendationParamsDTO(
         String strategy,
         String meta,
         String sourceMode,
-        Integer maxRecommendations
+        Integer maxRecommendations,
+        Boolean ownedOnly,
+        Boolean avoidSalt,
+        Boolean avoidTutors,
+        Boolean improveMana,
+        Boolean lowerCurve,
+        Boolean moreInteraction,
+        Boolean preserveTheme
 ) {
     public RecommendationParamsDTO(Double budget, String bracket, String strategy, String meta) {
         this(budget, bracket, strategy, meta, null, null);
+    }
+
+    public RecommendationParamsDTO(Double budget, String bracket, String strategy, String meta, String sourceMode, Integer maxRecommendations) {
+        this(budget, bracket, strategy, meta, sourceMode, maxRecommendations, null, null, null, null, null, null, null);
     }
 }

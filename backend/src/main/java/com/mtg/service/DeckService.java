@@ -7,6 +7,8 @@ import com.mtg.dto.ApplyRecommendationSwapDTO;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.CommanderDTO;
 import com.mtg.dto.DeckCardDTO;
+import com.mtg.dto.DeckHistoryEntryDTO;
+import com.mtg.dto.DeckPackageDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
 import com.mtg.model.Deck;
@@ -27,6 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.time.OffsetDateTime;
 
 @ApplicationScoped
 public class DeckService {
@@ -186,6 +189,7 @@ public class DeckService {
 
         removeOne(deck, removeCard);
         addOne(deck, add, existingAdd);
+        appendHistory(deck, dto);
 
         int totalAfter = totalCards(deck);
         if (totalAfter != totalBefore) {
@@ -199,6 +203,111 @@ public class DeckService {
 
         deckRepository.persist(deck);
         LOG.infov("event=recommendation.swap.applied deckId={0} add=\"{1}\" remove=\"{2}\"", deckId, add, remove);
+        return toDto(deck);
+    }
+
+    @Transactional
+    public DeckResponseDTO undoRecommendationSwap(Long deckId, String historyId, String ownerId) {
+        validateOwner(ownerId);
+        Deck deck = deckRepository.findByIdAndOwner(deckId, ownerId);
+        if (deck == null) {
+            return null;
+        }
+
+        List<DeckHistoryEntryDTO> history = new ArrayList<>(historyFor(deck));
+        DeckHistoryEntryDTO entry = findUndoEntry(history, historyId);
+        if (entry == null) {
+            throw new IllegalArgumentException("Swap history entry was not found");
+        }
+
+        DeckCard addedCard = findMainDeckCard(deck, entry.add());
+        if (addedCard == null) {
+            throw new IllegalArgumentException("Card added by the swap is no longer in the main deck");
+        }
+        DeckCard removedCard = findMainDeckCard(deck, entry.remove());
+        if (removedCard != null && !isBasicLand(entry.remove())) {
+            throw new IllegalArgumentException("Card removed by the swap is already back in the main deck");
+        }
+
+        removeOne(deck, addedCard);
+        addOne(deck, entry.remove(), removedCard);
+        replaceHistory(deck, markUndone(history, entry.id()));
+        deckRepository.persist(deck);
+        LOG.infov("event=recommendation.swap.undone deckId={0} add=\"{1}\" remove=\"{2}\"", deckId, entry.add(), entry.remove());
+        return toDto(deck);
+    }
+
+    public List<DeckPackageDTO> recommendPackages(Long deckId, String ownerId) {
+        validateOwner(ownerId);
+        Deck deck = deckRepository.findByIdAndOwner(deckId, ownerId);
+        if (deck == null) {
+            return null;
+        }
+        String colors = deck.getColorIdentity() == null ? "" : deck.getColorIdentity();
+        List<DeckPackageDTO> packages = new ArrayList<>();
+        packages.add(new DeckPackageDTO(
+                "protecao",
+                "Pacote Protecao",
+                "Cartas para proteger comandante e pecas-chave durante uma rodada de mesa.",
+                "maybeboard",
+                List.of("protection", "preserve-theme"),
+                List.of(
+                        new DeckCardDTO("Swiftfoot Boots", 1, "maybeboard"),
+                        new DeckCardDTO("Lightning Greaves", 1, "maybeboard"),
+                        new DeckCardDTO(colors.contains("G") ? "Heroic Intervention" : "Darksteel Plate", 1, "maybeboard")
+                )
+        ));
+        packages.add(new DeckPackageDTO(
+                colors.contains("R") && colors.contains("G") ? "ramp-gruul" : "ramp-universal",
+                colors.contains("R") && colors.contains("G") ? "Pacote Ramp Gruul" : "Pacote Ramp Universal",
+                "Aceleracao simples para melhorar acesso aos turnos 2 e 3.",
+                "maybeboard",
+                List.of("ramp", "improve-mana"),
+                List.of(
+                        new DeckCardDTO(colors.contains("G") ? "Nature's Lore" : "Arcane Signet", 1, "maybeboard"),
+                        new DeckCardDTO("Fellwar Stone", 1, "maybeboard"),
+                        new DeckCardDTO("Wayfarer's Bauble", 1, "maybeboard")
+                )
+        ));
+        packages.add(new DeckPackageDTO(
+                "lands-budget",
+                "Pacote Lands Budget",
+                "Terrenos baratos para ajustar fixing sem aumentar muito o custo da lista.",
+                "maybeboard",
+                List.of("land", "budget", "fixing"),
+                List.of(
+                        new DeckCardDTO("Command Tower", 1, "maybeboard"),
+                        new DeckCardDTO("Path of Ancestry", 1, "maybeboard"),
+                        new DeckCardDTO("Evolving Wilds", 1, "maybeboard")
+                )
+        ));
+        return packages;
+    }
+
+    @Transactional
+    public DeckResponseDTO addPackageToMaybeboard(Long deckId, String packageId, String ownerId) {
+        validateOwner(ownerId);
+        Deck deck = deckRepository.findByIdAndOwner(deckId, ownerId);
+        if (deck == null) {
+            return null;
+        }
+        DeckPackageDTO selected = recommendPackages(deckId, ownerId).stream()
+                .filter(deckPackage -> deckPackage.id().equals(packageId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Package was not found"));
+
+        validateCardsExist(commandersFor(deck), selected.cards());
+        for (DeckCardDTO card : selected.cards()) {
+            DeckCard existing = findCardInZone(deck, card.name(), "maybeboard");
+            if (existing != null) {
+                existing.setQuantity(existing.getQuantity() + card.quantity());
+            } else {
+                DeckCard added = new DeckCard(card.name(), card.quantity(), "maybeboard");
+                added.setDeck(deck);
+                deck.getCards().add(added);
+            }
+        }
+        deckRepository.persist(deck);
         return toDto(deck);
     }
 
@@ -397,7 +506,7 @@ public class DeckService {
         List<DeckCardDTO> cards = deck.getCards().stream()
                 .map(c -> new DeckCardDTO(c.getName(), c.getQuantity(), normalizeZone(c.getZone())))
                 .collect(Collectors.toList());
-        return new DeckResponseDTO(deck.getId(), deck.getName(), deck.getCommander(), cards, deck.getColorIdentity(), commandersFor(deck));
+        return new DeckResponseDTO(deck.getId(), deck.getName(), deck.getCommander(), cards, deck.getColorIdentity(), commandersFor(deck), historyFor(deck));
     }
 
     private List<DeckCard> mainDeckCards(Deck deck) {
@@ -418,6 +527,83 @@ public class DeckService {
             throw new IllegalArgumentException("Card zone must be main, maybeboard, considering, or companion");
         }
         return normalized;
+    }
+
+    private void appendHistory(Deck deck, ApplyRecommendationSwapDTO dto) {
+        List<DeckHistoryEntryDTO> history = new ArrayList<>(historyFor(deck));
+        history.add(new DeckHistoryEntryDTO(
+                dto.recommendationId() == null || dto.recommendationId().isBlank()
+                        ? java.util.UUID.randomUUID().toString()
+                        : dto.recommendationId(),
+                dto.add().trim(),
+                dto.remove().trim(),
+                dto.source(),
+                dto.confidence(),
+                dto.problem(),
+                dto.risk(),
+                dto.impactSummary(),
+                OffsetDateTime.now().toString(),
+                false
+        ));
+        replaceHistory(deck, history);
+    }
+
+    private List<DeckHistoryEntryDTO> historyFor(Deck deck) {
+        if (deck.getHistoryJson() == null || deck.getHistoryJson().isBlank()) {
+            return List.of();
+        }
+        try {
+            return MAPPER.readValue(deck.getHistoryJson(), new TypeReference<List<DeckHistoryEntryDTO>>() {});
+        } catch (Exception exception) {
+            LOG.warnv(exception, "event=deck.history_json.invalid deckId={0}", deck.getId());
+            return List.of();
+        }
+    }
+
+    private void replaceHistory(Deck deck, List<DeckHistoryEntryDTO> history) {
+        try {
+            deck.setHistoryJson(MAPPER.writeValueAsString(history == null ? List.of() : history));
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Unable to serialize deck history");
+        }
+    }
+
+    private DeckHistoryEntryDTO findUndoEntry(List<DeckHistoryEntryDTO> history, String historyId) {
+        if (history == null || history.isEmpty()) {
+            return null;
+        }
+        if (historyId != null && !historyId.isBlank()) {
+            return history.stream()
+                    .filter(entry -> !entry.undone())
+                    .filter(entry -> historyId.equals(entry.id()))
+                    .findFirst()
+                    .orElse(null);
+        }
+        for (int index = history.size() - 1; index >= 0; index--) {
+            DeckHistoryEntryDTO entry = history.get(index);
+            if (!entry.undone()) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    private List<DeckHistoryEntryDTO> markUndone(List<DeckHistoryEntryDTO> history, String id) {
+        return history.stream()
+                .map(entry -> id.equals(entry.id())
+                        ? new DeckHistoryEntryDTO(entry.id(), entry.add(), entry.remove(), entry.source(), entry.confidence(), entry.problem(), entry.risk(), entry.impactSummary(), entry.appliedAt(), true)
+                        : entry)
+                .toList();
+    }
+
+    private DeckCard findCardInZone(Deck deck, String name, String zone) {
+        String normalized = normalize(name);
+        String normalizedZone = normalizeZone(zone);
+        return deck.getCards().stream()
+                .filter(card -> normalize(card.getName()).equals(normalized))
+                .filter(card -> normalizeZone(card.getZone()).equals(normalizedZone))
+                .findFirst()
+                .orElse(null);
     }
 
     private List<CommanderDTO> normalizeCommanders(String legacyCommander, List<CommanderDTO> requestedCommanders) {

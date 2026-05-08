@@ -23,8 +23,13 @@ export default function RecommendationPanel({
   metaProfile = null,
   metaSources = [],
   onApplyRecommendation,
+  onUndoRecommendation,
   applyingKey = null,
   appliedKeys = new Set(),
+  comparison = null,
+  packages = [],
+  history = [],
+  onAddPackage,
 }) {
   const items = Array.isArray(recommendations) ? recommendations : []
   const hasGenerated = Array.isArray(recommendations)
@@ -66,6 +71,50 @@ export default function RecommendationPanel({
         </div>
       </div>
 
+      {comparison?.metrics?.length > 0 && (
+        <section className="recommendation-comparison">
+          <div className="section-heading compact">
+            <div>
+              <p className="eyebrow">Seu deck vs media do comandante</p>
+              <h4>{comparison.commander}</h4>
+            </div>
+            <RecommendationBadge variant="meta">Amostra: {comparison.sampleSize || 0}</RecommendationBadge>
+          </div>
+          <div className="comparison-grid">
+            {comparison.metrics.map((metric) => (
+              <div key={metric.key} className={`comparison-metric ${metric.status}`}>
+                <span>{metric.label}</span>
+                <strong>{formatMetric(metric.deckValue)} / {formatMetric(metric.similarAverage)}</strong>
+                <small>{metric.message}</small>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {packages.length > 0 && (
+        <section className="recommendation-packages">
+          <div className="section-heading compact">
+            <div>
+              <p className="eyebrow">Maybeboard e pacotes</p>
+              <h4>Pacotes sugeridos</h4>
+            </div>
+          </div>
+          <div className="package-grid">
+            {packages.map((deckPackage) => (
+              <article key={deckPackage.id} className="package-card">
+                <strong>{deckPackage.name}</strong>
+                <p>{deckPackage.description}</p>
+                <small>{(deckPackage.cards || []).map((card) => card.name).join(', ')}</small>
+                <button type="button" onClick={() => onAddPackage && onAddPackage(deckPackage.id)}>
+                  Adicionar ao maybeboard
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       {hasFallback && items.length > 0 && (
         <StateMessage tone="warning" title="Dados meta insuficientes">
           Usando analise heuristica: dados meta insuficientes para este comandante.
@@ -105,11 +154,25 @@ export default function RecommendationPanel({
               index={index}
               bracket={item.bracket || bracket}
               onApply={onApplyRecommendation}
+              onUndo={onUndoRecommendation}
               applying={applyingKey === recommendationKey(item)}
               applied={appliedKeys.has(recommendationKey(item))}
             />
           ))}
         </div>
+      )}
+
+      {history.length > 0 && (
+        <details className="recommendation-source-details" open>
+          <summary>Historico de trocas</summary>
+          <div className="history-list">
+            {history.slice().reverse().map((entry) => (
+              <span key={entry.id} className={entry.undone ? 'source-pill' : 'source-pill enabled'}>
+                {entry.undone ? 'Desfeita' : 'Aplicada'}: +{entry.add} / -{entry.remove}
+              </span>
+            ))}
+          </div>
+        </details>
       )}
 
       {metaSources.length > 0 && (
@@ -129,5 +192,10 @@ export default function RecommendationPanel({
 }
 
 function recommendationKey(item) {
-  return `${item?.add || ''}|||${item?.remove || ''}`.toLowerCase()
+  return item?.id || `${item?.add || ''}|||${item?.remove || ''}`.toLowerCase()
+}
+
+function formatMetric(value) {
+  const numeric = Number(value || 0)
+  return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2)
 }

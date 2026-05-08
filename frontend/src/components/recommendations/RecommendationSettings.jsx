@@ -39,13 +39,28 @@ const INTENTS = [
 export default function RecommendationSettings({ onSubmit, disabled = false, loading = false, onParamsChange }) {
   const [bracket, setBracket] = useState('casual')
   const [strategy, setStrategy] = useState('consistency')
+  const [filters, setFilters] = useState({
+    ownedOnly: false,
+    avoidSalt: false,
+    avoidTutors: false,
+    improveMana: false,
+    lowerCurve: false,
+    moreInteraction: false,
+    preserveTheme: false,
+  })
   const selectedBracket = BRACKETS.find((item) => item.value === bracket) || BRACKETS[0]
   const selectedIntent = INTENTS.find((item) => item.value === strategy) || INTENTS[0]
 
   function update(next) {
-    const params = { bracket, strategy, ...next }
+    const params = { bracket, strategy, ...filters, ...next }
     onParamsChange && onParamsChange(params)
     return params
+  }
+
+  function toggleFilter(key) {
+    const nextFilters = { ...filters, [key]: !filters[key] }
+    setFilters(nextFilters)
+    update(nextFilters)
   }
 
   function handleSubmit(e) {
@@ -82,6 +97,38 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
           {INTENTS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
       </label>
+
+      <fieldset className="recommendation-filters">
+        <legend>Filtros</legend>
+        <label>
+          <input type="checkbox" checked={filters.ownedOnly} onChange={() => toggleFilter('ownedOnly')} />
+          Owned-only
+        </label>
+        <label>
+          <input type="checkbox" checked={filters.avoidSalt} onChange={() => toggleFilter('avoidSalt')} />
+          Evitar salt
+        </label>
+        <label>
+          <input type="checkbox" checked={filters.avoidTutors} onChange={() => toggleFilter('avoidTutors')} />
+          Evitar tutors
+        </label>
+        <label>
+          <input type="checkbox" checked={filters.improveMana} onChange={() => toggleFilter('improveMana')} />
+          Melhorar mana
+        </label>
+        <label>
+          <input type="checkbox" checked={filters.lowerCurve} onChange={() => toggleFilter('lowerCurve')} />
+          Baixar curva
+        </label>
+        <label>
+          <input type="checkbox" checked={filters.moreInteraction} onChange={() => toggleFilter('moreInteraction')} />
+          Mais interacao
+        </label>
+        <label>
+          <input type="checkbox" checked={filters.preserveTheme} onChange={() => toggleFilter('preserveTheme')} />
+          Preservar tema
+        </label>
+      </fieldset>
 
       <Button type="submit" loading={loading} disabled={disabled}>
         Gerar trocas

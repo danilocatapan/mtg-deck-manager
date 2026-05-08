@@ -62,17 +62,38 @@ public class CandidateAddSelector {
             String recommendationMode,
             Double budget
     ) {
+        return select(deck, metaCards, knownCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget, Set.of());
+    }
+
+    public List<StrategicCandidate> select(
+            Deck deck,
+            List<MetaCard> metaCards,
+            Map<String, CardResponseDTO> knownCards,
+            CommanderArchetypeProfile profile,
+            DeckRoleSummary roles,
+            String bracket,
+            boolean metaProfileDriven,
+            String recommendationMode,
+            Double budget,
+            Set<String> filters
+    ) {
         Set<String> existingNames = new HashSet<>();
+        Set<String> ownedNames = new HashSet<>();
         deck.getCards().stream()
                 .filter(deckCard -> "main".equals(deckCard.getZone()))
                 .map(DeckCard::getName)
                 .map(this::normalize)
                 .forEach(existingNames::add);
+        deck.getCards().stream()
+                .filter(deckCard -> Set.of("maybeboard", "considering").contains(deckCard.getZone()))
+                .map(DeckCard::getName)
+                .map(this::normalize)
+                .forEach(ownedNames::add);
         List<CardResponseDTO> cards = new ArrayList<>();
 
         for (MetaCard metaCard : metaCards.stream().limit(50).toList()) {
             CardResponseDTO card = knownCards.get(normalize(metaCard.getName()));
-            if (isLegalAdd(card, existingNames, profile.colors())) {
+            if (isLegalAdd(card, existingNames, profile.colors()) && passesFilters(card, filters, ownedNames)) {
                 cards.add(card);
             }
             if (cards.size() >= 30) break;
@@ -82,7 +103,7 @@ public class CandidateAddSelector {
             for (String role : prioritizedGapRoles(roles, profile)) {
                 for (CardResponseDTO card : fallbackCards(role)) {
                     knownCards.putIfAbsent(normalize(card.name()), card);
-                    if (isLegalAdd(card, existingNames, profile.colors())) {
+                    if (isLegalAdd(card, existingNames, profile.colors()) && passesFilters(card, filters, ownedNames)) {
                         cards.add(card);
                     }
                 }
@@ -90,14 +111,14 @@ public class CandidateAddSelector {
         }
 
         return cards.stream()
-                .map(card -> toCandidate(card, metaCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget))
+                .map(card -> toCandidate(card, metaCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget, filters))
                 .sorted(Comparator.comparingDouble(StrategicCandidate::score).reversed())
                 .distinct()
                 .limit(12)
                 .toList();
     }
 
-    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, boolean metaProfileDriven, String recommendationMode, Double budget) {
+    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, boolean metaProfileDriven, String recommendationMode, Double budget, Set<String> filters) {
         String role = classifyRole(card);
         double commanderSynergy = synergyEngine.computeSynergy(synergyEngine.tagsForCard(card), roles.deckTags(), profile.commanderTags());
         double gapScore = roles.gaps().containsKey(role) || ("curve".equals(role) && roles.gaps().containsKey("curve")) ? 1.0 : 0.3;
@@ -112,8 +133,57 @@ public class CandidateAddSelector {
         double bracketFit = bracketFit(card, bracket, metaCard);
         double score = scoreForBracket(bracket, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore, bracketFit, role);
         score = applyIntent(score, recommendationMode, budget, card, role, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore);
+        score = applyFilters(score, filters, card, role, commanderSynergy, archetypeFit);
         String source = metaCard == null ? "heuristic_fallback" : nullSafeSource(metaCard.getSource());
         return new StrategicCandidate(card, role, score, addReason(role, profile), metaProfileDriven && metaCard != null, inclusionRate, commanderSynergy, source);
+    }
+
+    private boolean passesFilters(CardResponseDTO card, Set<String> filters, Set<String> ownedNames) {
+        if (filters == null || filters.isEmpty()) {
+            return true;
+        }
+        String oracle = text(card == null ? null : card.oracleText());
+        String type = text(card == null ? null : card.typeLine());
+        String name = normalize(card == null ? null : card.name());
+        if (filters.contains("owned-only") && !ownedNames.contains(name)) {
+            return false;
+        }
+        if (filters.contains("avoid-tutors") && (oracle.contains("search your library") && !oracle.contains("land card"))) {
+            return false;
+        }
+        if (filters.contains("avoid-salt") && (
+                oracle.contains("extra turn")
+                        || oracle.contains("can't cast spells")
+                        || oracle.contains("skip their untap")
+                        || oracle.contains("destroy all lands")
+                        || oracle.contains("win the game")
+                        || type.contains("sticker")
+        )) {
+            return false;
+        }
+        return true;
+    }
+
+    private double applyFilters(double score, Set<String> filters, CardResponseDTO card, String role, double synergy, double archetypeFit) {
+        if (filters == null || filters.isEmpty()) {
+            return score;
+        }
+        double adjusted = score;
+        double cmc = card.cmc() == null ? 0.0 : card.cmc();
+        String oracle = text(card.oracleText());
+        if (filters.contains("improve-mana") && ("ramp".equals(role) || oracle.contains("any color") || oracle.contains("search your library for a land"))) {
+            adjusted *= 1.22;
+        }
+        if (filters.contains("lower-curve")) {
+            adjusted *= cmc <= 2.0 ? 1.18 : cmc >= 5.0 ? 0.72 : 1.0;
+        }
+        if (filters.contains("more-interaction") && ("removal".equals(role) || "protection".equals(role))) {
+            adjusted *= 1.2;
+        }
+        if (filters.contains("preserve-theme")) {
+            adjusted = adjusted * 0.75 + Math.max(synergy, archetypeFit) * 0.25;
+        }
+        return adjusted;
     }
 
     private double applyIntent(double score, String mode, Double budget, CardResponseDTO card, String role, double synergy, double gapScore, double efficiency, double archetypeFit, double metaScore) {

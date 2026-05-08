@@ -12,6 +12,7 @@ import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @ApplicationScoped
@@ -80,17 +81,22 @@ public class RecommendationPairer {
             }
             usedCuts.add(normalize(cut.card().name()));
             String source = add.metaDriven() ? "meta_profile" : "heuristic_fallback";
+            RecommendationImpact impact = impactFor(add, cut, roles);
             recommendations.add(new StrategicRecommendation(
+                    recommendationId(add, cut),
                     reasoningBuilder.build(add, cut, profile, roles),
+                    problemFor(add, roles, bracket, profile),
                     add.card().name(),
                     cut.card().name(),
+                    riskFor(add, cut),
+                    numericImpact(impact),
                     tagsFor(add),
                     source,
                     bracket,
                     confidenceFor(add, sampleSize, source),
                     "swap",
                     new RecommendationSourceContext(source, sampleSize, sources),
-                    impactFor(add, cut, roles),
+                    impact,
                     insightFor(add, sampleSize, source),
                     insightFor(cut, 0, "deck_current"),
                     comparisonsFor(add, roles, bracket, profile),
@@ -101,6 +107,56 @@ public class RecommendationPairer {
         }
 
         return recommendations;
+    }
+
+    private String recommendationId(StrategicCandidate add, StrategicCandidate cut) {
+        return normalize(add.card().name()) + "__" + normalize(cut.card().name());
+    }
+
+    private String problemFor(StrategicCandidate add, DeckRoleSummary roles, String bracket, CommanderArchetypeProfile profile) {
+        String role = add.role();
+        int current = countForRole(role, roles);
+        int target = targetForRole(role, bracket, profile);
+        if (target > 0 && current < target) {
+            return "O deck esta abaixo do alvo de " + roleLabel(role) + " para este bracket: "
+                    + current + " atual vs " + target + " recomendado.";
+        }
+        if ("ramp".equals(role)) {
+            return "A base de mana e a curva podem ficar mais consistentes com uma fonte de mana melhor.";
+        }
+        if ("removal".equals(role) || "protection".equals(role)) {
+            return "O deck pode aumentar a seguranca do plano principal com mais interacao ou protecao.";
+        }
+        return "Existe uma troca incremental para melhorar sinergia, eficiencia ou aderencia ao plano do comandante.";
+    }
+
+    private String riskFor(StrategicCandidate add, StrategicCandidate cut) {
+        double addCmc = add.card().cmc() == null ? 0.0 : add.card().cmc();
+        double cutCmc = cut.card().cmc() == null ? 0.0 : cut.card().cmc();
+        if (addCmc > cutCmc + 2.0) {
+            return "Risco medio: a troca aumenta a curva e pode deixar maos iniciais mais lentas.";
+        }
+        if (!add.role().equals(cut.role())) {
+            return "Risco medio: a troca muda a distribuicao de papeis; confira se o tema nao perde uma peca importante.";
+        }
+        return "Risco baixo: troca direta no mesmo papel funcional e pode ser desfeita pelo historico.";
+    }
+
+    private Map<String, Double> numericImpact(RecommendationImpact impact) {
+        if (impact == null) {
+            return Map.of();
+        }
+        return Map.of(
+                "averageCmcDelta", round(impact.averageCmcAfter() - impact.averageCmcBefore()),
+                "rampDelta", (double) (impact.rampAfter() - impact.rampBefore()),
+                "drawDelta", (double) (impact.drawAfter() - impact.drawBefore()),
+                "interactionDelta", (double) (impact.removalAfter() - impact.removalBefore()),
+                "protectionDelta", (double) (impact.protectionAfter() - impact.protectionBefore())
+        );
+    }
+
+    private double round(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     private List<String> tagsFor(StrategicCandidate add) {

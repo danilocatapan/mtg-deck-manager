@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @ApplicationScoped
 public class StrategicRecommendationService {
@@ -77,6 +78,7 @@ public class StrategicRecommendationService {
         String sourceMode = policy.normalizeSourceMode(params != null ? params.sourceMode() : null);
         String recommendationMode = normalizeRecommendationMode(params == null ? null : params.strategy());
         Double budget = params == null ? null : params.budget();
+        Set<String> filters = filters(params);
         int maxRecommendations = maxRecommendations(params);
 
         LOG.infov("event=recommendation.strategic.started deckId={0} bracket={1}", deckId, bracket);
@@ -120,7 +122,7 @@ public class StrategicRecommendationService {
         DeckRoleSummary roles = deckRoleAnalyzer.analyze(deck, knownCards, bracket);
         CommanderArchetypeProfile profile = archetypeDetector.detect(deck.getCommander(), commanderCard, roles, persistedColors(deck.getColorIdentity()));
 
-        List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket, hasUsefulMeta, recommendationMode, budget);
+        List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket, hasUsefulMeta, recommendationMode, budget, filters);
         List<StrategicCandidate> cuts = cutSelector.select(deck, knownCards, profile, roles, bracket);
 
         LOG.infov(
@@ -218,6 +220,21 @@ public class StrategicRecommendationService {
             case "theme", "thematic", "mais fiel ao tema" -> "theme";
             default -> "consistency";
         };
+    }
+
+    private Set<String> filters(com.mtg.dto.RecommendationParamsDTO params) {
+        if (params == null) {
+            return Set.of();
+        }
+        java.util.LinkedHashSet<String> filters = new java.util.LinkedHashSet<>();
+        if (Boolean.TRUE.equals(params.ownedOnly())) filters.add("owned-only");
+        if (Boolean.TRUE.equals(params.avoidSalt())) filters.add("avoid-salt");
+        if (Boolean.TRUE.equals(params.avoidTutors())) filters.add("avoid-tutors");
+        if (Boolean.TRUE.equals(params.improveMana())) filters.add("improve-mana");
+        if (Boolean.TRUE.equals(params.lowerCurve())) filters.add("lower-curve");
+        if (Boolean.TRUE.equals(params.moreInteraction())) filters.add("more-interaction");
+        if (Boolean.TRUE.equals(params.preserveTheme())) filters.add("preserve-theme");
+        return filters;
     }
 
     private List<DeckCard> mainDeckCards(Deck deck) {

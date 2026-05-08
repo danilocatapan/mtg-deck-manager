@@ -10,8 +10,10 @@ import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
 import com.mtg.dto.ErrorResponseDTO;
 import com.mtg.dto.RecommendationParamsDTO;
+import com.mtg.dto.SimilarDeckComparisonDTO;
 import com.mtg.config.StructuredRestLog;
 import com.mtg.service.DeckAnalysisService;
+import com.mtg.service.DeckComparisonService;
 import com.mtg.service.DeckLegalityService;
 import com.mtg.service.DeckService;
 import com.mtg.service.RecommendationService;
@@ -52,6 +54,9 @@ public class DeckController {
 
     @Inject
     DeckLegalityService deckLegalityService;
+
+    @Inject
+    DeckComparisonService deckComparisonService;
 
     @Inject
     RecommendationService recommendationService;
@@ -257,6 +262,75 @@ public class DeckController {
             return Response.ok(updated).build();
         } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
+        }
+    }
+
+    @POST
+    @Path("{id}/recommendations/undo-swap")
+    @Authenticated
+    @Operation(summary = "Undo a recommended deck swap")
+    public Response undoRecommendationSwap(@PathParam("id") String idStr, ApplyRecommendationSwapDTO dto) {
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
+        try {
+            DeckResponseDTO updated = deckService.undoRecommendationSwap(id, dto == null ? null : dto.recommendationId(), currentUserId());
+            if (updated == null) {
+                return Response.status(Response.Status.NOT_FOUND).build();
+            }
+            return Response.ok(updated).build();
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        }
+    }
+
+    @GET
+    @Path("{id}/packages")
+    @Authenticated
+    @Operation(summary = "Suggest deckbuilding packages")
+    public Response packages(@PathParam("id") String idStr) {
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
+        var packages = deckService.recommendPackages(id, currentUserId());
+        if (packages == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        return Response.ok(packages).build();
+    }
+
+    @POST
+    @Path("{id}/packages/{packageId}/maybeboard")
+    @Authenticated
+    @Operation(summary = "Add a package to the deck maybeboard")
+    public Response addPackageToMaybeboard(@PathParam("id") String idStr, @PathParam("packageId") String packageId) {
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
+        try {
+            DeckResponseDTO updated = deckService.addPackageToMaybeboard(id, packageId, currentUserId());
+            if (updated == null) {
+                return Response.status(Response.Status.NOT_FOUND).build();
+            }
+            return Response.ok(updated).build();
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        }
+    }
+
+    @POST
+    @Path("{id}/comparison")
+    @Authenticated
+    @Operation(summary = "Compare deck against similar commander decks")
+    public Response compareToSimilar(@PathParam("id") String idStr, RecommendationParamsDTO params) {
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
+        try {
+            SimilarDeckComparisonDTO comparison = deckComparisonService.compare(id, params, currentUserId());
+            return Response.ok(comparison).build();
+        } catch (NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
         }
     }
 

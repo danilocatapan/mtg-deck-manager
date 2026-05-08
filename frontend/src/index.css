@@ -1672,10 +1672,41 @@ dt {
 
 .recommendation-settings {
   display: grid;
-  grid-template-columns: minmax(220px, 1.2fr) minmax(200px, 1fr) minmax(150px, 0.6fr) auto;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(200px, 1fr) auto;
   align-items: end;
   gap: 14px;
   margin-top: 14px;
+}
+
+.recommendation-filters {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(8, 17, 12, 0.52);
+}
+
+.recommendation-filters legend {
+  padding: 0 6px;
+  color: var(--color-value);
+  font-weight: 800;
+}
+
+.recommendation-filters label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid rgba(156, 163, 175, 0.28);
+  border-radius: 8px;
+  color: var(--color-muted);
+  background: rgba(20, 36, 25, 0.58);
 }
 
 .bracket-guide {
@@ -1792,6 +1823,81 @@ dt {
   color: var(--color-value);
   font-size: 18px;
   overflow-wrap: anywhere;
+}
+
+.recommendation-comparison,
+.recommendation-packages {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(8, 17, 12, 0.58);
+}
+
+.section-heading.compact {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.comparison-grid,
+.package-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.comparison-metric,
+.package-card {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(156, 163, 175, 0.22);
+  border-radius: 8px;
+  background: rgba(20, 36, 25, 0.64);
+}
+
+.comparison-metric span,
+.package-card small {
+  color: var(--color-muted);
+}
+
+.comparison-metric strong,
+.package-card strong {
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.comparison-metric small,
+.package-card p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.comparison-metric.below {
+  border-color: rgba(214, 168, 79, 0.42);
+}
+
+.comparison-metric.above {
+  border-color: rgba(56, 189, 248, 0.34);
+}
+
+.comparison-metric.ok {
+  border-color: rgba(143, 203, 107, 0.38);
+}
+
+.package-card button {
+  width: fit-content;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid rgba(214, 168, 79, 0.55);
+  border-radius: 8px;
+  color: var(--color-value);
+  background: rgba(214, 168, 79, 0.12);
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .state-message {

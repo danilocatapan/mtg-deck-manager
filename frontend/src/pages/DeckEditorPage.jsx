@@ -4,7 +4,20 @@ import DeckAnalysis from '../components/DeckAnalysis'
 import DeckLegalityPanel from '../components/DeckLegalityPanel'
 import RecommendationPanel from '../components/recommendations/RecommendationPanel'
 import RecommendationSettings from '../components/recommendations/RecommendationSettings'
-import { applyRecommendationSwap, createDeck, getCommanderMeta, getDeckAnalysis, getDeckLegality, getMetaSources, getRecommendations, updateDeck } from '../services/api'
+import {
+  addPackageToMaybeboard,
+  applyRecommendationSwap,
+  createDeck,
+  getCommanderMeta,
+  getDeckAnalysis,
+  getDeckLegality,
+  getDeckPackages,
+  getMetaSources,
+  getRecommendations,
+  getSimilarDeckComparison,
+  undoRecommendationSwap,
+  updateDeck,
+} from '../services/api'
 import Button from '../components/ui/Button'
 import analyzeIcon from '../assets/icons/analyze.png'
 import recommendIcon from '../assets/icons/recommend.png'
@@ -15,6 +28,8 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
   const [rec, setRec] = useState(null)
   const [metaProfile, setMetaProfile] = useState(null)
   const [metaSources, setMetaSources] = useState([])
+  const [comparison, setComparison] = useState(null)
+  const [packages, setPackages] = useState([])
   const [recommendationParams, setRecommendationParams] = useState({ bracket: 'casual' })
   const [loadingAnalysis, setLoadingAnalysis] = useState(false)
   const [loadingLegality, setLoadingLegality] = useState(false)
@@ -58,6 +73,12 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
     if (!currentDeck?.id) return
     queueMicrotask(() => refreshLegality(currentDeck.id))
   }, [currentDeck?.id, refreshLegality])
+
+  const visibleAppliedSwapKeys = useMemo(() => {
+    const next = new Set(appliedSwapKeys)
+    currentDeck?.history?.filter((entry) => !entry.undone).forEach((entry) => next.add(entry.id))
+    return next
+  }, [appliedSwapKeys, currentDeck?.history])
 
   const steps = [
     { key: 'editor', label: 'Editor', state: activePanel === 'editor' ? 'active' : 'complete' },
@@ -116,6 +137,8 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       const profile = await getCommanderMeta(currentDeck.commander, {
         bracket: params?.bracket || 'casual',
       })
+      const deckComparison = await getSimilarDeckComparison(currentDeck.id, params)
+      const deckPackages = await getDeckPackages(currentDeck.id)
       console.log('recommendations', recommendations)
       console.info('event=recommendation.request.completed', { deckId: currentDeck.id, count: Array.isArray(recommendations) ? recommendations.length : 0 })
       if (!profile || Number(profile.sampleSize || 0) < 3) {
@@ -123,6 +146,8 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       }
       setRec(recommendations)
       setMetaProfile(profile)
+      setComparison(deckComparison)
+      setPackages(deckPackages)
       setActivePanel('recommendations')
       setMessage(`${Array.isArray(recommendations) ? recommendations.length : 0} strategic recommendations generated.`)
     } catch (e) {
@@ -148,6 +173,12 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       const updatedDeck = await applyRecommendationSwap(currentDeck.id, {
         add: item.add,
         remove: item.remove,
+        recommendationId: recommendationKey(item),
+        source: item.source,
+        confidence: item.confidence,
+        problem: item.problem,
+        risk: item.risk,
+        impactSummary: impactSummary(item),
       })
       setCurrentDeck(updatedDeck)
       setAppliedSwapKeys((previous) => new Set(previous).add(key))
@@ -162,6 +193,46 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       setError(e.message || 'Nao foi possivel aplicar a troca.')
     } finally {
       setApplyingSwapKey(null)
+    }
+  }
+
+  async function handleUndoRecommendation(item) {
+    if (!canAnalyze) return
+    const key = recommendationKey(item)
+    try {
+      setError(null)
+      setRecommendationError(null)
+      setApplyingSwapKey(key)
+      const updatedDeck = await undoRecommendationSwap(currentDeck.id, key)
+      setCurrentDeck(updatedDeck)
+      setAppliedSwapKeys((previous) => {
+        const next = new Set(previous)
+        next.delete(key)
+        return next
+      })
+      const deckAnalysis = await getDeckAnalysis(currentDeck.id)
+      await refreshLegality(currentDeck.id)
+      setAnalysis(deckAnalysis)
+      setMessage(`Troca desfeita: ${item.remove} voltou ao deck.`)
+    } catch (e) {
+      console.error('undo recommendation swap error', e)
+      setRecommendationError(e.message || 'Nao foi possivel desfazer a troca.')
+      setError(e.message || 'Nao foi possivel desfazer a troca.')
+    } finally {
+      setApplyingSwapKey(null)
+    }
+  }
+
+  async function handleAddPackage(packageId) {
+    if (!canAnalyze || !packageId) return
+    try {
+      setError(null)
+      const updatedDeck = await addPackageToMaybeboard(currentDeck.id, packageId)
+      setCurrentDeck(updatedDeck)
+      setMessage('Pacote adicionado ao maybeboard.')
+    } catch (e) {
+      console.error('add package error', e)
+      setError(e.message || 'Nao foi possivel adicionar o pacote.')
     }
   }
 
@@ -251,8 +322,13 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
             metaProfile={metaProfile}
             metaSources={metaSources}
             onApplyRecommendation={handleApplyRecommendation}
+            onUndoRecommendation={handleUndoRecommendation}
             applyingKey={applyingSwapKey}
-            appliedKeys={appliedSwapKeys}
+            appliedKeys={visibleAppliedSwapKeys}
+            comparison={comparison}
+            packages={packages}
+            history={currentDeck?.history || []}
+            onAddPackage={handleAddPackage}
           />
         </div>
       )}
@@ -278,5 +354,11 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
 }
 
 function recommendationKey(item) {
-  return `${item?.add || ''}|||${item?.remove || ''}`.toLowerCase()
+  return item?.id || `${item?.add || ''}|||${item?.remove || ''}`.toLowerCase()
+}
+
+function impactSummary(item) {
+  const impact = item?.impact
+  if (!impact) return null
+  return `CMC ${Number(impact.averageCmcBefore || 0).toFixed(2)} -> ${Number(impact.averageCmcAfter || 0).toFixed(2)}; ramp ${impact.rampBefore ?? '-'} -> ${impact.rampAfter ?? '-'}; compra ${impact.drawBefore ?? '-'} -> ${impact.drawAfter ?? '-'}; interacao ${impact.removalBefore ?? '-'} -> ${impact.removalAfter ?? '-'}.`
 }

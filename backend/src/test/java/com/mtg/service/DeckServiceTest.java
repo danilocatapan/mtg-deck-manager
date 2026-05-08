@@ -194,7 +194,34 @@ class DeckServiceTest {
         assertEquals(2, response.cards().stream().mapToInt(DeckCardDTO::quantity).sum());
         assertTrue(response.cards().stream().anyMatch(card -> card.name().equals("Beast Within") && card.quantity() == 1));
         assertTrue(response.cards().stream().noneMatch(card -> card.name().equals("Naturalize")));
+        assertEquals(1, response.history().size());
+        assertEquals("Beast Within", response.history().getFirst().add());
+        assertFalse(response.history().getFirst().undone());
         verify(deckRepository).persist(deck);
+    }
+
+    @Test
+    void undoRecommendationSwap_revertsLatestActiveSwap() {
+        Deck deck = new Deck("My Deck", "Cmd", List.of(
+                new DeckCard("Naturalize", 1),
+                new DeckCard("Sol Ring", 1)
+        ));
+        deck.setId(1L);
+        deck.setOwnerId(OWNER_ID);
+        when(deckRepository.findByIdAndOwner(1L, OWNER_ID)).thenReturn(deck);
+
+        DeckResponseDTO applied = deckService.applyRecommendationSwap(
+                1L,
+                new ApplyRecommendationSwapDTO("Beast Within", "Naturalize", "swap-1", "meta_profile", "medium", "Pouca interacao.", "Risco baixo.", "Interacao +1"),
+                OWNER_ID
+        );
+
+        DeckResponseDTO undone = deckService.undoRecommendationSwap(1L, applied.history().getFirst().id(), OWNER_ID);
+
+        assertTrue(undone.cards().stream().anyMatch(card -> card.name().equals("Naturalize")));
+        assertTrue(undone.cards().stream().noneMatch(card -> card.name().equals("Beast Within")));
+        assertTrue(undone.history().getFirst().undone());
+        verify(deckRepository, times(2)).persist(deck);
     }
 
     @Test
