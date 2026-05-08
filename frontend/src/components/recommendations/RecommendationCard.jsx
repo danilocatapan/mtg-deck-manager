@@ -1,172 +1,72 @@
 import Button from '../ui/Button'
-import RecommendationBadge from './RecommendationBadge'
-
-function inferTags(item) {
-  if (Array.isArray(item?.tags) && item.tags.length > 0) return item.tags
-  const text = String(item?.reasoning || '').toLowerCase()
-  return [
-    text.includes('lista') || text.includes('meta') ? 'meta' : null,
-    text.includes('compra') || text.includes('draw') || text.includes('card advantage') ? 'draw' : null,
-    text.includes('ramp') || text.includes('aceler') ? 'ramp' : null,
-    text.includes('remoc') || text.includes('intera') ? 'removal' : null,
-    text.includes('prote') ? 'protection' : null,
-    text.includes('curva') ? 'curve' : null,
-    text.includes('eficien') ? 'efficiency' : null,
-    text.includes('sinerg') || text.includes('plano') ? 'synergy' : null,
-  ].filter(Boolean)
-}
 
 function sourceLabel(source) {
-  return source === 'meta_profile' ? 'Baseado em perfil meta local' : 'Baseado em analise heuristica'
+  return source === 'meta_profile' ? 'meta local' : 'heuristica'
 }
 
 function confidenceLabel(confidence) {
-  if (confidence === 'high') return 'Alta'
-  if (confidence === 'low') return 'Baixa'
-  return 'Media'
-}
-
-function modeLabel(mode) {
-  if (mode === 'budget') return 'Mais barato'
-  if (mode === 'competitive') return 'Mais competitivo'
-  if (mode === 'theme') return 'Mais fiel ao tema'
-  if (mode === 'casual') return 'Mais casual'
-  return 'Mais consistente'
-}
-
-function percent(value) {
-  const numeric = Number(value || 0)
-  return `${Math.round(numeric * 100)}%`
-}
-
-function price(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return 'Sem preco'
-  return `US$ ${Number(value).toFixed(2)}`
+  if (confidence === 'high') return 'alta'
+  if (confidence === 'low') return 'baixa'
+  return 'media'
 }
 
 function roleLabel(role) {
-  if (role === 'draw') return 'Compra'
-  if (role === 'ramp') return 'Ramp'
-  if (role === 'removal') return 'Interacao'
-  if (role === 'protection') return 'Protecao'
-  if (role === 'finisher') return 'Wincon'
-  return role || 'Valor'
+  if (role === 'draw') return 'compra'
+  if (role === 'ramp') return 'ramp'
+  if (role === 'removal') return 'interacao'
+  if (role === 'protection') return 'protecao'
+  if (role === 'finisher') return 'condicao de vitoria'
+  return role || 'valor'
 }
 
 function opportunityFrom(reasoning) {
   const firstSentence = String(reasoning || '').split('.').map((part) => part.trim()).find(Boolean)
-  return firstSentence || 'Troca sugerida para melhorar o encaixe do deck no bracket escolhido'
+  return firstSentence || 'Troca sugerida para melhorar o encaixe do deck no bracket escolhido.'
 }
 
 export default function RecommendationCard({ item, index, bracket, onApply, onUndo, applying = false, applied = false }) {
-  const source = item?.source || (String(item?.reasoning || '').toLowerCase().includes('listas similares') ? 'meta_profile' : 'heuristic_fallback')
-  const tags = inferTags(item).filter((tag) => tag !== 'fallback' && tag !== 'meta')
+  const source = item?.source || 'heuristic_fallback'
   const confidence = item?.confidence || 'medium'
-  const addInsight = item?.addInsight
-  const impact = item?.impact
-  const comparisons = Array.isArray(item?.comparisons) ? item.comparisons : []
-  const impactRows = impact ? buildImpactRows(impact) : []
+  const highlights = impactHighlights(item?.impact).slice(0, 3)
 
   return (
-    <article className="recommendation-card-pro">
+    <article className="recommendation-card-pro compact-recommendation-card">
       <header className="recommendation-card-header">
         <div>
-          <span className="rec-label">Recomendacao #{index + 1}</span>
-          <h4>{sourceLabel(source)}</h4>
+          <span className="rec-label">Troca #{index + 1}</span>
+          <h4>+ {item.add}</h4>
+          <p>Remover: <strong>{item.remove}</strong></p>
         </div>
-        <div className="recommendation-card-badges" aria-label="Motivos da recomendacao">
-          <RecommendationBadge variant={source === 'meta_profile' ? 'meta' : 'fallback'} />
-          <RecommendationBadge variant={confidence} />
-          {tags.map((tag) => <RecommendationBadge key={tag} variant={tag} />)}
+        <div className="compact-rec-meta">
+          <span>{roleLabel(item?.impact?.role)}</span>
+          <span>confiança {confidenceLabel(confidence)}</span>
         </div>
       </header>
 
       <section className="recommendation-opportunity">
-        <span className="rec-label">Problema</span>
+        <span className="rec-label">Por que mexer</span>
         <p>{item?.problem || opportunityFrom(item?.reasoning)}</p>
       </section>
 
-      <div className="swap-route" aria-label="Troca sugerida">
-        <section className="swap-card add">
-          <span>Adicionar</span>
-          <strong>+ {item.add}</strong>
-        </section>
-        <span className="swap-arrow" aria-hidden="true">-&gt;</span>
-        <section className="swap-card remove">
-          <span>Remover</span>
-          <strong>- {item.remove}</strong>
-        </section>
-      </div>
-
-      <section className="reasoning-block">
-        <span className="rec-label">Por que essa troca faz sentido</span>
-        <p>{item.reasoning}</p>
-      </section>
-
-      {(addInsight || impact || comparisons.length > 0) && (
-        <section className="recommendation-explainability">
-          {addInsight && (
-            <div>
-              <span className="rec-label">Carta sugerida</span>
-              <strong>{roleLabel(addInsight.role)} | {percent(addInsight.inclusionRate)} inclusao</strong>
-              <p>
-                {addInsight.sampleSize > 0 ? `${addInsight.sampleSize} listas similares` : 'Base heuristica local'}
-                {' | '}
-                Fonte: {addInsight.source || source}
-                {' | '}
-                {percent(addInsight.synergyEstimate)} sinergia estimada
-                {' | '}
-                {price(addInsight.estimatedPrice)}
-              </p>
-              {addInsight.priceDisclaimer && <small>{addInsight.priceDisclaimer}</small>}
-            </div>
-          )}
-
-          {impact && (
-            <div>
-              <span className="rec-label">Impacto numerico</span>
-              <strong>{roleLabel(impact.role)} | antes e depois</strong>
-              <div className="impact-delta-grid" aria-label="Impacto da troca antes e depois">
-                {impactRows.map((row) => (
-                  <span key={row.label} className={`impact-delta ${row.tone}`}>
-                    <small>{row.label}</small>
-                    <b>{row.before} -&gt; {row.after}</b>
-                    <em>{row.delta}</em>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {item?.risk && (
-            <div>
-              <span className="rec-label">Risco</span>
-              <p>{item.risk}</p>
-            </div>
-          )}
-
-          {comparisons.map((comparison) => (
-            <div key={`${comparison.role}-${comparison.targetCount}`}>
-              <span className="rec-label">Comparacao com listas similares</span>
-              <p>{comparison.message}</p>
-            </div>
+      {highlights.length > 0 && (
+        <section className="compact-impact-list" aria-label="Principais impactos da troca">
+          {highlights.map((highlight) => (
+            <span key={highlight.label} className={`impact-pill ${highlight.tone}`}>
+              <strong>{highlight.label}</strong>
+              {highlight.text}
+            </span>
           ))}
         </section>
       )}
 
       <footer className="recommendation-card-footer">
         <span>Bracket: {item.bracket || bracket || 'casual'}</span>
-        <span>Confianca: {confidenceLabel(confidence)}</span>
-        <span>Modo: {modeLabel(item.recommendationMode)}</span>
         <span>Fonte: {sourceLabel(source)}</span>
         <details>
           <summary>Detalhes</summary>
-          <p>
-            {sourceLabel(source)}.
-            {item?.sourceContext?.sampleSize ? ` Amostra: ${item.sourceContext.sampleSize} listas.` : ''}
-            {item?.sourceContext?.sources?.length ? ` Fontes: ${item.sourceContext.sources.join(', ')}.` : ''}
-            {` Confianca ${confidenceLabel(confidence).toLowerCase()}: ${confidenceReason(confidence, item?.sourceContext?.sampleSize, source)}`}
-          </p>
+          <p>{item.reasoning}</p>
+          {item?.risk && <p>{item.risk}</p>}
+          {item?.sourceContext?.sampleSize ? <p>Amostra: {item.sourceContext.sampleSize} listas.</p> : null}
         </details>
         <Button
           variant={applied ? 'secondary' : 'primary'}
@@ -191,90 +91,34 @@ export default function RecommendationCard({ item, index, bracket, onApply, onUn
   )
 }
 
-function confidenceReason(confidence, sampleSize = 0, source = '') {
-  if (confidence === 'high') return 'amostra meta suficiente e encaixe forte.'
-  if (confidence === 'low' && source !== 'meta_profile') return 'fallback heuristico com pouca evidencia externa.'
-  if (confidence === 'low') return `amostra pequena (${sampleSize || 0}) ou score abaixo do alvo.`
-  return source === 'meta_profile' ? 'dados de meta disponiveis, mas ainda com margem de revisao.' : 'heuristica local com score aceitavel.'
-}
-
-function buildImpactRows(impact) {
+function impactHighlights(impact) {
+  if (!impact) return []
   return [
-    {
-      label: 'Curva',
-      before: numberValue(impact.averageCmcBefore, 2),
-      after: numberValue(impact.averageCmcAfter, 2),
-      delta: deltaValue(impact.averageCmcAfter, impact.averageCmcBefore, 2),
-      tone: lowerIsBetterTone(impact.averageCmcBefore, impact.averageCmcAfter),
-    },
-    {
-      label: 'Ramp',
-      before: integerValue(impact.rampBefore),
-      after: integerValue(impact.rampAfter),
-      delta: deltaValue(impact.rampAfter, impact.rampBefore),
-      tone: higherIsBetterTone(impact.rampBefore, impact.rampAfter),
-    },
-    {
-      label: 'Compra',
-      before: integerValue(impact.drawBefore),
-      after: integerValue(impact.drawAfter),
-      delta: deltaValue(impact.drawAfter, impact.drawBefore),
-      tone: higherIsBetterTone(impact.drawBefore, impact.drawAfter),
-    },
-    {
-      label: 'Interacao',
-      before: integerValue(impact.removalBefore),
-      after: integerValue(impact.removalAfter),
-      delta: deltaValue(impact.removalAfter, impact.removalBefore),
-      tone: higherIsBetterTone(impact.removalBefore, impact.removalAfter),
-    },
-    {
-      label: 'Game Changers',
-      before: integerValue(impact.gameChangersBefore),
-      after: integerValue(impact.gameChangersAfter),
-      delta: deltaValue(impact.gameChangersAfter, impact.gameChangersBefore),
-      tone: lowerIsBetterTone(impact.gameChangersBefore, impact.gameChangersAfter),
-    },
-    {
-      label: 'Pressao bracket',
-      before: integerValue(impact.bracketPressureBefore),
-      after: integerValue(impact.bracketPressureAfter),
-      delta: deltaValue(impact.bracketPressureAfter, impact.bracketPressureBefore),
-      tone: lowerIsBetterTone(impact.bracketPressureBefore, impact.bracketPressureAfter),
-    },
-  ]
+    makeHighlight('Curva', impact.averageCmcBefore, impact.averageCmcAfter, false, 2),
+    makeHighlight('Ramp', impact.rampBefore, impact.rampAfter, true),
+    makeHighlight('Compra', impact.drawBefore, impact.drawAfter, true),
+    makeHighlight('Interacao', impact.removalBefore, impact.removalAfter, true),
+    makeHighlight('Game Changers', impact.gameChangersBefore, impact.gameChangersAfter, false),
+    makeHighlight('Pressao bracket', impact.bracketPressureBefore, impact.bracketPressureAfter, false),
+  ].filter(Boolean)
 }
 
-function numberValue(value, digits = 0) {
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return '-'
-  return digits > 0 ? numeric.toFixed(digits) : String(Math.round(numeric))
-}
-
-function integerValue(value) {
-  return numberValue(value, 0)
-}
-
-function deltaValue(after, before, digits = 0) {
+function makeHighlight(label, before, after, higherIsBetter, digits = 0) {
   const left = Number(before)
   const right = Number(after)
-  if (!Number.isFinite(left) || !Number.isFinite(right)) return 'sem dado'
-  const delta = right - left
-  if (Math.abs(delta) < 0.005) return 'sem mudanca'
-  const formatted = digits > 0 ? Math.abs(delta).toFixed(digits) : String(Math.round(Math.abs(delta)))
-  return `${delta > 0 ? '+' : '-'}${formatted}`
+  if (!Number.isFinite(left) || !Number.isFinite(right) || Math.abs(right - left) < 0.005) {
+    return null
+  }
+  const improved = higherIsBetter ? right > left : right < left
+  const formattedBefore = formatNumber(left, digits)
+  const formattedAfter = formatNumber(right, digits)
+  return {
+    label,
+    text: `${formattedBefore} -> ${formattedAfter}`,
+    tone: improved ? 'positive' : 'negative',
+  }
 }
 
-function higherIsBetterTone(before, after) {
-  const left = Number(before)
-  const right = Number(after)
-  if (!Number.isFinite(left) || !Number.isFinite(right) || left === right) return 'neutral'
-  return right > left ? 'positive' : 'negative'
-}
-
-function lowerIsBetterTone(before, after) {
-  const left = Number(before)
-  const right = Number(after)
-  if (!Number.isFinite(left) || !Number.isFinite(right) || left === right) return 'neutral'
-  return right < left ? 'positive' : 'negative'
+function formatNumber(value, digits) {
+  return digits > 0 ? value.toFixed(digits) : String(Math.round(value))
 }

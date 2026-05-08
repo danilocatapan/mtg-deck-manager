@@ -40,9 +40,9 @@ export default function RecommendationPanel({
     <section className="recommendation-panel" aria-live="polite">
       <header className="recommendation-panel-header">
         <div>
-          <p className="eyebrow">Upgrade Path</p>
-          <h3>Recomendacoes Estrategicas</h3>
-          <p>Trocas sugeridas com base no comandante, bracket, curva, funcoes do deck e dados de listas similares quando disponiveis.</p>
+          <p className="eyebrow">Caminho de upgrade</p>
+          <h3>Trocas recomendadas</h3>
+          <p>Priorize poucas trocas claras: corrigir curva, mana, compra, interacao ou encaixe com o comandante.</p>
         </div>
         <div className="recommendation-panel-context">
           <RecommendationBadge variant="curve">Bracket: {bracket}</RecommendationBadge>
@@ -65,55 +65,7 @@ export default function RecommendationPanel({
           <span>Origem</span>
           <strong>{hasFallback ? 'Heuristica' : 'Meta local'}</strong>
         </div>
-        <div>
-          <span>Amostra meta</span>
-          <strong>{metaProfile?.sampleSize ?? 0}</strong>
-        </div>
       </div>
-
-      {comparison?.metrics?.length > 0 && (
-        <section className="recommendation-comparison">
-          <div className="section-heading compact">
-            <div>
-              <p className="eyebrow">Seu deck vs media do comandante</p>
-              <h4>{comparison.commander}</h4>
-            </div>
-            <RecommendationBadge variant="meta">Amostra: {comparison.sampleSize || 0}</RecommendationBadge>
-          </div>
-          <div className="comparison-grid">
-            {comparison.metrics.map((metric) => (
-              <div key={metric.key} className={`comparison-metric ${metric.status}`}>
-                <span>{metric.label}</span>
-                <strong>{formatMetric(metric.deckValue)} / {formatMetric(metric.similarAverage)}</strong>
-                <small>{metric.message}</small>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {packages.length > 0 && (
-        <section className="recommendation-packages">
-          <div className="section-heading compact">
-            <div>
-              <p className="eyebrow">Maybeboard e pacotes</p>
-              <h4>Pacotes sugeridos</h4>
-            </div>
-          </div>
-          <div className="package-grid">
-            {packages.map((deckPackage) => (
-              <article key={deckPackage.id} className="package-card">
-                <strong>{deckPackage.name}</strong>
-                <p>{deckPackage.description}</p>
-                <small>{(deckPackage.cards || []).map((card) => card.name).join(', ')}</small>
-                <button type="button" onClick={() => onAddPackage && onAddPackage(deckPackage.id)}>
-                  Adicionar ao maybeboard
-                </button>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
 
       {hasFallback && items.length > 0 && (
         <StateMessage tone="warning" title="Dados meta insuficientes">
@@ -147,7 +99,7 @@ export default function RecommendationPanel({
 
       {items.length > 0 && (
         <div className="recommendation-card-list">
-          {items.map((item, index) => (
+          {items.slice(0, 5).map((item, index) => (
             <RecommendationCard
               key={`${item.add}-${item.remove}-${index}`}
               item={item}
@@ -162,29 +114,79 @@ export default function RecommendationPanel({
         </div>
       )}
 
-      {history.length > 0 && (
-        <details className="recommendation-source-details" open>
-          <summary>Historico de trocas</summary>
-          <div className="history-list">
-            {history.slice().reverse().map((entry) => (
-              <span key={entry.id} className={entry.undone ? 'source-pill' : 'source-pill enabled'}>
-                {entry.undone ? 'Desfeita' : 'Aplicada'}: +{entry.add} / -{entry.remove}
-              </span>
-            ))}
-          </div>
-        </details>
-      )}
+      {(comparison?.metrics?.length > 0 || packages.length > 0 || history.length > 0 || metaSources.length > 0) && (
+        <details className="recommendation-source-details advanced-recommendation-details">
+          <summary>Informacoes avancadas</summary>
 
-      {metaSources.length > 0 && (
-        <details className="recommendation-source-details">
-          <summary>Ver fontes disponiveis</summary>
-          <div>
-            {metaSources.map((sourceItem) => (
-              <span key={sourceItem.name} className={sourceItem.enabled ? 'source-pill enabled' : 'source-pill'}>
-                {sourceItem.name}: {sourceItem.enabled ? 'ativo' : 'inativo'}
-              </span>
-            ))}
-          </div>
+          {comparison?.metrics?.length > 0 && (
+            <section className="recommendation-comparison">
+              <div className="section-heading compact">
+                <div>
+                  <p className="eyebrow">Seu deck vs media do comandante</p>
+                  <h4>{comparison.commander}</h4>
+                </div>
+                <RecommendationBadge variant="meta">Amostra: {comparison.sampleSize || 0}</RecommendationBadge>
+              </div>
+              <div className="comparison-grid">
+                {comparison.metrics.slice(0, 5).map((metric) => (
+                  <div key={metric.key} className={`comparison-metric ${metric.status}`}>
+                    <span>{metric.label}</span>
+                    <strong>{formatMetric(metric.deckValue)} / {formatMetric(metric.similarAverage)}</strong>
+                    <small>{metric.message}</small>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {packages.length > 0 && (
+            <section className="recommendation-packages">
+              <div className="section-heading compact">
+                <div>
+                  <p className="eyebrow">Maybeboard</p>
+                  <h4>Pacotes sugeridos</h4>
+                </div>
+              </div>
+              <div className="package-grid">
+                {packages.slice(0, 3).map((deckPackage) => (
+                  <article key={deckPackage.id} className="package-card">
+                    <strong>{deckPackage.name}</strong>
+                    <p>{deckPackage.description}</p>
+                    <small>{(deckPackage.cards || []).map((card) => card.name).join(', ')}</small>
+                    <button type="button" onClick={() => onAddPackage && onAddPackage(deckPackage.id)}>
+                      Adicionar ao maybeboard
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {history.length > 0 && (
+            <section>
+              <h4>Historico de trocas</h4>
+              <div className="history-list">
+                {history.slice().reverse().slice(0, 8).map((entry) => (
+                  <span key={entry.id} className={entry.undone ? 'source-pill' : 'source-pill enabled'}>
+                    {entry.undone ? 'Desfeita' : 'Aplicada'}: +{entry.add} / -{entry.remove}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {metaSources.length > 0 && (
+            <section>
+              <h4>Fontes disponiveis</h4>
+              <div>
+                {metaSources.map((sourceItem) => (
+                  <span key={sourceItem.name} className={sourceItem.enabled ? 'source-pill enabled' : 'source-pill'}>
+                    {sourceItem.name}: {sourceItem.enabled ? 'ativo' : 'inativo'}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
         </details>
       )}
     </section>
