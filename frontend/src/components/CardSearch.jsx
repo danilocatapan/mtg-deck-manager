@@ -53,7 +53,7 @@ export default function CardSearch({ onSelect }) {
               setDebouncing(true)
             }
           }}
-          placeholder="Search by card name"
+          placeholder="Buscar pelo nome da carta"
           onKeyDown={async (e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
@@ -66,16 +66,16 @@ export default function CardSearch({ onSelect }) {
           }}
         />
         <Button type="button" onClick={() => doSearch(query)} disabled={!query.trim() || loading}>
-          {loading || debouncing ? 'Searching...' : 'Search'}
+          {loading || debouncing ? 'Buscando...' : 'Buscar'}
         </Button>
       </div>
 
       <div className="search-meta">
         {loading || debouncing
-          ? 'Searching Scryfall...'
+          ? 'Buscando no Scryfall...'
           : hasSearched
-            ? `${results.length} result${results.length === 1 ? '' : 's'}`
-            : 'Type a card name to search and add it to this deck.'}
+            ? `${results.length} resultado${results.length === 1 ? '' : 's'}`
+            : 'Digite o nome de uma carta para buscar e adicionar ao deck.'}
       </div>
 
       {results.length > 0 && (
@@ -85,12 +85,12 @@ export default function CardSearch({ onSelect }) {
               <div>
                 <strong>{card.name}</strong>
                 <div className="result-card-meta">
-                  {card.manaCost || 'No cost'} / CMC {card.cmc ?? '-'} / {card.typeLine || 'Unknown type'}
+                  {card.manaCost || 'Sem custo'} / CMC {card.cmc ?? '-'} / {card.typeLine || 'Tipo desconhecido'}
                 </div>
               </div>
               {onSelect && (
                 <Button type="button" onClick={() => handleAdd(card)}>
-                  Add
+                  Adicionar
                 </Button>
               )}
             </li>
@@ -99,7 +99,7 @@ export default function CardSearch({ onSelect }) {
       )}
 
       {hasSearched && !loading && !debouncing && results.length === 0 && (
-        <p className="empty-inline">No cards found. Try the exact English card name.</p>
+        <p className="empty-inline">Nenhuma carta encontrada. Tente o nome exato em ingles.</p>
       )}
     </div>
   )

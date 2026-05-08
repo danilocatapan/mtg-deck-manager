@@ -69,7 +69,7 @@ async function requestOnce(path, options = {}) {
 
     if (!res.ok) {
       const message = await readErrorMessage(res)
-      throw new Error(res.status === 401 ? 'Login with Google is required.' : message || 'Request failed')
+      throw new Error(res.status === 401 ? 'Login com Google é obrigatorio.' : message || 'Falha na requisição')
     }
 
     if (res.status === 204) return null
@@ -184,6 +184,18 @@ export async function getDeckAnalysis(id) {
   }
 }
 
+export async function getDeckLegality(id) {
+  try {
+    if (id === undefined || id === null || isNaN(Number(id))) {
+      throw new Error('Id do deck inválido')
+    }
+    return await request(`/decks/${id}/legality`)
+  } catch (e) {
+    console.error('getDeckLegality error', e)
+    throw e
+  }
+}
+
 export async function getRecommendations(id, params) {
   return getStrategicRecommendations(id, params)
 }
@@ -279,6 +291,7 @@ export default {
   updateDeck,
   deleteDeck,
   getDeckAnalysis,
+  getDeckLegality,
   getRecommendations,
   getStrategicRecommendations,
   applyRecommendationSwap,

@@ -67,10 +67,16 @@ class DeckRecommendationIntegrationTest {
     @Test
     @TestSecurity(user = "google-user-1")
     void seededGrandArbiterDeckReturnsValidStrategicRecommendations() {
+        String deckLocation = importFixtureDeck(
+                "Grand Arbiter recommendation fixture",
+                "Grand Arbiter Augustin IV",
+                "decklists/grand-arbiter-augustin-iv.txt"
+        );
+
         given()
                 .contentType(ContentType.JSON)
                 .body(Map.of("bracket", "casual"))
-                .when().post("/decks/9001/recommendations/strategic")
+                .when().post(deckLocation + "/recommendations/strategic")
                 .then()
                 .statusCode(200)
                 .body("$", hasSize(greaterThanOrEqualTo(3)))
@@ -83,10 +89,16 @@ class DeckRecommendationIntegrationTest {
     @Test
     @TestSecurity(user = "google-user-1")
     void seededXenagosDeckReturnsValidStrategicRecommendations() {
+        String deckLocation = importFixtureDeck(
+                "Xenagos recommendation fixture",
+                "Xenagos, God of Revels",
+                "decklists/xenagos-god-of-revels.txt"
+        );
+
         given()
                 .contentType(ContentType.JSON)
                 .body(Map.of("bracket", "casual"))
-                .when().post("/decks/9002/recommendations/strategic")
+                .when().post(deckLocation + "/recommendations/strategic")
                 .then()
                 .statusCode(200)
                 .body("$", hasSize(greaterThanOrEqualTo(3)))
@@ -94,6 +106,17 @@ class DeckRecommendationIntegrationTest {
                 .body("remove", everyItem(not(is("Xenagos, God of Revels"))))
                 .body("reasoning", everyItem(not(is(""))))
                 .body("budget", everyItem(nullValue()));
+    }
+
+    private String importFixtureDeck(String name, String commander, String fixturePath) {
+        return given()
+                .contentType(ContentType.JSON)
+                .body(new DeckImportDTO(name, commander, fixture(fixturePath)))
+                .when().post("/decks/import")
+                .then()
+                .statusCode(201)
+                .extract()
+                .header("Location");
     }
 
     private Map<String, CardResponseDTO> resolvedCards(List<String> names) {

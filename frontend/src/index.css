@@ -434,13 +434,20 @@ textarea {
 .result-item,
 .deck-row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 10px;
   padding: 10px;
   border: 2px solid rgba(7, 6, 4, 0.34);
   border-radius: 8px;
   background: rgba(251, 246, 231, 0.66);
+}
+
+.result-item {
+  grid-template-columns: 1fr auto;
+}
+
+.deck-row {
+  grid-template-columns: 1fr auto minmax(150px, 210px) auto;
 }
 
 .result-card-meta {
@@ -478,6 +485,12 @@ textarea {
 .status-pill.ready {
   background: rgba(31, 107, 66, 0.16);
   color: var(--xenagos-green-deep);
+}
+
+.status-pill.danger {
+  background: rgba(157, 42, 31, 0.16);
+  color: #f1b0a0;
+  border-color: rgba(184, 92, 69, 0.65);
 }
 
 .is-invalid {
@@ -545,6 +558,10 @@ textarea {
 
 .deck-row input {
   width: 74px;
+}
+
+.deck-row select {
+  min-width: 150px;
 }
 
 .tabs {
@@ -1007,6 +1024,12 @@ textarea:focus {
   background: rgba(47, 107, 63, 0.18);
   color: var(--color-gold-soft);
   border-color: rgba(47, 107, 63, 0.75);
+}
+
+.status-pill.danger {
+  background: rgba(184, 92, 69, 0.16);
+  color: #f1b0a0;
+  border-color: rgba(184, 92, 69, 0.72);
 }
 
 .status.error {
@@ -1521,7 +1544,7 @@ dt {
 
 .image-card-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 0.7fr) minmax(120px, 1fr) auto;
   gap: 8px;
 }
 

@@ -14,6 +14,9 @@ public class DeckCard {
 
     private int quantity;
 
+    @Column(name = "zone")
+    private String zone = "main";
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "deck_id")
     private Deck deck;
@@ -26,6 +29,13 @@ public class DeckCard {
     public DeckCard(String name, int quantity) {
         this.name = name;
         this.quantity = quantity;
+        this.zone = "main";
+    }
+
+    public DeckCard(String name, int quantity, String zone) {
+        this.name = name;
+        this.quantity = quantity;
+        this.zone = zone;
     }
 
     public Long getId() {
@@ -50,6 +60,14 @@ public class DeckCard {
 
     public void setQuantity(int quantity) {
         this.quantity = quantity;
+    }
+
+    public String getZone() {
+        return zone == null || zone.isBlank() ? "main" : zone;
+    }
+
+    public void setZone(String zone) {
+        this.zone = zone == null || zone.isBlank() ? "main" : zone;
     }
 
     public Deck getDeck() {

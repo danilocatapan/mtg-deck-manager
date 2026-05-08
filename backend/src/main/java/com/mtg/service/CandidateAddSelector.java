@@ -63,7 +63,11 @@ public class CandidateAddSelector {
             Double budget
     ) {
         Set<String> existingNames = new HashSet<>();
-        deck.getCards().stream().map(DeckCard::getName).map(this::normalize).forEach(existingNames::add);
+        deck.getCards().stream()
+                .filter(deckCard -> "main".equals(deckCard.getZone()))
+                .map(DeckCard::getName)
+                .map(this::normalize)
+                .forEach(existingNames::add);
         List<CardResponseDTO> cards = new ArrayList<>();
 
         for (MetaCard metaCard : metaCards.stream().limit(50).toList()) {

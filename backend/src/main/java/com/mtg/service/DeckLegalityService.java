@@ -72,7 +72,8 @@ public class DeckLegalityService {
         deck.getCards().stream().map(DeckCard::getName).forEach(lookupNames::add);
         Map<String, CardResponseDTO> knownCards = cardService.findByNames(lookupNames);
 
-        int mainDeckSize = deck.getCards().stream().mapToInt(DeckCard::getQuantity).sum();
+        List<DeckCard> mainDeckCards = mainDeckCards(deck);
+        int mainDeckSize = mainDeckCards.stream().mapToInt(DeckCard::getQuantity).sum();
         boolean sizeLegal = mainDeckSize == COMMANDER_MAIN_DECK_SIZE;
 
         List<String> duplicateCards = duplicateCards(deck);
@@ -125,7 +126,7 @@ public class DeckLegalityService {
     }
 
     private List<String> duplicateCards(Deck deck) {
-        return deck.getCards().stream()
+        return mainDeckCards(deck).stream()
                 .filter(card -> card.getQuantity() > 1)
                 .filter(card -> !isSingletonExempt(card.getName()))
                 .map(DeckCard::getName)
@@ -160,7 +161,7 @@ public class DeckLegalityService {
     }
 
     private List<String> offColorCards(Deck deck, Map<String, CardResponseDTO> knownCards, Set<String> commanderColors) {
-        return deck.getCards().stream()
+        return mainDeckCards(deck).stream()
                 .filter(card -> {
                     CardResponseDTO info = knownCards.get(normalize(card.getName()));
                     return info != null && !ColorIdentityMatcher.matches(info, commanderColors);
@@ -177,7 +178,12 @@ public class DeckLegalityService {
                 banned.add(commander.name());
             }
         }
-        for (DeckCard card : deck.getCards()) {
+        for (DeckCard card : mainDeckCards(deck)) {
+            if (commanderBanlistService.isBanned(card.getName())) {
+                banned.add(card.getName());
+            }
+        }
+        for (DeckCard card : companionCards(deck)) {
             if (commanderBanlistService.isBanned(card.getName())) {
                 banned.add(card.getName());
             }
@@ -200,7 +206,13 @@ public class DeckLegalityService {
     }
 
     private CompanionStatusDTO companionStatus(Deck deck, Map<String, CardResponseDTO> knownCards) {
-        for (DeckCard deckCard : deck.getCards()) {
+        List<DeckCard> companions = companionCards(deck);
+        if (!companions.isEmpty()) {
+            DeckCard companion = companions.getFirst();
+            return new CompanionStatusDTO(true, companion.getName(), companions.size() == 1,
+                    companions.size() == 1 ? "Companion declarado fora do deck principal." : "Apenas um companion pode ser declarado.");
+        }
+        for (DeckCard deckCard : mainDeckCards(deck)) {
             CardResponseDTO card = knownCards.get(normalize(deckCard.getName()));
             if (card == null) {
                 continue;
@@ -220,7 +232,7 @@ public class DeckLegalityService {
     private double averageCmc(Deck deck, Map<String, CardResponseDTO> knownCards) {
         int total = 0;
         double cmc = 0.0;
-        for (DeckCard card : deck.getCards()) {
+        for (DeckCard card : mainDeckCards(deck)) {
             CardResponseDTO info = knownCards.get(normalize(card.getName()));
             if (info == null) {
                 continue;
@@ -242,7 +254,7 @@ public class DeckLegalityService {
 
     private int roleCount(Deck deck, Map<String, CardResponseDTO> knownCards, Set<String> needles) {
         int count = 0;
-        for (DeckCard card : deck.getCards()) {
+        for (DeckCard card : mainDeckCards(deck)) {
             CardResponseDTO info = knownCards.get(normalize(card.getName()));
             if (info == null) {
                 continue;
@@ -273,5 +285,17 @@ public class DeckLegalityService {
             case "C" -> 5;
             default -> 6;
         };
+    }
+
+    private List<DeckCard> mainDeckCards(Deck deck) {
+        return deck.getCards().stream()
+                .filter(card -> "main".equals(card.getZone()))
+                .toList();
+    }
+
+    private List<DeckCard> companionCards(Deck deck) {
+        return deck.getCards().stream()
+                .filter(card -> "companion".equals(card.getZone()))
+                .toList();
     }
 }

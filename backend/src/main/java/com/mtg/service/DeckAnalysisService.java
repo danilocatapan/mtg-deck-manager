@@ -76,7 +76,7 @@ public class DeckAnalysisService {
     }
 
     private DeckAnalysis analyze(Deck deck, Long id) {
-        List<DeckCard> cards = deck.getCards();
+        List<DeckCard> cards = mainDeckCards(deck);
         LOG.debugv("analysis.cardCount deckId={0} count={1}", id, cards.size());
 
         int totalCards = cards.stream().mapToInt(DeckCard::getQuantity).sum();
@@ -336,5 +336,11 @@ public class DeckAnalysisService {
 
     private String nullToEmpty(String value) {
         return value == null ? "" : value;
+    }
+
+    private List<DeckCard> mainDeckCards(Deck deck) {
+        return deck.getCards().stream()
+                .filter(card -> "main".equals(card.getZone()))
+                .toList();
     }
 }

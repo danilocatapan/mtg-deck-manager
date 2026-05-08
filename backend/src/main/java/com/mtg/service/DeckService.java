@@ -38,6 +38,7 @@ public class DeckService {
     private static final int MAX_DECK_CARDS = 120;
     private static final int MAX_COMMANDER_MAIN_DECK_CARDS = 99;
     private static final Set<String> COMMANDER_ROLES = Set.of("commander", "background", "partner");
+    private static final Set<String> CARD_ZONES = Set.of("main", "maybeboard", "considering", "companion");
     private static final Set<String> BASIC_LANDS = Set.of(
             "plains",
             "island",
@@ -171,13 +172,13 @@ public class DeckService {
         String add = dto.add().trim();
         String remove = dto.remove().trim();
         validateCardExists(add, "Card to add was not found");
-        DeckCard removeCard = findCard(deck, remove);
+        DeckCard removeCard = findMainDeckCard(deck, remove);
         if (removeCard == null) {
             logInvalidSwap(deckId, "remove_card_not_found");
             throw new IllegalArgumentException("Card to remove was not found in deck");
         }
 
-        DeckCard existingAdd = findCard(deck, add);
+        DeckCard existingAdd = findMainDeckCard(deck, add);
         if (existingAdd != null && !isBasicLand(add)) {
             logInvalidSwap(deckId, "add_card_already_exists");
             throw new IllegalArgumentException("Card to add already exists in deck");
@@ -209,7 +210,7 @@ public class DeckService {
             LOG.error("Export failed: deck not found " + id);
             return null;
         }
-        List<DeckCard> cards = deck.getCards();
+        List<DeckCard> cards = mainDeckCards(deck);
         LOG.debug("Exporting deck " + id + ", card count=" + (cards == null ? 0 : cards.size()));
         if (cards == null || cards.isEmpty()) {
             return "";
@@ -233,10 +234,22 @@ public class DeckService {
             throw new IllegalArgumentException("Deck accepts at most " + MAX_DECK_CARDS + " card entries");
         }
         request.cards().forEach(this::validateCard);
+        int mainDeckTotal = request.cards().stream()
+                .filter(card -> "main".equals(normalizeZone(card.zone())))
+                .mapToInt(DeckCardDTO::quantity)
+                .sum();
+        if (mainDeckTotal <= 0) {
+            throw new IllegalArgumentException("Deck must contain at least one main deck card");
+        }
+        if (mainDeckTotal > MAX_COMMANDER_MAIN_DECK_CARDS) {
+            throw new IllegalArgumentException("Commander main deck must have at most 99 cards");
+        }
     }
 
     private List<DeckCard> toEntities(List<DeckCardDTO> cards) {
-        return cards.stream().map(c -> new DeckCard(c.name().trim(), c.quantity())).collect(Collectors.toList());
+        return cards.stream()
+                .map(c -> new DeckCard(c.name().trim(), c.quantity(), normalizeZone(c.zone())))
+                .collect(Collectors.toList());
     }
 
     private List<DeckCard> removeCommandersFromMainDeck(List<DeckCard> cards, List<CommanderDTO> commanders) {
@@ -277,6 +290,7 @@ public class DeckService {
         if (card.quantity() < 1 || card.quantity() > 99) {
             throw new IllegalArgumentException("Card quantity must be between 1 and 99");
         }
+        normalizeZone(card.zone());
     }
 
     private Map<String, CardResponseDTO> validateCardsExist(List<CommanderDTO> commanders, List<DeckCardDTO> cards) {
@@ -330,9 +344,9 @@ public class DeckService {
         }
     }
 
-    private DeckCard findCard(Deck deck, String name) {
+    private DeckCard findMainDeckCard(Deck deck, String name) {
         String normalized = normalize(name);
-        return deck.getCards().stream()
+        return mainDeckCards(deck).stream()
                 .filter(card -> normalize(card.getName()).equals(normalized))
                 .findFirst()
                 .orElse(null);
@@ -352,12 +366,13 @@ public class DeckService {
             return;
         }
         DeckCard added = new DeckCard(name, 1);
+        added.setZone("main");
         added.setDeck(deck);
         deck.getCards().add(added);
     }
 
     private int totalCards(Deck deck) {
-        return deck.getCards().stream().mapToInt(DeckCard::getQuantity).sum();
+        return mainDeckCards(deck).stream().mapToInt(DeckCard::getQuantity).sum();
     }
 
     private boolean isBasicLand(String name) {
@@ -379,8 +394,30 @@ public class DeckService {
     }
 
     private DeckResponseDTO toDto(Deck deck) {
-        List<DeckCardDTO> cards = deck.getCards().stream().map(c -> new DeckCardDTO(c.getName(), c.getQuantity())).collect(Collectors.toList());
+        List<DeckCardDTO> cards = deck.getCards().stream()
+                .map(c -> new DeckCardDTO(c.getName(), c.getQuantity(), normalizeZone(c.getZone())))
+                .collect(Collectors.toList());
         return new DeckResponseDTO(deck.getId(), deck.getName(), deck.getCommander(), cards, deck.getColorIdentity(), commandersFor(deck));
+    }
+
+    private List<DeckCard> mainDeckCards(Deck deck) {
+        return deck.getCards().stream()
+                .filter(card -> "main".equals(normalizeZone(card.getZone())))
+                .toList();
+    }
+
+    private String normalizeZone(String zone) {
+        if (zone == null || zone.isBlank()) {
+            return "main";
+        }
+        String normalized = zone.trim().toLowerCase(Locale.ROOT).replace("_", "-");
+        if ("sideboard".equals(normalized) || "maybe".equals(normalized)) {
+            normalized = "maybeboard";
+        }
+        if (!CARD_ZONES.contains(normalized)) {
+            throw new IllegalArgumentException("Card zone must be main, maybeboard, considering, or companion");
+        }
+        return normalized;
     }
 
     private List<CommanderDTO> normalizeCommanders(String legacyCommander, List<CommanderDTO> requestedCommanders) {

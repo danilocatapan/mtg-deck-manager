@@ -53,8 +53,10 @@ public class RecommendationService {
             throw new NotFoundException("Deck not found");
         }
 
+        List<DeckCard> mainDeckCards = mainDeckCards(deck);
+
         // Enforce deck size invariant: commander excluded, max 99 cards
-        if (deck.getCards().stream().mapToInt(DeckCard::getQuantity).sum() > 99) {
+        if (mainDeckCards.stream().mapToInt(DeckCard::getQuantity).sum() > 99) {
             throw new IllegalStateException("Deck inválido > 99 cartas");
         }
 
@@ -67,7 +69,7 @@ public class RecommendationService {
         Map<String, Integer> gaps = HeuristicRules.calculateGaps(analysis.rampCount(), analysis.drawCount(), analysis.removalCount(), analysis.averageCmc(), bracket);
         LOG.debugv("recommendation.gaps {0}", gaps);
 
-        Set<String> existingNames = deck.getCards().stream().map(DeckCard::getName).collect(Collectors.toSet());
+        Set<String> existingNames = mainDeckCards.stream().map(DeckCard::getName).collect(Collectors.toSet());
 
         List<RecommendationItem> adds = new ArrayList<>();
         List<RecommendationItem> cuts = new ArrayList<>();
@@ -107,7 +109,7 @@ public class RecommendationService {
 
         // Aggregate tags from existing deck cards for synergy context
         Set<String> deckTags = new HashSet<>();
-        for (DeckCard dc : deck.getCards()) {
+        for (DeckCard dc : mainDeckCards) {
             try {
                 CardResponseDTO info = lookupCard.apply(dc.getName());
                 if (info != null) {
@@ -121,7 +123,7 @@ public class RecommendationService {
         // Baseline lands: ensure a minimum number of lands are recommended first
         int targetLands = 36;
         int currentLands = 0;
-        for (DeckCard dc : deck.getCards()) {
+        for (DeckCard dc : mainDeckCards) {
             try {
                 CardResponseDTO info = lookupCard.apply(dc.getName());
                 if (info != null && info.typeLine() != null && info.typeLine().contains("Land")) {
@@ -267,14 +269,14 @@ public class RecommendationService {
                 .sorted(rankingComparator)
                 .collect(Collectors.toList());
 
-        int missing = 99 - deck.getCards().size() - totalQuantity(adds);
+        int missing = 99 - mainDeckCards.stream().mapToInt(DeckCard::getQuantity).sum() - totalQuantity(adds);
         if (missing > 0) {
             List<RecommendationItem> finalAdds = deckCompleter.complete(deck, rankedCandidates, missing);
             adds.addAll(finalAdds);
         }
 
         // Simple cut suggestions: high CMC cards
-        List<DeckCard> sortedByCmcDesc = deck.getCards().stream()
+        List<DeckCard> sortedByCmcDesc = mainDeckCards.stream()
                 .sorted(Comparator.comparingInt(DeckCard::getQuantity).reversed())
                 .collect(Collectors.toList());
 
@@ -356,5 +358,11 @@ public class RecommendationService {
 
     private String normalizeLookupName(String name) {
         return name == null ? "" : name.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private List<DeckCard> mainDeckCards(Deck deck) {
+        return deck.getCards().stream()
+                .filter(card -> "main".equals(card.getZone()))
+                .toList();
     }
 }

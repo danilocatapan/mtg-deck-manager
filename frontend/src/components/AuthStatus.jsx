@@ -23,7 +23,7 @@ export default function AuthStatus() {
           setAuthToken(response.credential)
           setError(null)
         } catch (e) {
-          setError(e.message || 'Google login failed.')
+          setError(e.message || 'Falha no login com Google.')
         }
       },
     })
@@ -36,14 +36,14 @@ export default function AuthStatus() {
   }, [clientId, profile])
 
   if (!clientId) {
-    return <div className="auth-status auth-warning">Set VITE_GOOGLE_CLIENT_ID to enable login.</div>
+    return <div className="auth-status auth-warning">Defina VITE_GOOGLE_CLIENT_ID para habilitar login.</div>
   }
 
   if (profile) {
     return (
       <div className="auth-status">
-        <span>{profile.email || profile.name || 'Signed in'}</span>
-        <Button variant="secondary" onClick={clearAuthToken}>Sign out</Button>
+        <span>{profile.email || profile.name || 'Logado'}</span>
+        <Button variant="secondary" onClick={clearAuthToken}>Sair</Button>
       </div>
     )
   }

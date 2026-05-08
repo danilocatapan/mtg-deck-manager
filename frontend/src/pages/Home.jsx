@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { deleteDeck, fetchDecks } from '../services/api'
 import DeckList from '../components/DeckList'
 import DeckEditorPage from './DeckEditorPage'
@@ -20,7 +20,7 @@ export default function Home() {
   const [message, setMessage] = useState(null)
   const [apiStatus, setApiStatus] = useState(null)
 
-  async function load() {
+  const load = useCallback(async function loadDecks() {
     if (!getAuthToken()) {
       setDecks([])
       setLoading(false)
@@ -39,7 +39,7 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -79,12 +79,14 @@ export default function Home() {
       setDecks([])
       setLoading(false)
       setApiStatus(null)
+      return
     }
-  }), [])
+    load()
+  }), [load])
 
   function handleCreate() {
     if (!isAuthenticated) {
-      setMessage('Sign in with Google before creating decks.')
+      setMessage('Entre com Google antes de criar decks.')
       return
     }
     setMessage(null)
@@ -94,7 +96,7 @@ export default function Home() {
 
   function handleImport() {
     if (!isAuthenticated) {
-      setMessage('Sign in with Google before importing decks.')
+      setMessage('Entre com Google antes de importar decks.')
       return
     }
     setMessage(null)
@@ -104,7 +106,7 @@ export default function Home() {
 
   function handleEdit(deck) {
     if (!isAuthenticated) {
-      setMessage('Sign in with Google before editing decks.')
+      setMessage('Entre com Google antes de editar decks.')
       return
     }
     setMessage(null)
@@ -114,22 +116,27 @@ export default function Home() {
 
   async function handleDelete(deck) {
     if (!isAuthenticated) {
-      setMessage('Sign in with Google before deleting decks.')
+      setMessage('Entre com Google antes de excluir decks.')
       return
     }
-    if (!confirm(`Delete deck ${deck.name}?`)) return
+    if (!confirm(`Excluir o deck ${deck.name}?`)) return
     try {
       await deleteDeck(deck.id)
-      setMessage(`Deleted ${deck.name}.`)
+      setMessage(`${deck.name} excluido.`)
       await load()
     } catch (e) {
       console.error('delete failed', e)
-      setMessage('Delete failed. Try again.')
+      setMessage('Nao foi possivel excluir. Tente novamente.')
     }
   }
 
-  function handleDone(nextMessage) {
-    setView('home')
+  function handleDone(nextMessage, nextDeck = null) {
+    if (nextDeck) {
+      setEditingDeck(nextDeck)
+      setView('edit')
+    } else {
+      setView('home')
+    }
     setMessage(nextMessage || null)
     load()
   }
@@ -147,34 +154,34 @@ export default function Home() {
       <section className="zone zone-command page-heading">
         <div>
           <p className="eyebrow">Command Zone</p>
-          <h1>Deck Library</h1>
-          <p className="page-description">Create or import a deck, tune the list, analyze structure, then request explainable recommendations.</p>
+          <h1>Biblioteca de Decks</h1>
+          <p className="page-description">Crie ou importe um deck, ajuste a lista, valide a legalidade, analise a estrutura e gere recomendacoes explicaveis.</p>
         </div>
         <div className="actions-row">
           <Button className="cta-primary" onClick={handleCreate}>
             <img className="btn-icon" src={createIcon} alt="" aria-hidden="true" />
-            Create Deck
+            Criar Deck
           </Button>
           <Button variant="secondary" onClick={handleImport}>
             <img className="btn-icon" src={importIcon} alt="" aria-hidden="true" />
-            Import Deck
+            Importar Deck
           </Button>
         </div>
       </section>
 
       <Card className="zone zone-battlefield">
         <div className="workflow-steps" aria-label="Main workflow">
-          <div data-state="active"><strong>1</strong><span>Create or import</span></div>
-          <div><strong>2</strong><span>Edit library</span></div>
-          <div><strong>3</strong><span>Battlefield metrics</span></div>
-          <div><strong>4</strong><span>Upgrade path</span></div>
+          <div data-state="active"><strong>1</strong><span>Criar ou importar</span></div>
+          <div><strong>2</strong><span>Editar lista</span></div>
+          <div><strong>3</strong><span>Validar e analisar</span></div>
+          <div><strong>4</strong><span>Evoluir o deck</span></div>
         </div>
       </Card>
 
       {message && <div className="status success">{message}</div>}
       {!isAuthenticated && (
         <div className="status">
-          Sign in with Google to create, import, edit, list, or delete your decks.
+          Entre com Google para criar, importar, editar, listar ou excluir seus decks.
         </div>
       )}
       {apiStatus === 'starting' && (

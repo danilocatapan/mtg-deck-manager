@@ -19,7 +19,8 @@ public class DeckRoleAnalyzer {
     SynergyEngine synergyEngine;
 
     public DeckRoleSummary analyze(Deck deck, Map<String, CardResponseDTO> cardsByName, String bracket) {
-        int totalCards = deck.getCards().stream().mapToInt(DeckCard::getQuantity).sum();
+        List<DeckCard> mainDeckCards = mainDeckCards(deck);
+        int totalCards = mainDeckCards.stream().mapToInt(DeckCard::getQuantity).sum();
         int lands = 0;
         int ramp = 0;
         int draw = 0;
@@ -29,7 +30,7 @@ public class DeckRoleAnalyzer {
         int finishers = 0;
         double cmcSum = 0.0;
 
-        for (DeckCard deckCard : deck.getCards()) {
+        for (DeckCard deckCard : mainDeckCards) {
             CardResponseDTO card = cardsByName.get(normalize(deckCard.getName()));
             int qty = deckCard.getQuantity();
             if (card == null) {
@@ -109,5 +110,11 @@ public class DeckRoleAnalyzer {
 
     private String normalize(String name) {
         return name == null ? "" : name.trim().toLowerCase();
+    }
+
+    private List<DeckCard> mainDeckCards(Deck deck) {
+        return deck.getCards().stream()
+                .filter(card -> "main".equals(card.getZone()))
+                .toList();
     }
 }

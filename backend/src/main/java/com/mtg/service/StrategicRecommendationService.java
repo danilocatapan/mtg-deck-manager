@@ -67,7 +67,7 @@ public class StrategicRecommendationService {
         if (deck.getCommander() == null || deck.getCommander().isBlank()) {
             throw new IllegalStateException("Commander is required for strategic recommendations");
         }
-        int mainDeckCount = deck.getCards().stream().mapToInt(DeckCard::getQuantity).sum();
+        int mainDeckCount = mainDeckCards(deck).stream().mapToInt(DeckCard::getQuantity).sum();
         if (mainDeckCount > 99) {
             throw new IllegalStateException("Commander deck main deck must have at most 99 cards");
         }
@@ -218,5 +218,11 @@ public class StrategicRecommendationService {
             case "theme", "thematic", "mais fiel ao tema" -> "theme";
             default -> "consistency";
         };
+    }
+
+    private List<DeckCard> mainDeckCards(Deck deck) {
+        return deck.getCards().stream()
+                .filter(card -> "main".equals(card.getZone()))
+                .toList();
     }
 }

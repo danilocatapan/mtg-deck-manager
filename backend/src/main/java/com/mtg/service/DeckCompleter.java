@@ -24,7 +24,10 @@ public class DeckCompleter {
         List<RecommendationItem> picks = new ArrayList<>();
 
         // determine available candidates per role (excluding existing) to avoid blocking fills
-        Set<String> existing = deck.getCards().stream().map(DeckCard::getName).collect(Collectors.toSet());
+        Set<String> existing = deck.getCards().stream()
+                .filter(deckCard -> "main".equals(deckCard.getZone()))
+                .map(DeckCard::getName)
+                .collect(Collectors.toSet());
         Map<String, Integer> availableByRole = new HashMap<>();
         for (RecommendationItem rc : rankedCandidates) {
             if (existing.contains(rc.name())) continue;

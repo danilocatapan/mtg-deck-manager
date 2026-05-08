@@ -21,14 +21,14 @@ function parsePreview(content) {
 
     const match = line.match(/^(\d+)\s+(.+)$/)
     if (!match) {
-      errors.push({ line: index + 1, message: `Line ${index + 1}: use "quantity card name".` })
+      errors.push({ line: index + 1, message: `Linha ${index + 1}: use "quantidade nome da carta".` })
       return
     }
 
     const quantity = Number(match[1])
     const name = match[2].trim()
     if (quantity < 1 || !name) {
-      errors.push({ line: index + 1, message: `Line ${index + 1}: quantity must be greater than zero and card name is required.` })
+      errors.push({ line: index + 1, message: `Linha ${index + 1}: a quantidade deve ser maior que zero e o nome da carta e obrigatorio.` })
       return
     }
 
@@ -57,9 +57,9 @@ export default function ImportDeckPage({ onDone }) {
   const isOverLimit = preview.total > 99
   const validationItems = [
     { label: 'Total', value: `${preview.total}/99`, tone: isOverLimit ? 'bad' : preview.total === 99 ? 'good' : 'warning' },
-    { label: 'Invalid cards', value: preview.errors.length, tone: preview.errors.length ? 'bad' : 'good' },
-    { label: 'Duplicates', value: preview.duplicates.length, tone: preview.duplicates.length ? 'warning' : 'good' },
-    { label: 'Off-color', value: 0, tone: 'good' },
+    { label: 'Linhas invalidas', value: preview.errors.length, tone: preview.errors.length ? 'bad' : 'good' },
+    { label: 'Duplicadas', value: preview.duplicates.length, tone: preview.duplicates.length ? 'warning' : 'good' },
+    { label: 'Cores', value: 'Pendente', tone: 'warning' },
   ]
   const canImport = name.trim() && commander.trim() && preview.cards.length > 0 && preview.errors.length === 0 && !isOverLimit
 
@@ -74,28 +74,28 @@ export default function ImportDeckPage({ onDone }) {
       setError(null)
       setMessage(null)
       if (!name.trim() || !commander.trim()) {
-        setError('Deck name and commander are required.')
+        setError('Nome do deck e comandante sao obrigatorios.')
         return
       }
       if (preview.errors.length > 0) {
-        setError('Fix the highlighted import lines before saving.')
+        setError('Corrija as linhas destacadas antes de salvar.')
         return
       }
       if (isOverLimit) {
-        setError(`Imported deck has ${preview.total} cards; maximum is 99.`)
+        setError(`O deck importado tem ${preview.total} cartas; o maximo e 99.`)
         return
       }
       if (preview.cards.length === 0) {
-        setError('Paste or upload a deck list before importing.')
+        setError('Cole ou envie uma lista antes de importar.')
         return
       }
 
       setLoading(true)
       const created = await importDeck({ name: name.trim(), commander: commander.trim(), content })
-      setMessage(`Imported ${created.name}.`)
-      onDone && onDone(`Imported ${created.name}.`)
+      setMessage(`${created.name} importado.`)
+      onDone && onDone(`${created.name} importado.`, created)
     } catch (e) {
-      setError(e.message || 'Import failed.')
+      setError(e.message || 'Falha na importacao.')
     } finally {
       setLoading(false)
     }
@@ -106,10 +106,10 @@ export default function ImportDeckPage({ onDone }) {
       <section className="zone zone-command page-heading">
         <div>
           <p className="eyebrow">Command Zone</p>
-          <h1>Import Deck</h1>
-          <p className="page-description">Paste a Commander list using one card per line. Preview and validation run before anything is saved.</p>
+          <h1>Importar Deck</h1>
+          <p className="page-description">Cole uma lista Commander com uma carta por linha. O preview roda antes de salvar; cores sao validadas apos resolver as cartas no backend.</p>
         </div>
-        <Button variant="secondary" onClick={() => onDone && onDone()}>Back to Decks</Button>
+        <Button variant="secondary" onClick={() => onDone && onDone()}>Voltar aos Decks</Button>
       </section>
 
       {message && <div className="status success">{message}</div>}
@@ -128,32 +128,32 @@ export default function ImportDeckPage({ onDone }) {
 
           <div className="form-grid">
             <label>
-              Deck name
+              Nome do deck
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Gruul Revels" />
             </label>
             <label>
-              Commander
+              Comandante
               <input value={commander} onChange={(e) => setCommander(e.target.value)} placeholder="Xenagos, God of Revels" />
             </label>
           </div>
 
           <label>
-            Paste deck list
-            <small>Format: quantity followed by exact card name.</small>
+            Colar lista do deck
+            <small>Formato: quantidade seguida pelo nome exato da carta.</small>
             <textarea rows={14} value={content} onChange={(e) => setContent(e.target.value)} placeholder={SAMPLE_DECK} />
           </label>
 
           <label>
-            Upload .txt file
+            Enviar arquivo .txt
             <input type="file" accept=".txt" onChange={(e) => handleFile(e.target.files?.[0])} />
           </label>
 
           <div className="form-actions">
             <Button onClick={handleSubmit} disabled={loading || !canImport}>
               <img className="btn-icon" src={importIcon} alt="" aria-hidden="true" />
-              {loading ? 'Importing...' : 'Import Deck'}
+              {loading ? 'Importando...' : 'Importar Deck'}
             </Button>
-            <Button variant="secondary" onClick={() => setContent(SAMPLE_DECK)}>Use Example</Button>
+            <Button variant="secondary" onClick={() => setContent(SAMPLE_DECK)}>Usar exemplo</Button>
           </div>
         </Card>
 
@@ -172,7 +172,7 @@ export default function ImportDeckPage({ onDone }) {
           )}
 
           {preview.cards.length === 0 ? (
-            <div className="empty-inline">Paste a list to preview card quantities before saving.</div>
+            <div className="empty-inline">Cole uma lista para visualizar quantidades antes de salvar.</div>
           ) : (
             <div className="deck-table compact">
               {preview.cards.map((card, index) => (
