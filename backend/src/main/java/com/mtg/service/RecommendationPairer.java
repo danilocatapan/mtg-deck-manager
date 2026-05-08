@@ -6,6 +6,7 @@ import com.mtg.domain.RecommendationCardInsight;
 import com.mtg.domain.RecommendationImpact;
 import com.mtg.domain.RecommendationSourceContext;
 import com.mtg.service.meta.RoleTargets;
+import com.mtg.service.rules.CommanderGameChangerService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -20,6 +21,9 @@ public class RecommendationPairer {
 
     @Inject
     RecommendationReasoningBuilder reasoningBuilder;
+
+    @Inject
+    CommanderGameChangerService commanderGameChangerService;
 
     public List<StrategicRecommendation> pair(
             List<StrategicCandidate> adds,
@@ -63,6 +67,22 @@ public class RecommendationPairer {
             String recommendationMode,
             Double budget
     ) {
+        return pair(adds, cuts, profile, roles, maxRecommendations, bracket, sampleSize, sources, recommendationMode, budget, 0);
+    }
+
+    public List<StrategicRecommendation> pair(
+            List<StrategicCandidate> adds,
+            List<StrategicCandidate> cuts,
+            CommanderArchetypeProfile profile,
+            DeckRoleSummary roles,
+            int maxRecommendations,
+            String bracket,
+            int sampleSize,
+            List<String> sources,
+            String recommendationMode,
+            Double budget,
+            int currentGameChangers
+    ) {
         List<StrategicRecommendation> recommendations = new ArrayList<>();
         Set<String> usedAdds = new HashSet<>();
         Set<String> usedCuts = new HashSet<>();
@@ -81,7 +101,7 @@ public class RecommendationPairer {
             }
             usedCuts.add(normalize(cut.card().name()));
             String source = add.metaDriven() ? "meta_profile" : "heuristic_fallback";
-            RecommendationImpact impact = impactFor(add, cut, roles);
+            RecommendationImpact impact = impactFor(add, cut, roles, currentGameChangers);
             recommendations.add(new StrategicRecommendation(
                     recommendationId(add, cut),
                     reasoningBuilder.build(add, cut, profile, roles),
@@ -151,7 +171,9 @@ public class RecommendationPairer {
                 "rampDelta", (double) (impact.rampAfter() - impact.rampBefore()),
                 "drawDelta", (double) (impact.drawAfter() - impact.drawBefore()),
                 "interactionDelta", (double) (impact.removalAfter() - impact.removalBefore()),
-                "protectionDelta", (double) (impact.protectionAfter() - impact.protectionBefore())
+                "protectionDelta", (double) (impact.protectionAfter() - impact.protectionBefore()),
+                "gameChangersDelta", (double) (impact.gameChangersAfter() - impact.gameChangersBefore()),
+                "bracketPressureDelta", (double) (impact.bracketPressureAfter() - impact.bracketPressureBefore())
         );
     }
 
@@ -212,21 +234,58 @@ public class RecommendationPairer {
         return fallback;
     }
 
-    private RecommendationImpact impactFor(StrategicCandidate add, StrategicCandidate cut, DeckRoleSummary roles) {
+    private RecommendationImpact impactFor(StrategicCandidate add, StrategicCandidate cut, DeckRoleSummary roles, int currentGameChangers) {
         String role = add.role();
+        int rampAfter = nextRoleCount(roles.ramp(), role, cut.role(), "ramp");
+        int drawAfter = nextRoleCount(roles.draw(), role, cut.role(), "draw");
+        int removalAfter = nextRoleCount(roles.removal(), role, cut.role(), "removal");
+        int protectionAfter = nextRoleCount(roles.protection(), role, cut.role(), "protection");
+        double averageCmcAfter = averageAfterSwap(roles.averageCmc(), roles.totalCards(), cut.card().cmc(), add.card().cmc());
+        int gameChangersAfter = Math.max(0, currentGameChangers - gameChangerValue(cut.card()) + gameChangerValue(add.card()));
         return new RecommendationImpact(
                 role,
                 roles.averageCmc(),
-                averageAfterSwap(roles.averageCmc(), roles.totalCards(), cut.card().cmc(), add.card().cmc()),
+                averageCmcAfter,
                 roles.ramp(),
-                nextRoleCount(roles.ramp(), role, cut.role(), "ramp"),
+                rampAfter,
                 roles.draw(),
-                nextRoleCount(roles.draw(), role, cut.role(), "draw"),
+                drawAfter,
                 roles.removal(),
-                nextRoleCount(roles.removal(), role, cut.role(), "removal"),
+                removalAfter,
                 roles.protection(),
-                nextRoleCount(roles.protection(), role, cut.role(), "protection")
+                protectionAfter,
+                currentGameChangers,
+                gameChangersAfter,
+                bracketPressure(roles.averageCmc(), roles.ramp(), roles.draw(), roles.removal(), roles.protection(), roles.finishers(), currentGameChangers),
+                bracketPressure(averageCmcAfter, rampAfter, drawAfter, removalAfter, protectionAfter, roles.finishers(), gameChangersAfter)
         );
+    }
+
+    private int gameChangerValue(com.mtg.dto.CardResponseDTO card) {
+        if (card == null || card.name() == null || commanderGameChangerService == null) {
+            return 0;
+        }
+        return commanderGameChangerService.isGameChanger(card.name()) ? 1 : 0;
+    }
+
+    private int bracketPressure(
+            double averageCmc,
+            int ramp,
+            int draw,
+            int removal,
+            int protection,
+            int finishers,
+            int gameChangers
+    ) {
+        int speed = clampScore((int) Math.round((4.2 - averageCmc) * 18 + ramp * 2.2));
+        int consistency = clampScore((int) Math.round(draw * 5.0 + ramp * 1.4));
+        int interaction = clampScore(removal * 7 + protection * 5);
+        int threat = clampScore(finishers * 12 + gameChangers * 16);
+        return clampScore((speed + consistency + interaction + threat) / 4);
+    }
+
+    private int clampScore(int value) {
+        return Math.max(0, Math.min(100, value));
     }
 
     private Double averageAfterSwap(double averageBefore, int totalCards, Double cutCmc, Double addCmc) {

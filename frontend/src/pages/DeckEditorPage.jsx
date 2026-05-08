@@ -149,7 +149,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       setComparison(deckComparison)
       setPackages(deckPackages)
       setActivePanel('recommendations')
-      setMessage(`${Array.isArray(recommendations) ? recommendations.length : 0} strategic recommendations generated.`)
+      setMessage(`${Array.isArray(recommendations) ? recommendations.length : 0} recomendacoes estrategicas geradas.`)
     } catch (e) {
       console.error('recommendations error', e)
       console.info('event=recommendation.request.failed', { deckId: currentDeck.id })
@@ -286,7 +286,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
         <div className="card zone zone-battlefield">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Battlefield Metrics</p>
+              <p className="eyebrow">Metricas do Campo de Batalha</p>
               <h2>Analise</h2>
               <p>Metricas estruturais que orientam decisoes do deck.</p>
             </div>
@@ -303,7 +303,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
         <div className="card zone zone-sideboard">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Sideboard / Upgrade Path</p>
+              <p className="eyebrow">Sideboard / Caminho de Upgrade</p>
               <h2>Recomendacoes</h2>
               <p>Trocas cientes de bracket explicam o problema, por que a adicao ajuda e por que o corte e aceitavel.</p>
             </div>
@@ -361,4 +361,5 @@ function impactSummary(item) {
   const impact = item?.impact
   if (!impact) return null
   return `CMC ${Number(impact.averageCmcBefore || 0).toFixed(2)} -> ${Number(impact.averageCmcAfter || 0).toFixed(2)}; ramp ${impact.rampBefore ?? '-'} -> ${impact.rampAfter ?? '-'}; compra ${impact.drawBefore ?? '-'} -> ${impact.drawAfter ?? '-'}; interacao ${impact.removalBefore ?? '-'} -> ${impact.removalAfter ?? '-'}.`
+    + ` Game Changers ${impact.gameChangersBefore ?? '-'} -> ${impact.gameChangersAfter ?? '-'}; pressao bracket ${impact.bracketPressureBefore ?? '-'} -> ${impact.bracketPressureAfter ?? '-'}.`
 }

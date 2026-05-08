@@ -9,21 +9,30 @@ export default function DeckAnalysis({ analysis }) {
   const percent = (value) => `${Math.round(Number(value || 0) * 100)}%`
 
   const metrics = [
-    ['Average CMC', analysis.averageCmc],
-    ['Total Cards', analysis.totalCards],
+    ['CMC medio', analysis.averageCmc],
+    ['Cartas no deck', analysis.totalCards],
     ['Ramp', analysis.rampCount],
-    ['Draw', analysis.drawCount],
-    ['Removal', analysis.removalCount],
+    ['Compra', analysis.drawCount],
+    ['Interacao', analysis.removalCount],
   ]
   const diagnostics = [
-    { label: 'Early Game', value: (analysis.manaCurve?.[0] || 0) + (analysis.manaCurve?.[1] || 0) + (analysis.manaCurve?.[2] || 0), goodAt: 16 },
-    { label: 'Ramp Density', value: analysis.rampCount ?? 0, goodAt: 10 },
-    { label: 'Interaction', value: analysis.removalCount ?? 0, goodAt: 8 },
-    { label: 'Card Advantage', value: analysis.drawCount ?? 0, goodAt: 8 },
+    { label: 'Jogo inicial', value: (analysis.manaCurve?.[0] || 0) + (analysis.manaCurve?.[1] || 0) + (analysis.manaCurve?.[2] || 0), goodAt: 16, action: 'Adicione cartas de custo 0-2 para reduzir maos lentas.' },
+    { label: 'Densidade de ramp', value: analysis.rampCount ?? 0, goodAt: 10, action: 'Priorize ramp de custo baixo ou fixing se estiver abaixo do alvo.' },
+    { label: 'Interacao', value: analysis.removalCount ?? 0, goodAt: 8, action: 'Inclua respostas pontuais ou interacao de pilha conforme o bracket.' },
+    { label: 'Card advantage', value: analysis.drawCount ?? 0, goodAt: 8, action: 'Aumente compra, selecao ou motores de valor recorrente.' },
   ].map((item) => ({
     ...item,
     tone: item.value >= item.goodAt ? 'good' : item.value >= Math.ceil(item.goodAt * 0.65) ? 'warning' : 'bad',
   }))
+  const actionableDiagnostics = diagnostics
+    .filter((item) => item.tone !== 'good')
+    .slice(0, 3)
+  const scoreAlerts = [
+    analysis.score?.speed < 45 ? 'A velocidade esta baixa: revise curva e ramp inicial.' : null,
+    analysis.score?.interaction < 45 ? 'A interacao esta baixa: o deck pode ter dificuldade para responder ameacas.' : null,
+    analysis.score?.consistency < 45 ? 'A consistencia esta baixa: aumente compra, selecao ou redundancia funcional.' : null,
+    analysis.score?.threat < 45 ? 'As ameacas estao baixas: confirme como o deck fecha a partida.' : null,
+  ].filter(Boolean)
 
   return (
     <div className="analysis-panel">
@@ -35,6 +44,28 @@ export default function DeckAnalysis({ analysis }) {
           </div>
         ))}
       </div>
+
+      {(actionableDiagnostics.length > 0 || scoreAlerts.length > 0) && (
+        <>
+          <h4>Diagnostico acionavel</h4>
+          <div className="diagnostic-grid">
+            {actionableDiagnostics.map((item) => (
+              <div key={item.label} className={`diagnostic-card metric-${item.tone}`}>
+                <span>{item.label}</span>
+                <strong>{diagnosticTitle(item.tone)}</strong>
+                <small>{item.action}</small>
+              </div>
+            ))}
+            {scoreAlerts.slice(0, Math.max(0, 3 - actionableDiagnostics.length)).map((alert) => (
+              <div key={alert} className="diagnostic-card metric-warning">
+                <span>Score explicavel</span>
+                <strong>Ajustar</strong>
+                <small>{alert}</small>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {analysis.score && (
         <>
@@ -59,13 +90,13 @@ export default function DeckAnalysis({ analysis }) {
         </>
       )}
 
-      <h4>Commander Diagnostics</h4>
+      <h4>Diagnosticos Commander</h4>
       <div className="diagnostic-grid">
         {diagnostics.map((item) => (
           <div key={item.label} className={`diagnostic-card metric-${item.tone}`}>
             <span>{item.label}</span>
             <strong>{formatMetric(item.value)}</strong>
-            <small>Target {item.goodAt}+</small>
+            <small>Alvo {item.goodAt}+ | {diagnosticTitle(item.tone)}</small>
           </div>
         ))}
       </div>
@@ -192,7 +223,7 @@ export default function DeckAnalysis({ analysis }) {
         </>
       )}
 
-      <h4>Mana Curve</h4>
+      <h4>Curva de mana</h4>
       <div className="mana-curve">
         {analysis.manaCurve && Object.entries(analysis.manaCurve).map(([cmc, count]) => (
           <div key={cmc} className="curve-row">
@@ -270,4 +301,10 @@ function scoreTone(value) {
   if (Number(value) >= 70) return 'good'
   if (Number(value) >= 45) return 'warning'
   return 'bad'
+}
+
+function diagnosticTitle(tone) {
+  if (tone === 'good') return 'Saudavel'
+  if (tone === 'warning') return 'Atencao'
+  return 'Critico'
 }

@@ -10,6 +10,7 @@ import com.mtg.service.meta.CommanderMetaProfile;
 import com.mtg.service.meta.CommanderMetaProfileService;
 import com.mtg.service.meta.MetaCard;
 import com.mtg.service.meta.MetaProvider;
+import com.mtg.service.rules.CommanderGameChangerService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
@@ -55,6 +56,9 @@ public class StrategicRecommendationService {
 
     @Inject
     BracketMetaPolicy bracketMetaPolicy;
+
+    @Inject
+    CommanderGameChangerService commanderGameChangerService;
 
     public List<StrategicRecommendation> recommend(Long deckId, com.mtg.dto.RecommendationParamsDTO params) {
         return recommend(deckId, params, null);
@@ -152,7 +156,8 @@ public class StrategicRecommendationService {
                 metaProfile.sampleSize(),
                 metaProfile.sourcesUsed(),
                 recommendationMode,
-                budget
+                budget,
+                currentGameChangers(deck)
         );
         LOG.infov(
                 "event=recommendation.strategic.completed deckId={0} recommendations={1}",
@@ -235,6 +240,19 @@ public class StrategicRecommendationService {
         if (Boolean.TRUE.equals(params.moreInteraction())) filters.add("more-interaction");
         if (Boolean.TRUE.equals(params.preserveTheme())) filters.add("preserve-theme");
         return filters;
+    }
+
+    private int currentGameChangers(Deck deck) {
+        if (deck == null || commanderGameChangerService == null) {
+            return 0;
+        }
+        int count = commanderGameChangerService.isGameChanger(deck.getCommander()) ? 1 : 0;
+        for (DeckCard card : mainDeckCards(deck)) {
+            if (commanderGameChangerService.isGameChanger(card.getName())) {
+                count += Math.max(1, card.getQuantity());
+            }
+        }
+        return count;
     }
 
     private List<DeckCard> mainDeckCards(Deck deck) {

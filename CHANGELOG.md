@@ -13,3 +13,5 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 
 ### Changed
 - Build local passa a usar metadados seguros quando o pipeline ainda nao gerou uma versao.
+- Analise do deck passa a destacar diagnosticos acionaveis em PT-BR, com alertas de curva, ramp, compra e interacao.
+- Cards de recomendacao passam a mostrar impacto antes/depois para curva, ramp, compra, interacao, Game Changers e pressao de bracket.

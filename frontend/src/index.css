@@ -2350,6 +2350,59 @@ dt {
   line-height: 1.45;
 }
 
+.impact-delta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.impact-delta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid rgba(156, 163, 175, 0.24);
+  border-radius: 8px;
+  background: rgba(8, 17, 12, 0.54);
+}
+
+.impact-delta small {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.impact-delta b {
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.impact-delta em {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.impact-delta.positive {
+  border-color: rgba(143, 203, 107, 0.44);
+  background: rgba(143, 203, 107, 0.08);
+}
+
+.impact-delta.positive em {
+  color: var(--color-good);
+}
+
+.impact-delta.negative {
+  border-color: rgba(184, 92, 69, 0.52);
+  background: rgba(184, 92, 69, 0.1);
+}
+
+.impact-delta.negative em {
+  color: #fecaca;
+}
+
 .reasoning-block p {
   color: var(--color-text);
   line-height: 1.62;

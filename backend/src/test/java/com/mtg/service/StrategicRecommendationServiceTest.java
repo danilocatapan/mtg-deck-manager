@@ -142,6 +142,10 @@ class StrategicRecommendationServiceTest {
         assertEquals(4, recommendations.getFirst().sourceContext().sampleSize());
         assertEquals("Greater Good", recommendations.getFirst().addInsight().name());
         assertEquals(0.95, recommendations.getFirst().addInsight().inclusionRate(), 0.001);
+        assertTrue(recommendations.getFirst().impact().bracketPressureBefore() >= 0);
+        assertTrue(recommendations.getFirst().impact().bracketPressureAfter() >= 0);
+        assertEquals(0, recommendations.getFirst().impact().gameChangersBefore());
+        assertEquals(0, recommendations.getFirst().impact().gameChangersAfter());
         assertFalse(recommendations.getFirst().comparisons().isEmpty());
         assertTrue(recommendations.getFirst().tags().contains("meta"));
         assertTrue(recommendations.getFirst().tags().contains("draw"));

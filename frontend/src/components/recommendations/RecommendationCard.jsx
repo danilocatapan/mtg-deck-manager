@@ -65,6 +65,7 @@ export default function RecommendationCard({ item, index, bracket, onApply, onUn
   const addInsight = item?.addInsight
   const impact = item?.impact
   const comparisons = Array.isArray(item?.comparisons) ? item.comparisons : []
+  const impactRows = impact ? buildImpactRows(impact) : []
 
   return (
     <article className="recommendation-card-pro">
@@ -124,18 +125,16 @@ export default function RecommendationCard({ item, index, bracket, onApply, onUn
           {impact && (
             <div>
               <span className="rec-label">Impacto numerico</span>
-              <strong>{roleLabel(impact.role)}</strong>
-              <p>
-                CMC medio {Number(impact.averageCmcBefore || 0).toFixed(2)}
-                {' para '}
-                {Number(impact.averageCmcAfter || 0).toFixed(2)}
-                {' | '}
-                Ramp {impact.rampBefore ?? '-'} para {impact.rampAfter ?? '-'}
-                {' | '}
-                Compra {impact.drawBefore ?? '-'} para {impact.drawAfter ?? '-'}
-                {' | '}
-                Interacao {impact.removalBefore ?? '-'} para {impact.removalAfter ?? '-'}
-              </p>
+              <strong>{roleLabel(impact.role)} | antes e depois</strong>
+              <div className="impact-delta-grid" aria-label="Impacto da troca antes e depois">
+                {impactRows.map((row) => (
+                  <span key={row.label} className={`impact-delta ${row.tone}`}>
+                    <small>{row.label}</small>
+                    <b>{row.before} -&gt; {row.after}</b>
+                    <em>{row.delta}</em>
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
@@ -197,4 +196,85 @@ function confidenceReason(confidence, sampleSize = 0, source = '') {
   if (confidence === 'low' && source !== 'meta_profile') return 'fallback heuristico com pouca evidencia externa.'
   if (confidence === 'low') return `amostra pequena (${sampleSize || 0}) ou score abaixo do alvo.`
   return source === 'meta_profile' ? 'dados de meta disponiveis, mas ainda com margem de revisao.' : 'heuristica local com score aceitavel.'
+}
+
+function buildImpactRows(impact) {
+  return [
+    {
+      label: 'Curva',
+      before: numberValue(impact.averageCmcBefore, 2),
+      after: numberValue(impact.averageCmcAfter, 2),
+      delta: deltaValue(impact.averageCmcAfter, impact.averageCmcBefore, 2),
+      tone: lowerIsBetterTone(impact.averageCmcBefore, impact.averageCmcAfter),
+    },
+    {
+      label: 'Ramp',
+      before: integerValue(impact.rampBefore),
+      after: integerValue(impact.rampAfter),
+      delta: deltaValue(impact.rampAfter, impact.rampBefore),
+      tone: higherIsBetterTone(impact.rampBefore, impact.rampAfter),
+    },
+    {
+      label: 'Compra',
+      before: integerValue(impact.drawBefore),
+      after: integerValue(impact.drawAfter),
+      delta: deltaValue(impact.drawAfter, impact.drawBefore),
+      tone: higherIsBetterTone(impact.drawBefore, impact.drawAfter),
+    },
+    {
+      label: 'Interacao',
+      before: integerValue(impact.removalBefore),
+      after: integerValue(impact.removalAfter),
+      delta: deltaValue(impact.removalAfter, impact.removalBefore),
+      tone: higherIsBetterTone(impact.removalBefore, impact.removalAfter),
+    },
+    {
+      label: 'Game Changers',
+      before: integerValue(impact.gameChangersBefore),
+      after: integerValue(impact.gameChangersAfter),
+      delta: deltaValue(impact.gameChangersAfter, impact.gameChangersBefore),
+      tone: lowerIsBetterTone(impact.gameChangersBefore, impact.gameChangersAfter),
+    },
+    {
+      label: 'Pressao bracket',
+      before: integerValue(impact.bracketPressureBefore),
+      after: integerValue(impact.bracketPressureAfter),
+      delta: deltaValue(impact.bracketPressureAfter, impact.bracketPressureBefore),
+      tone: lowerIsBetterTone(impact.bracketPressureBefore, impact.bracketPressureAfter),
+    },
+  ]
+}
+
+function numberValue(value, digits = 0) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return '-'
+  return digits > 0 ? numeric.toFixed(digits) : String(Math.round(numeric))
+}
+
+function integerValue(value) {
+  return numberValue(value, 0)
+}
+
+function deltaValue(after, before, digits = 0) {
+  const left = Number(before)
+  const right = Number(after)
+  if (!Number.isFinite(left) || !Number.isFinite(right)) return 'sem dado'
+  const delta = right - left
+  if (Math.abs(delta) < 0.005) return 'sem mudanca'
+  const formatted = digits > 0 ? Math.abs(delta).toFixed(digits) : String(Math.round(Math.abs(delta)))
+  return `${delta > 0 ? '+' : '-'}${formatted}`
+}
+
+function higherIsBetterTone(before, after) {
+  const left = Number(before)
+  const right = Number(after)
+  if (!Number.isFinite(left) || !Number.isFinite(right) || left === right) return 'neutral'
+  return right > left ? 'positive' : 'negative'
+}
+
+function lowerIsBetterTone(before, after) {
+  const left = Number(before)
+  const right = Number(after)
+  if (!Number.isFinite(left) || !Number.isFinite(right) || left === right) return 'neutral'
+  return right < left ? 'positive' : 'negative'
 }

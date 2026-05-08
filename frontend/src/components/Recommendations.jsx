@@ -85,7 +85,7 @@ export default function Recommendations({ rec, metaProfile, metaSources = [] }) 
 
   return (
     <div className="recommendation-results">
-      <h3>Recommendations</h3>
+      <h3>Recomendacoes</h3>
       <MetaContext metaProfile={metaProfile} metaSources={metaSources} />
       {Array.isArray(rec) && <StrategicRecommendations rec={rec} />}
 
@@ -105,19 +105,19 @@ export default function Recommendations({ rec, metaProfile, metaSources = [] }) 
 
       {!Array.isArray(rec) && rec.add && rec.add.length > 0 && (
         <div>
-          <h4>Add</h4>
+          <h4>Adicionar</h4>
           <div className="recommendation-grid">
             {rec.add.map((i, index) => (
               <article key={recommendationKey(i, index)} className="recommendation-card">
                 <div>
-                  <span className="rec-label">Suggested card</span>
+                  <span className="rec-label">Carta sugerida</span>
                   <h5>{quantity(i)} x {i.name}</h5>
                 </div>
                 <dl>
-                  <div><dt>Strategic role</dt><dd>{i.role || 'Upgrade slot'}</dd></div>
-                  <div><dt>Reason</dt><dd>{i.reason || 'Improves deck consistency.'}</dd></div>
-                  <div><dt>Expected impact</dt><dd>{impactFor(i, '+consistency')}</dd></div>
-                  <div><dt>Priority</dt><dd>{priorityFor(i)}</dd></div>
+                  <div><dt>Papel estrategico</dt><dd>{i.role || 'Slot de upgrade'}</dd></div>
+                  <div><dt>Motivo</dt><dd>{i.reason || 'Melhora a consistencia do deck.'}</dd></div>
+                  <div><dt>Impacto esperado</dt><dd>{impactFor(i, '+consistencia')}</dd></div>
+                  <div><dt>Prioridade</dt><dd>{priorityFor(i)}</dd></div>
                 </dl>
               </article>
             ))}
@@ -127,19 +127,19 @@ export default function Recommendations({ rec, metaProfile, metaSources = [] }) 
 
       {!Array.isArray(rec) && rec.cut && rec.cut.length > 0 && (
         <div>
-          <h4>Cut</h4>
+          <h4>Remover</h4>
           <div className="recommendation-grid">
             {rec.cut.map((i, index) => (
               <article key={recommendationKey(i, index)} className="recommendation-card cut-card">
                 <div>
-                  <span className="rec-label">Cut candidate</span>
+                  <span className="rec-label">Candidato a corte</span>
                   <h5>{quantity(i)} x {i.name}</h5>
                 </div>
                 <dl>
-                  <div><dt>Strategic role</dt><dd>{i.role || 'Lower-impact slot'}</dd></div>
-                  <div><dt>Reason</dt><dd>{i.reason || 'Frees space for a stronger plan.'}</dd></div>
-                  <div><dt>Expected impact</dt><dd>{impactFor(i, '+focus')}</dd></div>
-                  <div><dt>Priority</dt><dd>{priorityFor(i)}</dd></div>
+                  <div><dt>Papel estrategico</dt><dd>{i.role || 'Slot de menor impacto'}</dd></div>
+                  <div><dt>Motivo</dt><dd>{i.reason || 'Abre espaco para um plano mais forte.'}</dd></div>
+                  <div><dt>Impacto esperado</dt><dd>{impactFor(i, '+foco')}</dd></div>
+                  <div><dt>Prioridade</dt><dd>{priorityFor(i)}</dd></div>
                 </dl>
               </article>
             ))}
