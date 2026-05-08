@@ -87,10 +87,16 @@ class DeckAnalysisServiceTest {
 
         assertEquals(40, analysis.totalCards());
         assertEquals(35, analysis.manaBase().landCount());
+        assertEquals(1, analysis.manaBase().manaRockCount());
+        assertEquals(35, analysis.manaBase().colorSources().get("G"));
+        assertEquals(2, analysis.manaBase().pipDemand().get("G"));
         assertEquals(1, analysis.boardWipeCount());
         assertEquals(1, analysis.protectionCount());
         assertEquals(1, analysis.combos().present().size());
         assertEquals("Basalt Monolith + Rings of Brighthearth", analysis.combos().present().getFirst().name());
+        assertTrue(analysis.combos().version().startsWith("2026-05-08"));
+        assertTrue(analysis.cardTags().containsKey("mana-rock"));
+        assertTrue(analysis.cardTags().containsKey("protection"));
         assertTrue(analysis.probabilities().openingHandTwoPlusLands() > 0.9);
         assertTrue(analysis.score().bracketPressure() > 0);
     }

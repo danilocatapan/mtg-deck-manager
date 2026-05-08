@@ -1,57 +1,1325 @@
 {
-  "source": "Commander Spellbook / EDH-Combos local snapshot",
-  "notes": [
-    "Small offline seed used for deterministic deck diagnostics.",
-    "Future ingestion can replace this file with a larger Commander Spellbook or EDH-Combos export."
-  ],
-  "combos": [
-    {
-      "name": "Basalt Monolith + Rings of Brighthearth",
-      "cards": ["Basalt Monolith", "Rings of Brighthearth"],
-      "result": "mana infinito incolor",
-      "source": "Commander Spellbook"
-    },
-    {
-      "name": "Dramatic Reversal + Isochron Scepter",
-      "cards": ["Dramatic Reversal", "Isochron Scepter"],
-      "result": "mana infinito com rochas que geram 3+ mana",
-      "source": "Commander Spellbook"
-    },
-    {
-      "name": "Kiki-Jiki + Zealous Conscripts",
-      "cards": ["Kiki-Jiki, Mirror Breaker", "Zealous Conscripts"],
-      "result": "criaturas infinitas com haste",
-      "source": "Commander Spellbook"
-    },
-    {
-      "name": "Thassa's Oracle + Demonic Consultation",
-      "cards": ["Thassa's Oracle", "Demonic Consultation"],
-      "result": "vitoria imediata ao esvaziar o grimorio",
-      "source": "Commander Spellbook"
-    },
-    {
-      "name": "Heliod + Walking Ballista",
-      "cards": ["Heliod, Sun-Crowned", "Walking Ballista"],
-      "result": "dano infinito com lifelink e marcadores",
-      "source": "Commander Spellbook"
-    },
-    {
-      "name": "Aggravated Assault + Savage Ventmaw",
-      "cards": ["Aggravated Assault", "Savage Ventmaw"],
-      "result": "combates repetidos e potencial dano letal",
-      "source": "EDH-Combos"
-    },
-    {
-      "name": "Sanguine Bond + Exquisite Blood",
-      "cards": ["Sanguine Bond", "Exquisite Blood"],
-      "result": "dreno infinito de vida",
-      "source": "Commander Spellbook"
-    },
-    {
-      "name": "Peregrine Drake + Deadeye Navigator",
-      "cards": ["Peregrine Drake", "Deadeye Navigator"],
-      "result": "mana infinito ao reutilizar terrenos",
-      "source": "Commander Spellbook"
-    }
-  ]
+   "source":"Commander Spellbook / EDH-Combos local snapshot",
+   "version":"2026-05-08-local-seed-expanded",
+   "updatedAt":"2026-05-08",
+   "sourceUrl":"[https://commanderspellbook.com/](https://commanderspellbook.com/)",
+   "notes":[
+      "Offline seed usado para diagnóstico determinístico de combos em decks Commander.",
+      "Lista focada em combos conhecidos, recorrentes e relevantes para EDH/cEDH.",
+      "Campo result mantido em pt-BR.",
+      "Esta lista não substitui ingestão completa futura do Commander Spellbook ou EDH-Combos.",
+      "Future ingestion can replace this file with a larger Commander Spellbook or EDH-Combos export."
+   ],
+   "combos":[
+      {
+         "name":"Basalt Monolith + Rings of Brighthearth",
+         "cards":[
+            "Basalt Monolith",
+            "Rings of Brighthearth"
+         ],
+         "result":"mana infinito incolor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Basalt Monolith + Forsaken Monument",
+         "cards":[
+            "Basalt Monolith",
+            "Forsaken Monument"
+         ],
+         "result":"mana infinito incolor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Grim Monolith + Power Artifact",
+         "cards":[
+            "Grim Monolith",
+            "Power Artifact"
+         ],
+         "result":"mana infinito incolor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dramatic Reversal + Isochron Scepter",
+         "cards":[
+            "Dramatic Reversal",
+            "Isochron Scepter"
+         ],
+         "result":"mana infinito com permanentes que geram 3+ mana",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Thassa's Oracle + Demonic Consultation",
+         "cards":[
+            "Thassa's Oracle",
+            "Demonic Consultation"
+         ],
+         "result":"vitória imediata ao esvaziar o grimório",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Thassa's Oracle + Tainted Pact",
+         "cards":[
+            "Thassa's Oracle",
+            "Tainted Pact"
+         ],
+         "result":"vitória imediata ao esvaziar o grimório",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Laboratory Maniac + Demonic Consultation",
+         "cards":[
+            "Laboratory Maniac",
+            "Demonic Consultation"
+         ],
+         "result":"vitória ao comprar carta com grimório vazio",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Jace, Wielder of Mysteries + Demonic Consultation",
+         "cards":[
+            "Jace, Wielder of Mysteries",
+            "Demonic Consultation"
+         ],
+         "result":"vitória ao comprar carta com grimório vazio",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Underworld Breach + Lion's Eye Diamond + Brain Freeze",
+         "cards":[
+            "Underworld Breach",
+            "Lion's Eye Diamond",
+            "Brain Freeze"
+         ],
+         "result":"mill infinito e vitória por esvaziar grimórios ou gerar storm letal",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Underworld Breach + Lion's Eye Diamond + Wheel of Fortune",
+         "cards":[
+            "Underworld Breach",
+            "Lion's Eye Diamond",
+            "Wheel of Fortune"
+         ],
+         "result":"compra repetida e storm alto com potencial vitória no turno",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Food Chain + Eternal Scourge",
+         "cards":[
+            "Food Chain",
+            "Eternal Scourge"
+         ],
+         "result":"mana infinito restrito para conjurar criaturas",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Food Chain + Misthollow Griffin",
+         "cards":[
+            "Food Chain",
+            "Misthollow Griffin"
+         ],
+         "result":"mana infinito restrito para conjurar criaturas",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Food Chain + Squee, the Immortal",
+         "cards":[
+            "Food Chain",
+            "Squee, the Immortal"
+         ],
+         "result":"mana infinito restrito para conjurar criaturas",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Heliod, Sun-Crowned + Walking Ballista",
+         "cards":[
+            "Heliod, Sun-Crowned",
+            "Walking Ballista"
+         ],
+         "result":"dano infinito com lifelink e marcadores",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Heliod, Sun-Crowned + Triskelion",
+         "cards":[
+            "Heliod, Sun-Crowned",
+            "Triskelion"
+         ],
+         "result":"dano infinito com lifelink e marcadores",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Sanguine Bond + Exquisite Blood",
+         "cards":[
+            "Sanguine Bond",
+            "Exquisite Blood"
+         ],
+         "result":"dreno infinito de vida",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Vito, Thorn of the Dusk Rose + Exquisite Blood",
+         "cards":[
+            "Vito, Thorn of the Dusk Rose",
+            "Exquisite Blood"
+         ],
+         "result":"dreno infinito de vida",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Marauding Blight-Priest + Exquisite Blood",
+         "cards":[
+            "Marauding Blight-Priest",
+            "Exquisite Blood"
+         ],
+         "result":"dreno infinito de vida",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Kiki-Jiki, Mirror Breaker + Zealous Conscripts",
+         "cards":[
+            "Kiki-Jiki, Mirror Breaker",
+            "Zealous Conscripts"
+         ],
+         "result":"criaturas infinitas com haste",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Kiki-Jiki, Mirror Breaker + Combat Celebrant",
+         "cards":[
+            "Kiki-Jiki, Mirror Breaker",
+            "Combat Celebrant"
+         ],
+         "result":"criaturas infinitas com haste e combates adicionais",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Kiki-Jiki, Mirror Breaker + Village Bell-Ringer",
+         "cards":[
+            "Kiki-Jiki, Mirror Breaker",
+            "Village Bell-Ringer"
+         ],
+         "result":"criaturas infinitas com haste",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Kiki-Jiki, Mirror Breaker + Restoration Angel",
+         "cards":[
+            "Kiki-Jiki, Mirror Breaker",
+            "Restoration Angel"
+         ],
+         "result":"criaturas infinitas com haste",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Splinter Twin + Deceiver Exarch",
+         "cards":[
+            "Splinter Twin",
+            "Deceiver Exarch"
+         ],
+         "result":"criaturas infinitas com haste",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Splinter Twin + Pestermite",
+         "cards":[
+            "Splinter Twin",
+            "Pestermite"
+         ],
+         "result":"criaturas infinitas com haste",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Peregrine Drake + Deadeye Navigator",
+         "cards":[
+            "Peregrine Drake",
+            "Deadeye Navigator"
+         ],
+         "result":"mana infinito ao reutilizar terrenos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Palinchron + Deadeye Navigator",
+         "cards":[
+            "Palinchron",
+            "Deadeye Navigator"
+         ],
+         "result":"mana infinito ao reutilizar terrenos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Palinchron + High Tide",
+         "cards":[
+            "Palinchron",
+            "High Tide"
+         ],
+         "result":"mana infinito azul ao reutilizar Ilhas",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Freed from the Real + Bloom Tender",
+         "cards":[
+            "Freed from the Real",
+            "Bloom Tender"
+         ],
+         "result":"mana infinito colorido se Bloom Tender gerar 2+ mana",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Freed from the Real + Faeburrow Elder",
+         "cards":[
+            "Freed from the Real",
+            "Faeburrow Elder"
+         ],
+         "result":"mana infinito colorido se Faeburrow Elder gerar 2+ mana",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Pemmin's Aura + Bloom Tender",
+         "cards":[
+            "Pemmin's Aura",
+            "Bloom Tender"
+         ],
+         "result":"mana infinito colorido se Bloom Tender gerar 2+ mana",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Pemmin's Aura + Faeburrow Elder",
+         "cards":[
+            "Pemmin's Aura",
+            "Faeburrow Elder"
+         ],
+         "result":"mana infinito colorido se Faeburrow Elder gerar 2+ mana",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Devoted Druid + Vizier of Remedies",
+         "cards":[
+            "Devoted Druid",
+            "Vizier of Remedies"
+         ],
+         "result":"mana infinito verde",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Devoted Druid + Swift Reconfiguration",
+         "cards":[
+            "Devoted Druid",
+            "Swift Reconfiguration"
+         ],
+         "result":"mana infinito verde",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Aggravated Assault + Savage Ventmaw",
+         "cards":[
+            "Aggravated Assault",
+            "Savage Ventmaw"
+         ],
+         "result":"combates infinitos e dano letal em combate",
+         "source":"EDH-Combos"
+      },
+      {
+         "name":"Aggravated Assault + Bear Umbra",
+         "cards":[
+            "Aggravated Assault",
+            "Bear Umbra"
+         ],
+         "result":"combates infinitos ao desvirar terrenos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Aggravated Assault + Sword of Feast and Famine",
+         "cards":[
+            "Aggravated Assault",
+            "Sword of Feast and Famine"
+         ],
+         "result":"combates infinitos ao desvirar terrenos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Hellkite Charger + Bear Umbra",
+         "cards":[
+            "Hellkite Charger",
+            "Bear Umbra"
+         ],
+         "result":"combates infinitos ao desvirar terrenos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Hellkite Charger + Sword of Feast and Famine",
+         "cards":[
+            "Hellkite Charger",
+            "Sword of Feast and Famine"
+         ],
+         "result":"combates infinitos ao desvirar terrenos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Najeela, the Blade-Blossom + Derevi, Empyrial Tactician",
+         "cards":[
+            "Najeela, the Blade-Blossom",
+            "Derevi, Empyrial Tactician"
+         ],
+         "result":"combates infinitos com mana suficiente e dano letal",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Najeela, the Blade-Blossom + Nature's Will",
+         "cards":[
+            "Najeela, the Blade-Blossom",
+            "Nature's Will"
+         ],
+         "result":"combates infinitos ao desvirar terrenos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Najeela, the Blade-Blossom + Druids' Repository",
+         "cards":[
+            "Najeela, the Blade-Blossom",
+            "Druids' Repository"
+         ],
+         "result":"combates infinitos com criaturas atacando",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Godo, Bandit Warlord + Helm of the Host",
+         "cards":[
+            "Godo, Bandit Warlord",
+            "Helm of the Host"
+         ],
+         "result":"combates infinitos e cópias infinitas de Godo",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Aurelia, the Warleader + Helm of the Host",
+         "cards":[
+            "Aurelia, the Warleader",
+            "Helm of the Host"
+         ],
+         "result":"combates infinitos e cópias infinitas de Aurelia",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"The Locust God + Skullclamp + Ashnod's Altar",
+         "cards":[
+            "The Locust God",
+            "Skullclamp",
+            "Ashnod's Altar"
+         ],
+         "result":"compra infinita, fichas infinitas e mana infinito incolor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"The Locust God + Kindred Discovery",
+         "cards":[
+            "The Locust God",
+            "Kindred Discovery"
+         ],
+         "result":"compra infinita e fichas infinitas de Inseto",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"The Gitrog Monster + Dakmor Salvage",
+         "cards":[
+            "The Gitrog Monster",
+            "Dakmor Salvage"
+         ],
+         "result":"compra repetida, dredge infinito e potencial vitória por combo",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Mikaeus, the Unhallowed + Triskelion",
+         "cards":[
+            "Mikaeus, the Unhallowed",
+            "Triskelion"
+         ],
+         "result":"dano infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Mikaeus, the Unhallowed + Walking Ballista",
+         "cards":[
+            "Mikaeus, the Unhallowed",
+            "Walking Ballista"
+         ],
+         "result":"dano infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Mikaeus, the Unhallowed + Putrid Goblin + Sacrifice Outlet",
+         "cards":[
+            "Mikaeus, the Unhallowed",
+            "Putrid Goblin",
+            "Viscera Seer"
+         ],
+         "result":"sacrifícios infinitos e gatilhos infinitos de morte",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Gravecrawler + Phyrexian Altar + Zombie",
+         "cards":[
+            "Gravecrawler",
+            "Phyrexian Altar",
+            "Carrion Feeder"
+         ],
+         "result":"sacrifícios infinitos e casts infinitos de criatura",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Gravecrawler + Phyrexian Altar + Diregraf Captain",
+         "cards":[
+            "Gravecrawler",
+            "Phyrexian Altar",
+            "Diregraf Captain"
+         ],
+         "result":"dreno infinito de vida com sacrifícios infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Gravecrawler + Phyrexian Altar + Plague Belcher",
+         "cards":[
+            "Gravecrawler",
+            "Phyrexian Altar",
+            "Plague Belcher"
+         ],
+         "result":"dreno infinito de vida com casts e mortes infinitas",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Pitiless Plunderer + Chatterfang, Squirrel General + Sacrifice Outlet",
+         "cards":[
+            "Pitiless Plunderer",
+            "Chatterfang, Squirrel General",
+            "Viscera Seer"
+         ],
+         "result":"tesouros infinitos, fichas infinitas e sacrifícios infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Pitiless Plunderer + Reassembling Skeleton + Sacrifice Outlet",
+         "cards":[
+            "Pitiless Plunderer",
+            "Reassembling Skeleton",
+            "Ashnod's Altar"
+         ],
+         "result":"sacrifícios infinitos e mana infinito com motor de recursão",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Animation Module + Ashnod's Altar + Cathars' Crusade",
+         "cards":[
+            "Animation Module",
+            "Ashnod's Altar",
+            "Cathars' Crusade"
+         ],
+         "result":"fichas infinitas, marcadores infinitos e mana infinito incolor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Ashnod's Altar + Nim Deathmantle + Grave Titan",
+         "cards":[
+            "Ashnod's Altar",
+            "Nim Deathmantle",
+            "Grave Titan"
+         ],
+         "result":"mana infinito incolor, fichas infinitas e ETBs infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Ashnod's Altar + Nim Deathmantle + Wurmcoil Engine",
+         "cards":[
+            "Ashnod's Altar",
+            "Nim Deathmantle",
+            "Wurmcoil Engine"
+         ],
+         "result":"mana infinito incolor, fichas infinitas e ETBs infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Karmic Guide + Reveillark + Sacrifice Outlet",
+         "cards":[
+            "Karmic Guide",
+            "Reveillark",
+            "Viscera Seer"
+         ],
+         "result":"ETBs infinitos, mortes infinitas e sacrifícios infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Karmic Guide + Reveillark + Altar of Dementia",
+         "cards":[
+            "Karmic Guide",
+            "Reveillark",
+            "Altar of Dementia"
+         ],
+         "result":"mill infinito em todos os oponentes",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Sun Titan + Fiend Hunter + Sacrifice Outlet",
+         "cards":[
+            "Sun Titan",
+            "Fiend Hunter",
+            "Viscera Seer"
+         ],
+         "result":"ETBs infinitos e sacrifícios infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Worldgorger Dragon + Animate Dead",
+         "cards":[
+            "Worldgorger Dragon",
+            "Animate Dead"
+         ],
+         "result":"mana infinito ao exilar e retornar permanentes repetidamente",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Worldgorger Dragon + Dance of the Dead",
+         "cards":[
+            "Worldgorger Dragon",
+            "Dance of the Dead"
+         ],
+         "result":"mana infinito ao exilar e retornar permanentes repetidamente",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Worldgorger Dragon + Necromancy",
+         "cards":[
+            "Worldgorger Dragon",
+            "Necromancy"
+         ],
+         "result":"mana infinito ao exilar e retornar permanentes repetidamente",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dockside Extortionist + Temur Sabertooth",
+         "cards":[
+            "Dockside Extortionist",
+            "Temur Sabertooth"
+         ],
+         "result":"tesouros infinitos e mana infinito se Dockside gerar 5+ tesouros",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dockside Extortionist + Emiel the Blessed",
+         "cards":[
+            "Dockside Extortionist",
+            "Emiel the Blessed"
+         ],
+         "result":"tesouros infinitos e mana infinito se Dockside gerar 4+ tesouros",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dockside Extortionist + Deadeye Navigator",
+         "cards":[
+            "Dockside Extortionist",
+            "Deadeye Navigator"
+         ],
+         "result":"tesouros infinitos e mana infinito se Dockside gerar 3+ tesouros",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dockside Extortionist + Cloudstone Curio + Creature",
+         "cards":[
+            "Dockside Extortionist",
+            "Cloudstone Curio",
+            "Ragavan, Nimble Pilferer"
+         ],
+         "result":"tesouros infinitos e casts infinitos com criatura barata",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Cloudstone Curio + Dockside Extortionist + Kor Skyfisher",
+         "cards":[
+            "Cloudstone Curio",
+            "Dockside Extortionist",
+            "Kor Skyfisher"
+         ],
+         "result":"tesouros infinitos e casts infinitos se Dockside gerar mana suficiente",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Auriok Salvagers + Lion's Eye Diamond",
+         "cards":[
+            "Auriok Salvagers",
+            "Lion's Eye Diamond"
+         ],
+         "result":"mana infinito de qualquer cor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Bomberman: Auriok Salvagers + Lion's Eye Diamond + Walking Ballista",
+         "cards":[
+            "Auriok Salvagers",
+            "Lion's Eye Diamond",
+            "Walking Ballista"
+         ],
+         "result":"mana infinito e dano infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Sensei's Divining Top + Bolas's Citadel + Aetherflux Reservoir",
+         "cards":[
+            "Sensei's Divining Top",
+            "Bolas's Citadel",
+            "Aetherflux Reservoir"
+         ],
+         "result":"casts infinitos, ganho de vida massivo e dano letal",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Sensei's Divining Top + Future Sight + Helm of Awakening",
+         "cards":[
+            "Sensei's Divining Top",
+            "Future Sight",
+            "Helm of Awakening"
+         ],
+         "result":"compra infinita e casts infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Sensei's Divining Top + Mystic Forge + Foundry Inspector",
+         "cards":[
+            "Sensei's Divining Top",
+            "Mystic Forge",
+            "Foundry Inspector"
+         ],
+         "result":"compra infinita e casts infinitos de artefatos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Sensei's Divining Top + Elsha of the Infinite + Cost Reducer",
+         "cards":[
+            "Sensei's Divining Top",
+            "Elsha of the Infinite",
+            "Etherium Sculptor"
+         ],
+         "result":"compra infinita e casts infinitos com redutor de custo",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Mizzix's Mastery + Enter the Infinite",
+         "cards":[
+            "Mizzix's Mastery",
+            "Enter the Infinite"
+         ],
+         "result":"compra quase todo o grimório e prepara vitória no mesmo turno",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Curiosity + Niv-Mizzet, Parun",
+         "cards":[
+            "Curiosity",
+            "Niv-Mizzet, Parun"
+         ],
+         "result":"compra infinita e dano infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Ophidian Eye + Niv-Mizzet, Parun",
+         "cards":[
+            "Ophidian Eye",
+            "Niv-Mizzet, Parun"
+         ],
+         "result":"compra infinita e dano infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Tandem Lookout + Niv-Mizzet, Parun",
+         "cards":[
+            "Tandem Lookout",
+            "Niv-Mizzet, Parun"
+         ],
+         "result":"compra infinita e dano infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Curiosity + Niv-Mizzet, the Firemind",
+         "cards":[
+            "Curiosity",
+            "Niv-Mizzet, the Firemind"
+         ],
+         "result":"compra infinita e dano infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Ophidian Eye + Niv-Mizzet, the Firemind",
+         "cards":[
+            "Ophidian Eye",
+            "Niv-Mizzet, the Firemind"
+         ],
+         "result":"compra infinita e dano infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Mind Over Matter + Temple Bell",
+         "cards":[
+            "Mind Over Matter",
+            "Temple Bell"
+         ],
+         "result":"compra infinita e mill potencial dos oponentes",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Mind Over Matter + Arcanis the Omnipotent",
+         "cards":[
+            "Mind Over Matter",
+            "Arcanis the Omnipotent"
+         ],
+         "result":"compra infinita",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Mind Over Matter + Azami, Lady of Scrolls",
+         "cards":[
+            "Mind Over Matter",
+            "Azami, Lady of Scrolls"
+         ],
+         "result":"compra infinita com magos suficientes",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Aluren + Cavern Harpy + Parasitic Strix",
+         "cards":[
+            "Aluren",
+            "Cavern Harpy",
+            "Parasitic Strix"
+         ],
+         "result":"dreno infinito de vida",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Aluren + Acererak the Archlich",
+         "cards":[
+            "Aluren",
+            "Acererak the Archlich"
+         ],
+         "result":"venture infinito e vitória por dungeon",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Acererak the Archlich + Rooftop Storm",
+         "cards":[
+            "Acererak the Archlich",
+            "Rooftop Storm"
+         ],
+         "result":"venture infinito e vitória por dungeon",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Earthcraft + Squirrel Nest",
+         "cards":[
+            "Earthcraft",
+            "Squirrel Nest"
+         ],
+         "result":"fichas infinitas de Esquilo",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Earthcraft + Squirrel Nest + Impact Tremors",
+         "cards":[
+            "Earthcraft",
+            "Squirrel Nest",
+            "Impact Tremors"
+         ],
+         "result":"fichas infinitas e dano infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Intruder Alarm + Krenko, Mob Boss",
+         "cards":[
+            "Intruder Alarm",
+            "Krenko, Mob Boss"
+         ],
+         "result":"fichas infinitas de Goblin com criatura entrando em campo",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Intruder Alarm + Presence of Gond",
+         "cards":[
+            "Intruder Alarm",
+            "Presence of Gond"
+         ],
+         "result":"fichas infinitas se a criatura encantada puder virar",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Intruder Alarm + Imperious Perfect",
+         "cards":[
+            "Intruder Alarm",
+            "Imperious Perfect"
+         ],
+         "result":"fichas infinitas de Elfo",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Intruder Alarm + Steward of Solidarity",
+         "cards":[
+            "Intruder Alarm",
+            "Steward of Solidarity"
+         ],
+         "result":"fichas infinitas de Guerreiro",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Herd Baloth + Ivy Lane Denizen",
+         "cards":[
+            "Herd Baloth",
+            "Ivy Lane Denizen"
+         ],
+         "result":"fichas infinitas de Besta e marcadores infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Scurry Oak + Ivy Lane Denizen",
+         "cards":[
+            "Scurry Oak",
+            "Ivy Lane Denizen"
+         ],
+         "result":"fichas infinitas de Esquilo e marcadores infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Scurry Oak + Herd Baloth + Cathars' Crusade",
+         "cards":[
+            "Scurry Oak",
+            "Herd Baloth",
+            "Cathars' Crusade"
+         ],
+         "result":"fichas infinitas e marcadores infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Murderous Redcap + Melira, Sylvok Outcast + Sacrifice Outlet",
+         "cards":[
+            "Murderous Redcap",
+            "Melira, Sylvok Outcast",
+            "Viscera Seer"
+         ],
+         "result":"dano infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Murderous Redcap + Vizier of Remedies + Sacrifice Outlet",
+         "cards":[
+            "Murderous Redcap",
+            "Vizier of Remedies",
+            "Viscera Seer"
+         ],
+         "result":"dano infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Kitchen Finks + Vizier of Remedies + Sacrifice Outlet",
+         "cards":[
+            "Kitchen Finks",
+            "Vizier of Remedies",
+            "Viscera Seer"
+         ],
+         "result":"vida infinita e sacrifícios infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Kitchen Finks + Melira, Sylvok Outcast + Sacrifice Outlet",
+         "cards":[
+            "Kitchen Finks",
+            "Melira, Sylvok Outcast",
+            "Viscera Seer"
+         ],
+         "result":"vida infinita e sacrifícios infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Walking Ballista + Mikaeus, the Unhallowed + Sacrifice Outlet",
+         "cards":[
+            "Walking Ballista",
+            "Mikaeus, the Unhallowed",
+            "Viscera Seer"
+         ],
+         "result":"dano infinito e sacrifícios infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Teysa Karlov + Requiem Angel + Sacrifice Outlet",
+         "cards":[
+            "Teysa Karlov",
+            "Requiem Angel",
+            "Ashnod's Altar"
+         ],
+         "result":"fichas infinitas e gatilhos infinitos de morte",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Teysa, Orzhov Scion + Darkest Hour + Sacrifice Outlet",
+         "cards":[
+            "Teysa, Orzhov Scion",
+            "Darkest Hour",
+            "Viscera Seer"
+         ],
+         "result":"sacrifícios infinitos e exílios repetidos de criaturas",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Reveillark + Karmic Guide + Blood Artist",
+         "cards":[
+            "Reveillark",
+            "Karmic Guide",
+            "Blood Artist"
+         ],
+         "result":"dreno infinito de vida com sacrifício ou loop de morte",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Reveillark + Karmic Guide + Zulaport Cutthroat",
+         "cards":[
+            "Reveillark",
+            "Karmic Guide",
+            "Zulaport Cutthroat"
+         ],
+         "result":"dreno infinito de vida com sacrifício ou loop de morte",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Animate Dead + Leonin Relic-Warder",
+         "cards":[
+            "Animate Dead",
+            "Leonin Relic-Warder"
+         ],
+         "result":"ETBs infinitos, mortes infinitas e loop de encantamento",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dance of the Dead + Leonin Relic-Warder",
+         "cards":[
+            "Dance of the Dead",
+            "Leonin Relic-Warder"
+         ],
+         "result":"ETBs infinitos, mortes infinitas e loop de encantamento",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Necromancy + Leonin Relic-Warder",
+         "cards":[
+            "Necromancy",
+            "Leonin Relic-Warder"
+         ],
+         "result":"ETBs infinitos, mortes infinitas e loop de encantamento",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Zirda, the Dawnwaker + Basalt Monolith",
+         "cards":[
+            "Zirda, the Dawnwaker",
+            "Basalt Monolith"
+         ],
+         "result":"mana infinito incolor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Zirda, the Dawnwaker + Grim Monolith",
+         "cards":[
+            "Zirda, the Dawnwaker",
+            "Grim Monolith"
+         ],
+         "result":"mana infinito incolor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Kinnan, Bonder Prodigy + Basalt Monolith",
+         "cards":[
+            "Kinnan, Bonder Prodigy",
+            "Basalt Monolith"
+         ],
+         "result":"mana infinito incolor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Kinnan, Bonder Prodigy + Grim Monolith",
+         "cards":[
+            "Kinnan, Bonder Prodigy",
+            "Grim Monolith"
+         ],
+         "result":"mana infinito incolor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Kinnan, Bonder Prodigy + Mana Vault + Voltaic Key",
+         "cards":[
+            "Kinnan, Bonder Prodigy",
+            "Mana Vault",
+            "Voltaic Key"
+         ],
+         "result":"mana infinito incolor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Voltaic Key + Rings of Brighthearth + Basalt Monolith",
+         "cards":[
+            "Voltaic Key",
+            "Rings of Brighthearth",
+            "Basalt Monolith"
+         ],
+         "result":"mana infinito incolor",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Magda, Brazen Outlaw + Clock of Omens + Artifact Dwarves",
+         "cards":[
+            "Magda, Brazen Outlaw",
+            "Clock of Omens",
+            "Universal Automaton"
+         ],
+         "result":"tesouros infinitos e tutores infinitos de artefato ou dragão",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Magda, Brazen Outlaw + Maskwood Nexus + Clock of Omens",
+         "cards":[
+            "Magda, Brazen Outlaw",
+            "Maskwood Nexus",
+            "Clock of Omens"
+         ],
+         "result":"tesouros infinitos e tutores infinitos de artefato ou dragão",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Nim Deathmantle + Ashnod's Altar + Myr Battlesphere",
+         "cards":[
+            "Nim Deathmantle",
+            "Ashnod's Altar",
+            "Myr Battlesphere"
+         ],
+         "result":"mana infinito incolor, fichas infinitas e ETBs infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Nim Deathmantle + Ashnod's Altar + Avenger of Zendikar",
+         "cards":[
+            "Nim Deathmantle",
+            "Ashnod's Altar",
+            "Avenger of Zendikar"
+         ],
+         "result":"mana infinito incolor e fichas infinitas com plantas suficientes",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dualcaster Mage + Twinflame",
+         "cards":[
+            "Dualcaster Mage",
+            "Twinflame"
+         ],
+         "result":"criaturas infinitas com haste",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dualcaster Mage + Heat Shimmer",
+         "cards":[
+            "Dualcaster Mage",
+            "Heat Shimmer"
+         ],
+         "result":"criaturas infinitas com haste",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dualcaster Mage + Molten Duplication",
+         "cards":[
+            "Dualcaster Mage",
+            "Molten Duplication"
+         ],
+         "result":"criaturas infinitas com haste",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"God-Eternal Bontu + Nim Deathmantle + Ashnod's Altar",
+         "cards":[
+            "God-Eternal Bontu",
+            "Nim Deathmantle",
+            "Ashnod's Altar"
+         ],
+         "result":"ETBs infinitos, compra massiva e potencial mana infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Phyrexian Altar + Oathsworn Vampire + Bontu's Monument",
+         "cards":[
+            "Phyrexian Altar",
+            "Oathsworn Vampire",
+            "Bontu's Monument"
+         ],
+         "result":"dreno infinito de vida e casts infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Phyrexian Altar + Oathsworn Vampire + Blood Artist",
+         "cards":[
+            "Phyrexian Altar",
+            "Oathsworn Vampire",
+            "Blood Artist"
+         ],
+         "result":"dreno infinito de vida com sacrifícios infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Saffi Eriksdotter + Sun Titan + Sacrifice Outlet",
+         "cards":[
+            "Saffi Eriksdotter",
+            "Sun Titan",
+            "Viscera Seer"
+         ],
+         "result":"ETBs infinitos, mortes infinitas e sacrifícios infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Saffi Eriksdotter + Reveillark + Sacrifice Outlet",
+         "cards":[
+            "Saffi Eriksdotter",
+            "Reveillark",
+            "Viscera Seer"
+         ],
+         "result":"ETBs infinitos, mortes infinitas e sacrifícios infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Saffi Eriksdotter + Karmic Guide + Sacrifice Outlet",
+         "cards":[
+            "Saffi Eriksdotter",
+            "Karmic Guide",
+            "Viscera Seer"
+         ],
+         "result":"ETBs infinitos, mortes infinitas e sacrifícios infinitos",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Protean Hulk + Viscera Seer",
+         "cards":[
+            "Protean Hulk",
+            "Viscera Seer"
+         ],
+         "result":"linha de tutor para combo de criaturas ao morrer",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Hermit Druid + Thassa's Oracle",
+         "cards":[
+            "Hermit Druid",
+            "Thassa's Oracle"
+         ],
+         "result":"vitória ao moer o próprio grimório e resolver Thassa's Oracle",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Hermit Druid + Dread Return + Laboratory Maniac",
+         "cards":[
+            "Hermit Druid",
+            "Dread Return",
+            "Laboratory Maniac"
+         ],
+         "result":"vitória ao moer o próprio grimório e comprar carta com grimório vazio",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Ad Nauseam + Angel's Grace",
+         "cards":[
+            "Ad Nauseam",
+            "Angel's Grace"
+         ],
+         "result":"compra massiva do grimório sem perder por vida negativa",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Peer into the Abyss + Sheoldred, the Apocalypse",
+         "cards":[
+            "Peer into the Abyss",
+            "Sheoldred, the Apocalypse"
+         ],
+         "result":"perda massiva de vida de um oponente ao comprar muitas cartas",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Notion Thief + Windfall",
+         "cards":[
+            "Notion Thief",
+            "Windfall"
+         ],
+         "result":"compra massiva para você e descarte total dos oponentes",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Hullbreacher + Windfall",
+         "cards":[
+            "Hullbreacher",
+            "Windfall"
+         ],
+         "result":"tesouros massivos e descarte total dos oponentes",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Narset, Parter of Veils + Windfall",
+         "cards":[
+            "Narset, Parter of Veils",
+            "Windfall"
+         ],
+         "result":"trava de compra e descarte total dos oponentes",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Knowledge Pool + Teferi, Mage of Zhalfir",
+         "cards":[
+            "Knowledge Pool",
+            "Teferi, Mage of Zhalfir"
+         ],
+         "result":"trava os oponentes de conjurar mágicas",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Knowledge Pool + Lavinia, Azorius Renegade",
+         "cards":[
+            "Knowledge Pool",
+            "Lavinia, Azorius Renegade"
+         ],
+         "result":"trava os oponentes de conjurar mágicas",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Drannith Magistrate + Possibility Storm",
+         "cards":[
+            "Drannith Magistrate",
+            "Possibility Storm"
+         ],
+         "result":"trava os oponentes de conjurar mágicas da mão",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dramatic Reversal + Isochron Scepter + Aetherflux Reservoir",
+         "cards":[
+            "Dramatic Reversal",
+            "Isochron Scepter",
+            "Aetherflux Reservoir"
+         ],
+         "result":"casts infinitos, ganho de vida massivo e dano letal",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dramatic Reversal + Isochron Scepter + Codex Shredder",
+         "cards":[
+            "Dramatic Reversal",
+            "Isochron Scepter",
+            "Codex Shredder"
+         ],
+         "result":"mill infinito com mana infinito",
+         "source":"Commander Spellbook"
+      },
+      {
+         "name":"Dramatic Reversal + Isochron Scepter + Blue Sun's Zenith",
+         "cards":[
+            "Dramatic Reversal",
+            "Isochron Scepter",
+            "Blue Sun's Zenith"
+         ],
+         "result":"compra infinita ou mill por compra forçada com mana infinito",
+         "source":"Commander Spellbook"
+      }
+   ]
 }

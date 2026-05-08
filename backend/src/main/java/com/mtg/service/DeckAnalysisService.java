@@ -9,6 +9,7 @@ import com.mtg.dto.CardResponseDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
 import com.mtg.repository.DeckRepository;
+import com.mtg.service.synergy.CardTagger;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
@@ -35,10 +36,11 @@ public class DeckAnalysisService {
     private final CardService cardService;
     private final ClassificationService classificationService;
     private final ComboDetectionService comboDetectionService;
+    private final CardTagger cardTagger;
 
     @Inject
     public DeckAnalysisService(DeckRepository deckRepository, CardService cardService, ClassificationService classificationService) {
-        this(deckRepository, cardService, classificationService, new ComboDetectionService());
+        this(deckRepository, cardService, classificationService, new ComboDetectionService(), new CardTagger());
     }
 
     public DeckAnalysisService(
@@ -47,10 +49,21 @@ public class DeckAnalysisService {
             ClassificationService classificationService,
             ComboDetectionService comboDetectionService
     ) {
+        this(deckRepository, cardService, classificationService, comboDetectionService, new CardTagger());
+    }
+
+    public DeckAnalysisService(
+            DeckRepository deckRepository,
+            CardService cardService,
+            ClassificationService classificationService,
+            ComboDetectionService comboDetectionService,
+            CardTagger cardTagger
+    ) {
         this.deckRepository = deckRepository;
         this.cardService = cardService;
         this.classificationService = classificationService;
         this.comboDetectionService = comboDetectionService;
+        this.cardTagger = cardTagger;
     }
 
     public DeckAnalysis analyzeDeck(Long id) {
@@ -95,7 +108,14 @@ public class DeckAnalysisService {
         Map<String, Map<Integer, Integer>> manaCurveByType = new LinkedHashMap<>();
         Map<String, Integer> colorCosts = emptyColorMap();
         Map<String, Integer> colorSources = emptyColorMap();
+        Map<String, Integer> pipDemand = emptyColorMap();
+        Map<String, Integer> cardTags = new LinkedHashMap<>();
         Set<String> deckNames = new HashSet<>();
+        int fixingSourceCount = 0;
+        int treasureSourceCount = 0;
+        int manaRockCount = 0;
+        int fetchLandCount = 0;
+        int conditionalSourceCount = 0;
 
         Map<String, CardResponseDTO> cardDetailsByName = cardService.findByNames(cards.stream()
                 .map(DeckCard::getName)
@@ -120,7 +140,15 @@ public class DeckAnalysisService {
             manaCurve.merge(cmcKey, qty, Integer::sum);
             manaCurveByType.computeIfAbsent(primaryType(type), ignored -> new HashMap<>()).merge(cmcKey, qty, Integer::sum);
             addColorCosts(colorCosts, manaCost, qty);
+            addPipDemand(pipDemand, manaCost, qty);
             addColorSources(colorSources, card, qty);
+            Set<String> tags = cardTagger.tagCard(card);
+            tags.forEach(tag -> cardTags.merge(tag, qty, Integer::sum));
+            if (tags.contains("fixing")) fixingSourceCount += qty;
+            if (tags.contains("treasure")) treasureSourceCount += qty;
+            if (tags.contains("mana-rock")) manaRockCount += qty;
+            if (tags.contains("fetch-land")) fetchLandCount += qty;
+            if (isConditionalManaSource(oracle)) conditionalSourceCount += qty;
 
             if (cmc <= 2.0 && !type.contains("land")) earlyGameCount += qty;
             if (type.contains("land")) {
@@ -160,7 +188,13 @@ public class DeckAnalysisService {
                 colorSources,
                 landCount,
                 tappedLandCount,
-                Map.of(1, untappedLandCount, 2, untappedLandCount + cheapManaSources(cards, cardDetailsByName, 2), 3, untappedLandCount + cheapManaSources(cards, cardDetailsByName, 3))
+                Map.of(1, untappedLandCount, 2, untappedLandCount + cheapManaSources(cards, cardDetailsByName, 2), 3, untappedLandCount + cheapManaSources(cards, cardDetailsByName, 3)),
+                pipDemand,
+                fixingSourceCount,
+                treasureSourceCount,
+                manaRockCount,
+                fetchLandCount,
+                conditionalSourceCount
         );
         ProbabilityAnalysis probabilities = new ProbabilityAnalysis(
                 probabilityAtLeast(totalCards, landCount, 7, 2),
@@ -197,7 +231,8 @@ public class DeckAnalysisService {
                 winconCount,
                 combos,
                 probabilities,
-                score
+                score,
+                cardTags
         );
         LOG.debugv("analysis.result deckId={0} {1}", id, analysis);
         return analysis;
@@ -213,6 +248,16 @@ public class DeckAnalysisService {
         Matcher matcher = MANA_SYMBOL.matcher(manaCost);
         while (matcher.find()) {
             costs.merge(matcher.group(1), quantity, Integer::sum);
+        }
+    }
+
+    private void addPipDemand(Map<String, Integer> demand, String manaCost, int quantity) {
+        Matcher matcher = MANA_SYMBOL.matcher(manaCost);
+        while (matcher.find()) {
+            String symbol = matcher.group(1);
+            if (!"C".equals(symbol)) {
+                demand.merge(symbol, quantity, Integer::sum);
+            }
         }
     }
 
@@ -254,6 +299,13 @@ public class DeckAnalysisService {
 
     private boolean entersTapped(String oracle) {
         return oracle.contains("enters tapped") || oracle.contains("enters the battlefield tapped");
+    }
+
+    private boolean isConditionalManaSource(String oracle) {
+        return oracle.contains("could produce")
+                || oracle.contains("commander's color identity")
+                || oracle.contains("chosen color")
+                || oracle.contains("any color that a land");
     }
 
     private boolean isProtection(String oracle) {

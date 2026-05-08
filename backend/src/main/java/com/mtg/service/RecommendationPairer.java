@@ -5,6 +5,7 @@ import com.mtg.domain.MetaComparison;
 import com.mtg.domain.RecommendationCardInsight;
 import com.mtg.domain.RecommendationImpact;
 import com.mtg.domain.RecommendationSourceContext;
+import com.mtg.service.meta.RoleTargets;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -86,13 +87,13 @@ public class RecommendationPairer {
                     tagsFor(add),
                     source,
                     bracket,
-                    confidenceFor(add),
+                    confidenceFor(add, sampleSize, source),
                     "swap",
                     new RecommendationSourceContext(source, sampleSize, sources),
                     impactFor(add, cut, roles),
                     insightFor(add, sampleSize, source),
                     insightFor(cut, 0, "deck_current"),
-                    comparisonsFor(add, roles, bracket),
+                    comparisonsFor(add, roles, bracket, profile),
                     List.of(),
                     recommendationMode,
                     budget
@@ -119,9 +120,15 @@ public class RecommendationPairer {
         return tags.stream().distinct().toList();
     }
 
-    private String confidenceFor(StrategicCandidate add) {
-        if (add.metaDriven() && add.inclusionRate() >= 0.70) {
+    private String confidenceFor(StrategicCandidate add, int sampleSize, String source) {
+        if (add.metaDriven() && sampleSize >= 10 && add.inclusionRate() >= 0.60) {
             return "high";
+        }
+        if (add.metaDriven() && sampleSize >= 3) {
+            return add.score() >= 0.45 ? "medium" : "low";
+        }
+        if ("heuristic_fallback".equals(source) && add.score() < 0.68) {
+            return "low";
         }
         if (add.score() >= 0.55) {
             return "medium";
@@ -186,10 +193,10 @@ public class RecommendationPairer {
         return Math.max(0, next);
     }
 
-    private List<MetaComparison> comparisonsFor(StrategicCandidate add, DeckRoleSummary roles, String bracket) {
+    private List<MetaComparison> comparisonsFor(StrategicCandidate add, DeckRoleSummary roles, String bracket, CommanderArchetypeProfile profile) {
         String role = add.role();
         int current = countForRole(role, roles);
-        int target = targetForRole(role, bracket);
+        int target = targetForRole(role, bracket, profile);
         if (target <= 0 || current >= target) {
             return List.of();
         }
@@ -212,31 +219,29 @@ public class RecommendationPairer {
         };
     }
 
-    private int targetForRole(String role, String bracket) {
-        String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase();
-        return switch (role == null ? "" : role) {
-            case "ramp" -> switch (normalizedBracket) {
-                case "cedh" -> 14;
-                case "high-power" -> 12;
-                case "mid" -> 10;
-                default -> 9;
-            };
-            case "draw" -> switch (normalizedBracket) {
-                case "cedh" -> 12;
-                case "high-power" -> 10;
-                case "mid" -> 9;
-                default -> 8;
-            };
-            case "removal" -> switch (normalizedBracket) {
-                case "cedh" -> 14;
-                case "high-power" -> 10;
-                case "mid" -> 8;
-                default -> 7;
-            };
-            case "protection" -> "high-power".equals(normalizedBracket) || "cedh".equals(normalizedBracket) ? 4 : 2;
+    private int targetForRole(String role, String bracket, CommanderArchetypeProfile profile) {
+        RoleTargets targets = RoleTargets.forBracket(bracket);
+        int target = switch (role == null ? "" : role) {
+            case "ramp" -> targets.ramp();
+            case "draw" -> targets.draw();
+            case "removal" -> targets.removal();
+            case "protection" -> targets.protection();
             case "finisher" -> 4;
             default -> 0;
         };
+        String archetype = profile == null ? "" : profile.archetype();
+        if ("combat damage".equals(archetype) || "ramp".equals(archetype)) {
+            if ("ramp".equals(role) || "protection".equals(role)) target++;
+            if ("finisher".equals(role)) target += 2;
+        }
+        if ("aristocrats".equals(archetype) || "tokens".equals(archetype)) {
+            if ("draw".equals(role)) target++;
+            if ("finisher".equals(role)) target = Math.max(3, target - 1);
+        }
+        if ("control".equals(archetype) && "removal".equals(role)) {
+            target += 2;
+        }
+        return target;
     }
 
     private String roleLabel(String role) {

@@ -158,6 +158,7 @@ export default function RecommendationCard({ item, index, bracket, onApply, appl
             {sourceLabel(source)}.
             {item?.sourceContext?.sampleSize ? ` Amostra: ${item.sourceContext.sampleSize} listas.` : ''}
             {item?.sourceContext?.sources?.length ? ` Fontes: ${item.sourceContext.sources.join(', ')}.` : ''}
+            {` Confianca ${confidenceLabel(confidence).toLowerCase()}: ${confidenceReason(confidence, item?.sourceContext?.sampleSize, source)}`}
           </p>
         </details>
         <Button
@@ -171,4 +172,11 @@ export default function RecommendationCard({ item, index, bracket, onApply, appl
       </footer>
     </article>
   )
+}
+
+function confidenceReason(confidence, sampleSize = 0, source = '') {
+  if (confidence === 'high') return 'amostra meta suficiente e encaixe forte.'
+  if (confidence === 'low' && source !== 'meta_profile') return 'fallback heuristico com pouca evidencia externa.'
+  if (confidence === 'low') return `amostra pequena (${sampleSize || 0}) ou score abaixo do alvo.`
+  return source === 'meta_profile' ? 'dados de meta disponiveis, mas ainda com margem de revisao.' : 'heuristica local com score aceitavel.'
 }

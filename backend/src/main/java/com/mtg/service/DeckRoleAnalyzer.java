@@ -3,11 +3,13 @@ package com.mtg.service;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
+import com.mtg.service.meta.RoleTargets;
 import com.mtg.service.synergy.SynergyEngine;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +31,7 @@ public class DeckRoleAnalyzer {
         int boardWipes = 0;
         int finishers = 0;
         double cmcSum = 0.0;
+        Set<String> deckTags = new HashSet<>();
 
         for (DeckCard deckCard : mainDeckCards) {
             CardResponseDTO card = cardsByName.get(normalize(deckCard.getName()));
@@ -41,50 +44,49 @@ public class DeckRoleAnalyzer {
             String oracle = text(card.oracleText());
             double cmc = card.cmc() != null ? card.cmc() : 0.0;
             cmcSum += cmc * qty;
+            Set<String> tags = synergyEngine.tagsForCard(card);
+            deckTags.addAll(tags);
 
             if (typeLine.contains("land")) lands += qty;
-            if (isRamp(card)) ramp += qty;
-            if (oracle.contains("draw") || oracle.contains("look at the top") || oracle.contains("impulse")) draw += qty;
-            if (oracle.contains("destroy") || oracle.contains("exile") || oracle.contains("counter target") || oracle.contains("return target")) removal += qty;
-            if (oracle.contains("indestructible") || oracle.contains("hexproof") || oracle.contains("protection") || oracle.contains("phase out")) protection += qty;
+            if (tags.contains("ramp") || tags.contains("treasure") || tags.contains("mana-rock") || isRamp(card)) ramp += qty;
+            if (tags.contains("draw") || tags.contains("impulse-draw") || oracle.contains("look at the top") || oracle.contains("impulse")) draw += qty;
+            if (tags.contains("removal") || tags.contains("stack-interaction")) removal += qty;
+            if (tags.contains("protection")) protection += qty;
             if (oracle.contains("destroy all") || oracle.contains("exile all") || oracle.contains("all creatures")) boardWipes += qty;
             if (cmc >= 5.0 && (typeLine.contains("creature") || oracle.contains("win the game") || oracle.contains("double"))) finishers += qty;
         }
 
         double averageCmc = totalCards > 0 ? cmcSum / totalCards : 0.0;
-        Map<String, Integer> gaps = detectGaps(lands, ramp, draw, removal, protection, finishers, averageCmc, bracket);
-        Set<String> deckTags = synergyEngine.aggregateTags(cardsByName.values().stream().toList());
+        Map<String, Integer> gaps = detectGaps(lands, ramp, draw, removal, protection, finishers, averageCmc, bracket, deckTags);
 
         return new DeckRoleSummary(totalCards, lands, ramp, draw, removal, protection, boardWipes, finishers, averageCmc, gaps, deckTags);
     }
 
-    private Map<String, Integer> detectGaps(int lands, int ramp, int draw, int removal, int protection, int finishers, double averageCmc, String bracket) {
-        String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase();
-        int landTarget = switch (normalizedBracket) {
-            case "cedh" -> 27;
-            case "high-power" -> 30;
-            case "mid" -> 34;
-            default -> 36;
-        };
-        int rampTarget = switch (normalizedBracket) {
-            case "cedh" -> 14;
-            case "high-power" -> 12;
-            case "mid" -> 10;
-            default -> 9;
-        };
-        int drawTarget = switch (normalizedBracket) {
-            case "cedh" -> 12;
-            case "high-power" -> 10;
-            case "mid" -> 9;
-            default -> 8;
-        };
-        int removalTarget = switch (normalizedBracket) {
-            case "cedh" -> 14;
-            case "high-power" -> 10;
-            case "mid" -> 8;
-            default -> 7;
-        };
-        int protectionTarget = "high-power".equals(normalizedBracket) || "cedh".equals(normalizedBracket) ? 4 : 2;
+    private Map<String, Integer> detectGaps(int lands, int ramp, int draw, int removal, int protection, int finishers, double averageCmc, String bracket, Set<String> deckTags) {
+        RoleTargets targets = RoleTargets.forBracket(bracket);
+        int landTarget = targets.minLands();
+        int rampTarget = targets.ramp();
+        int drawTarget = targets.draw();
+        int removalTarget = targets.removal();
+        int protectionTarget = targets.protection();
+        int finisherTarget = 4;
+
+        if (deckTags.contains("big-creature") || deckTags.contains("combat") || deckTags.contains("trample")) {
+            rampTarget += 1;
+            protectionTarget += 1;
+            finisherTarget += 2;
+        }
+        if (deckTags.contains("graveyard") || deckTags.contains("recursion") || deckTags.contains("self-mill")) {
+            drawTarget += 1;
+            removalTarget = Math.max(6, removalTarget - 1);
+        }
+        if (deckTags.contains("sacrifice") || deckTags.contains("sacrifice-outlet")) {
+            drawTarget += 1;
+            finisherTarget = Math.max(3, finisherTarget - 1);
+        }
+        if (deckTags.contains("stack-interaction")) {
+            removalTarget += 1;
+        }
 
         Map<String, Integer> gaps = new HashMap<>();
         if (lands < landTarget) gaps.put("land", landTarget - lands);
@@ -92,7 +94,7 @@ public class DeckRoleAnalyzer {
         if (draw < drawTarget) gaps.put("draw", drawTarget - draw);
         if (removal < removalTarget) gaps.put("removal", removalTarget - removal);
         if (protection < protectionTarget) gaps.put("protection", protectionTarget - protection);
-        if (finishers < 4) gaps.put("finisher", 4 - finishers);
+        if (finishers < finisherTarget) gaps.put("finisher", finisherTarget - finishers);
         if (averageCmc > 3.8) gaps.put("curve", (int) Math.ceil((averageCmc - 3.6) * 4));
         return gaps;
     }

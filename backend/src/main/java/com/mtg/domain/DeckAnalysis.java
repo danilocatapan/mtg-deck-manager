@@ -21,8 +21,57 @@ public record DeckAnalysis(
         int winconCount,
         ComboAnalysis combos,
         ProbabilityAnalysis probabilities,
-        ExplainableScore score
+        ExplainableScore score,
+        Map<String, Integer> cardTags
 ) {
+    public DeckAnalysis {
+        manaCurve = manaCurve == null ? Map.of() : Map.copyOf(manaCurve);
+        roles = roles == null ? Map.of() : Map.copyOf(roles);
+        manaCurveByType = manaCurveByType == null ? Map.of() : Map.copyOf(manaCurveByType);
+        cardTags = cardTags == null ? Map.of() : Map.copyOf(cardTags);
+    }
+
+    public DeckAnalysis(
+            double averageCmc,
+            int totalCards,
+            int rampCount,
+            int drawCount,
+            int removalCount,
+            Map<Integer, Integer> manaCurve,
+            Map<String, Integer> roles,
+            ManaBaseAnalysis manaBase,
+            Map<String, Map<Integer, Integer>> manaCurveByType,
+            int earlyGameCount,
+            int interactionCount,
+            int boardWipeCount,
+            int protectionCount,
+            int winconCount,
+            ComboAnalysis combos,
+            ProbabilityAnalysis probabilities,
+            ExplainableScore score
+    ) {
+        this(
+                averageCmc,
+                totalCards,
+                rampCount,
+                drawCount,
+                removalCount,
+                manaCurve,
+                roles,
+                manaBase,
+                manaCurveByType,
+                earlyGameCount,
+                interactionCount,
+                boardWipeCount,
+                protectionCount,
+                winconCount,
+                combos,
+                probabilities,
+                score,
+                Map.of()
+        );
+    }
+
     public DeckAnalysis(
             double averageCmc,
             int totalCards,

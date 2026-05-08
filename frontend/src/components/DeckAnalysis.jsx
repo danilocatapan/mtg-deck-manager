@@ -102,15 +102,41 @@ export default function DeckAnalysis({ analysis }) {
               </strong>
               <small>terrenos e fontes baratas</small>
             </div>
+            <div className="diagnostic-card">
+              <span>Fixing / Tesouros / Rocks</span>
+              <strong>
+                {analysis.manaBase.fixingSourceCount ?? 0}/
+                {analysis.manaBase.treasureSourceCount ?? 0}/
+                {analysis.manaBase.manaRockCount ?? 0}
+              </strong>
+              <small>{analysis.manaBase.fetchLandCount ?? 0} fetches, {analysis.manaBase.conditionalSourceCount ?? 0} fontes condicionais</small>
+            </div>
           </div>
           <div className="color-grid">
             {['W', 'U', 'B', 'R', 'G', 'C'].map((color) => (
               <div key={color} className="color-item">
                 <span>{color}</span>
                 <strong>{analysis.manaBase.colorSources?.[color] ?? 0}</strong>
-                <small>custo {analysis.manaBase.colorCosts?.[color] ?? 0}</small>
+                <small>custo {analysis.manaBase.colorCosts?.[color] ?? 0} / pips {analysis.manaBase.pipDemand?.[color] ?? 0}</small>
               </div>
             ))}
+          </div>
+        </>
+      )}
+
+      {analysis.cardTags && Object.keys(analysis.cardTags).length > 0 && (
+        <>
+          <h4>Tags funcionais</h4>
+          <div className="gap-grid">
+            {Object.entries(analysis.cardTags)
+              .sort(([, left], [, right]) => Number(right) - Number(left))
+              .slice(0, 12)
+              .map(([tag, count]) => (
+                <div key={tag} className="gap-item">
+                  <span>{tagLabel(tag)}</span>
+                  <strong>{count}</strong>
+                </div>
+              ))}
           </div>
         </>
       )}
@@ -138,6 +164,9 @@ export default function DeckAnalysis({ analysis }) {
       {analysis.combos && (
         <>
           <h4>Combos</h4>
+          <p className="analysis-note">
+            Fonte: {analysis.combos.source || 'snapshot local'} | Versao: {analysis.combos.version || 'desconhecida'} | Atualizado em: {analysis.combos.updatedAt || 'desconhecido'}
+          </p>
           <div className="combo-grid">
             <div className="combo-section">
               <span className="rec-label">Presentes</span>
@@ -210,6 +239,31 @@ function roleLabel(role) {
     planeswalker: 'Planeswalkers',
     other: 'Outros',
   }[role] || role
+}
+
+function tagLabel(tag) {
+  return {
+    draw: 'Compra',
+    'impulse-draw': 'Impulso',
+    ramp: 'Ramp',
+    fixing: 'Fixing',
+    treasure: 'Tesouros',
+    'mana-rock': 'Rochas',
+    'fetch-land': 'Fetches',
+    removal: 'Remocao',
+    'stack-interaction': 'Pilha',
+    protection: 'Protecao',
+    token: 'Tokens',
+    sacrifice: 'Sacrificio',
+    'sacrifice-outlet': 'Outlet de sacrificio',
+    graveyard: 'Cemiterio',
+    recursion: 'Recursao',
+    'self-mill': 'Self-mill',
+    combat: 'Combate',
+    trample: 'Atropelar',
+    haste: 'Haste',
+    'big-creature': 'Criaturas grandes',
+  }[tag] || tag
 }
 
 function scoreTone(value) {

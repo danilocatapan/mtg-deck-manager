@@ -37,7 +37,8 @@ public class ComboDetectionService {
         List<ComboHit> present = new java.util.ArrayList<>();
         List<ComboNearMiss> oneCardAway = new java.util.ArrayList<>();
 
-        for (ComboDefinition combo : load()) {
+        ComboSnapshot snapshot = load();
+        for (ComboDefinition combo : snapshot.combos()) {
             List<String> missing = combo.cards().stream()
                     .filter(card -> !normalizedDeck.contains(normalize(card)))
                     .toList();
@@ -51,31 +52,49 @@ public class ComboDetectionService {
             }
         }
 
-        return new ComboAnalysis(present.stream().limit(12).toList(), oneCardAway.stream().limit(12).toList());
+        return new ComboAnalysis(
+                present.stream().limit(12).toList(),
+                oneCardAway.stream().limit(12).toList(),
+                snapshot.source(),
+                snapshot.version(),
+                snapshot.updatedAt()
+        );
     }
 
-    private List<ComboDefinition> load() {
+    private ComboSnapshot load() {
         List<ComboDefinition> current = combos.get();
         if (current != null) {
-            return current;
+            return readMetadata(current);
         }
-        List<ComboDefinition> loaded = readCombos();
-        combos.compareAndSet(null, loaded);
-        return combos.get();
+        ComboSnapshot loaded = readSnapshot();
+        combos.compareAndSet(null, loaded.combos());
+        return loaded;
     }
 
-    private List<ComboDefinition> readCombos() {
+    private ComboSnapshot readSnapshot() {
         try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(RESOURCE)) {
             if (stream == null) {
                 LOG.warnv("event=combo.snapshot.missing resource={0}", RESOURCE);
-                return List.of();
+                return ComboSnapshot.empty();
             }
             ComboSnapshot snapshot = mapper.readValue(stream, ComboSnapshot.class);
             LOG.infov("event=combo.snapshot.loaded source={0} combos={1}", snapshot.source(), snapshot.combos().size());
-            return snapshot.combos();
+            return snapshot;
         } catch (Exception exception) {
             LOG.warnv(exception, "event=combo.snapshot.load_failed resource={0}", RESOURCE);
-            return List.of();
+            return ComboSnapshot.empty();
+        }
+    }
+
+    private ComboSnapshot readMetadata(List<ComboDefinition> currentCombos) {
+        try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(RESOURCE)) {
+            if (stream == null) {
+                return new ComboSnapshot(SOURCE, "unknown", "unknown", currentCombos);
+            }
+            ComboSnapshot snapshot = mapper.readValue(stream, ComboSnapshot.class);
+            return new ComboSnapshot(snapshot.source(), snapshot.version(), snapshot.updatedAt(), currentCombos);
+        } catch (Exception exception) {
+            return new ComboSnapshot(SOURCE, "unknown", "unknown", currentCombos);
         }
     }
 
@@ -88,9 +107,16 @@ public class ComboDetectionService {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record ComboSnapshot(String source, List<ComboDefinition> combos) {
+    record ComboSnapshot(String source, String version, String updatedAt, List<ComboDefinition> combos) {
         ComboSnapshot {
+            source = source == null || source.isBlank() ? SOURCE : source;
+            version = version == null || version.isBlank() ? "unknown" : version;
+            updatedAt = updatedAt == null || updatedAt.isBlank() ? "unknown" : updatedAt;
             combos = combos == null ? List.of() : List.copyOf(combos);
+        }
+
+        static ComboSnapshot empty() {
+            return new ComboSnapshot(SOURCE, "unknown", "unknown", List.of());
         }
     }
 

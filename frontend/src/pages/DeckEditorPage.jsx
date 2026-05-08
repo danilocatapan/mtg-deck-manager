@@ -56,7 +56,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
 
   useEffect(() => {
     if (!currentDeck?.id) return
-    refreshLegality(currentDeck.id)
+    queueMicrotask(() => refreshLegality(currentDeck.id))
   }, [currentDeck?.id, refreshLegality])
 
   const steps = [
