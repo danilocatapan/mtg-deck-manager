@@ -1,0 +1,83 @@
+1 Castle Garenbrig
+1 Witch's Clinic
+1 Cinder Glade
+1 Inventors' Fair
+10 Forest
+1 Blighted Woodland
+1 Gruul Turf
+8 Mountain
+1 Myriad Landscape
+1 Rootbound Crag
+1 Rugged Highlands
+1 Exotic Orchard
+1 Mosswort Bridge
+1 Scorched Ruins
+1 Skarrg, the Rage Pits
+1 Temple of Abandon
+1 Kessig Wolf Run
+1 Command Tower
+1 Reliquary Tower
+1 Sol Ring
+1 Birds of Paradise
+1 Wild Growth
+1 Llanowar Elves
+1 Elvish Mystic
+1 Ulvenwald Tracker
+1 Nature's Claim
+1 Tyvar's Stand
+1 Vines of Vastwood
+1 Green Sun's Zenith
+1 Swiftfoot Boots
+1 Hull Breach
+1 Rampant Growth
+1 Heroic Intervention
+1 Nature's Lore
+1 Arcane Signet
+1 Gruul Signet
+1 Up the Beanstalk
+1 Three Visits
+1 Kenrith's Transformation
+1 Combat Celebrant
+1 Cultivate
+1 Chaos Warp
+1 Elemental Bond
+1 Fierce Empath
+1 Sword of Feast and Famine
+1 Kazuul's Fury
+1 Beast Within
+1 Wayward Swordtooth
+1 Managorger Hydra
+1 Rhonas's Monument
+1 Hunter's Insight
+1 Nissa's Pilgrimage
+1 Rhythm of the Wild
+1 Somberwald Sage
+1 Selvala, Heart of the Wilds
+1 Eternal Witness
+1 Relentless Assault
+1 Thran Dynamo
+1 Defense of the Heart
+1 Grafted Exoskeleton
+1 Goreclaw, Terror of Qal Sisma
+1 Anger
+1 Ogre Battledriver
+1 Guardian Project
+1 Tempt with Discovery
+1 Port Razer
+1 Traverse the Outlands
+1 Overwhelming Stampede
+1 Garruk, Primal Hunter
+1 Soul's Majesty
+1 Malignus
+1 Nissa, Who Shakes the World
+1 Return of the Wildspeaker
+1 Xenagos, God of Revels
+1 Rishkar's Expertise
+1 Etali, Primal Storm
+1 Hydra Omnivore
+1 Atarka, World Render
+1 Balefire Dragon
+1 Siege Behemoth
+1 Terastodon
+1 Blasphemous Act
+1 Ghalta, Primal Hunger

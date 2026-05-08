@@ -31,7 +31,7 @@ const BRACKETS = [
 const INTENTS = [
   { value: 'consistency', label: 'Mais consistente', detail: 'Prioriza curva, redundancia funcional, ramp e compra para o deck executar o plano com mais frequencia.' },
   { value: 'casual', label: 'Mais casual', detail: 'Evita empurrar o deck para linhas muito duras e favorece cartas alinhadas ao tema e a experiencia social.' },
-  { value: 'budget', label: 'Mais barato', detail: 'Prioriza upgrades com menor preco estimado e penaliza cartas acima do teto informado.' },
+  { value: 'budget', label: 'Mais barato', detail: 'Prioriza upgrades com menor preco estimado quando essa informacao estiver disponivel.' },
   { value: 'competitive', label: 'Mais competitivo', detail: 'Prioriza eficiencia, dados meta, velocidade e interacao para mesas mais otimizadas.' },
   { value: 'theme', label: 'Mais fiel ao tema', detail: 'Prioriza sinergia com comandante, tags do deck e plano/arquetipo detectado.' },
 ]
@@ -39,13 +39,11 @@ const INTENTS = [
 export default function RecommendationSettings({ onSubmit, disabled = false, loading = false, onParamsChange }) {
   const [bracket, setBracket] = useState('casual')
   const [strategy, setStrategy] = useState('consistency')
-  const [budget, setBudget] = useState('')
   const selectedBracket = BRACKETS.find((item) => item.value === bracket) || BRACKETS[0]
   const selectedIntent = INTENTS.find((item) => item.value === strategy) || INTENTS[0]
 
   function update(next) {
-    const budgetValue = budget === '' ? undefined : Number(budget)
-    const params = { bracket, strategy, budget: Number.isFinite(budgetValue) ? budgetValue : undefined, ...next }
+    const params = { bracket, strategy, ...next }
     onParamsChange && onParamsChange(params)
     return params
   }
@@ -83,23 +81,6 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
         >
           {INTENTS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
-      </label>
-
-      <label title="Teto aproximado por carta sugerida. Os precos sao estimativas vindas da Scryfall.">
-        Orcamento por carta
-        <small>Opcional. Usado principalmente no modo Mais barato.</small>
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="Ex.: 5.00"
-          value={budget}
-          onChange={(e) => {
-            setBudget(e.target.value)
-            const nextBudget = e.target.value === '' ? undefined : Number(e.target.value)
-            update({ budget: Number.isFinite(nextBudget) ? nextBudget : undefined })
-          }}
-        />
       </label>
 
       <Button type="submit" loading={loading} disabled={disabled}>

@@ -157,8 +157,10 @@ public class CandidateAddSelector {
 
     private List<String> prioritizedGapRoles(DeckRoleSummary roles, CommanderArchetypeProfile profile) {
         List<String> result = new ArrayList<>(roles.gaps().keySet());
-        if (result.isEmpty()) {
-            result.addAll(List.of("draw", "ramp", "removal", "protection", "finisher"));
+        for (String role : List.of("draw", "ramp", "removal", "protection", "finisher")) {
+            if (!result.contains(role)) {
+                result.add(role);
+            }
         }
         if ("combat damage".equals(profile.archetype()) && !result.contains("protection")) {
             result.add("protection");
@@ -171,26 +173,45 @@ public class CandidateAddSelector {
             case "ramp", "curve" -> List.of(
                     card("Nature's Lore", "{1}{G}", "Sorcery", "Search your library for a Forest card and put it onto the battlefield.", 2.0, "G"),
                     card("Farseek", "{1}{G}", "Sorcery", "Search your library for a Plains, Island, Swamp, or Mountain card and put it onto the battlefield tapped.", 2.0, "G"),
-                    card("Arcane Signet", "{2}", "Artifact", "Add one mana of any color in your commander's color identity.", 2.0)
+                    card("Arcane Signet", "{2}", "Artifact", "Add one mana of any color in your commander's color identity.", 2.0),
+                    card("Fellwar Stone", "{2}", "Artifact", "Add one mana of any color that a land an opponent controls could produce.", 2.0),
+                    card("Marble Diamond", "{2}", "Artifact", "Marble Diamond enters the battlefield tapped. Add {W}.", 2.0),
+                    card("Sky Diamond", "{2}", "Artifact", "Sky Diamond enters the battlefield tapped. Add {U}.", 2.0)
             );
             case "draw" -> List.of(
                     card("Greater Good", "{2}{G}{G}", "Enchantment", "Sacrifice a creature: Draw cards equal to the sacrificed creature's power, then discard three cards.", 4.0, "G"),
                     card("Harmonize", "{2}{G}{G}", "Sorcery", "Draw three cards.", 4.0, "G"),
-                    card("Village Rites", "{B}", "Instant", "As an additional cost to cast this spell, sacrifice a creature. Draw two cards.", 1.0, "B")
+                    card("Village Rites", "{B}", "Instant", "As an additional cost to cast this spell, sacrifice a creature. Draw two cards.", 1.0, "B"),
+                    card("Fact or Fiction", "{3}{U}", "Instant", "Reveal the top five cards of your library. An opponent separates those cards into two piles. Put one pile into your hand.", 4.0, "U"),
+                    card("Windfall", "{2}{U}", "Sorcery", "Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.", 3.0, "U"),
+                    card("Archivist", "{2}{U}{U}", "Creature - Human Wizard", "{T}: Draw a card.", 4.0, "U")
             );
             case "removal" -> List.of(
                     card("Beast Within", "{2}{G}", "Instant", "Destroy target permanent.", 3.0, "G"),
                     card("Generous Gift", "{2}{W}", "Instant", "Destroy target permanent.", 3.0, "W"),
-                    card("Chaos Warp", "{2}{R}", "Instant", "The owner of target permanent shuffles it into their library.", 3.0, "R")
+                    card("Chaos Warp", "{2}{R}", "Instant", "The owner of target permanent shuffles it into their library.", 3.0, "R"),
+                    card("Reality Shift", "{1}{U}", "Instant", "Exile target creature.", 2.0, "U"),
+                    card("Pongify", "{U}", "Instant", "Destroy target creature. It can't be regenerated.", 1.0, "U"),
+                    card("Resculpt", "{1}{U}", "Instant", "Exile target artifact or creature.", 2.0, "U")
             );
             case "protection" -> List.of(
                     card("Heroic Intervention", "{1}{G}", "Instant", "Permanents you control gain hexproof and indestructible until end of turn.", 2.0, "G"),
                     card("Swiftfoot Boots", "{2}", "Artifact - Equipment", "Equipped creature has hexproof and haste.", 2.0),
-                    card("Boros Charm", "{R}{W}", "Instant", "Permanents you control gain indestructible until end of turn.", 2.0, "R", "W")
+                    card("Boros Charm", "{R}{W}", "Instant", "Permanents you control gain indestructible until end of turn.", 2.0, "R", "W"),
+                    card("Flawless Maneuver", "{2}{W}", "Instant", "Creatures you control gain indestructible until end of turn.", 3.0, "W"),
+                    card("Loran's Escape", "{W}", "Instant", "Target artifact or creature gains hexproof and indestructible until end of turn.", 1.0, "W"),
+                    card("Slip Out the Back", "{U}", "Instant", "Put a +1/+1 counter on target creature. It phases out.", 1.0, "U")
             );
             case "finisher" -> List.of(
                     card("Overwhelming Stampede", "{3}{G}{G}", "Sorcery", "Creatures you control gain trample and get +X/+X until end of turn.", 5.0, "G"),
-                    card("Craterhoof Behemoth", "{5}{G}{G}{G}", "Creature - Beast", "When this creature enters, creatures you control gain trample and get +X/+X until end of turn.", 8.0, "G")
+                    card("Craterhoof Behemoth", "{5}{G}{G}{G}", "Creature - Beast", "When this creature enters, creatures you control gain trample and get +X/+X until end of turn.", 8.0, "G"),
+                    card("Approach of the Second Sun", "{6}{W}", "Sorcery", "If this spell was cast from your hand and you've cast another spell named Approach of the Second Sun this game, you win the game.", 7.0, "W"),
+                    card("Shark Typhoon", "{5}{U}", "Enchantment", "Whenever you cast a noncreature spell, create an X/X blue Shark creature token with flying.", 6.0, "U")
+            );
+            case "land" -> List.of(
+                    card("Path of Ancestry", "", "Land", "Add one mana of any color in your commander's color identity.", 0.0),
+                    card("Evolving Wilds", "", "Land", "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.", 0.0),
+                    card("Terramorphic Expanse", "", "Land", "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.", 0.0)
             );
             default -> List.of();
         };

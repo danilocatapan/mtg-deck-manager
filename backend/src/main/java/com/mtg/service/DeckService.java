@@ -90,7 +90,7 @@ public class DeckService {
         }
         List<CommanderDTO> commanders = normalizeCommanders(dto.commander(), dto.commanders());
 
-        var cards = importService.parse(dto.content());
+        var cards = removeCommandersFromMainDeck(importService.parse(dto.content()), commanders);
         int total = cards.stream().mapToInt(DeckCard::getQuantity).sum();
         if (total > 99) {
             throw new IllegalArgumentException("Imported deck has " + total + " cards; maximum is 99.");
@@ -237,6 +237,16 @@ public class DeckService {
 
     private List<DeckCard> toEntities(List<DeckCardDTO> cards) {
         return cards.stream().map(c -> new DeckCard(c.name().trim(), c.quantity())).collect(Collectors.toList());
+    }
+
+    private List<DeckCard> removeCommandersFromMainDeck(List<DeckCard> cards, List<CommanderDTO> commanders) {
+        Set<String> commanderNames = commanders.stream()
+                .map(CommanderDTO::name)
+                .map(this::normalize)
+                .collect(Collectors.toSet());
+        return cards.stream()
+                .filter(card -> !commanderNames.contains(normalize(card.getName())))
+                .toList();
     }
 
     private void validateDeckName(String name) {
