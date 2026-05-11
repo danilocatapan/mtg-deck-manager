@@ -192,41 +192,43 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
 
   return (
     <form onSubmit={handleSubmit} className="deck-editor-form">
-      <section className="commander-card">
-        <div className="commander-sigil" aria-hidden="true">{commanderInitials}</div>
-        <div className="commander-details">
-          <p className="eyebrow">Identidade do Comandante</p>
-          <h2>{commander.trim() || 'Escolha seu comandante'}</h2>
-          <div className="commander-meta">
-            <span>{commander.trim() ? 'Legalidade verificada apos salvar' : 'O nome define identidade de cor e recomendacoes'}</span>
-            <span>{name.trim() || 'Deck sem titulo'}</span>
+      <section className="deck-identity-panel">
+        <div className="form-grid">
+          <label>
+            Nome do deck
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Gruul Revels" />
+          </label>
+
+          <label>
+            Comandante
+            <input value={commander} onChange={(e) => setCommander(e.target.value)} placeholder="Xenagos, God of Revels" />
+          </label>
+        </div>
+
+        <div className="commander-card">
+          <div className="commander-sigil" aria-hidden="true">{commanderInitials}</div>
+          <div className="commander-details">
+            <p className="eyebrow">Identidade do Comandante</p>
+            <h2>{commander.trim() || 'Escolha seu comandante'}</h2>
+            <div className="commander-meta">
+              <span>{commander.trim() ? 'Legalidade verificada apos salvar' : 'O nome define identidade de cor e recomendacoes'}</span>
+              <span>{name.trim() || 'Deck sem titulo'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="deck-health">
+          <div>
+            <strong className={isOverLimit ? 'is-invalid' : ''}>{mainDeckTotal}/99</strong>
+            <span> cartas no deck principal</span>
+          </div>
+          <div className={isValid ? 'status-pill ready' : 'status-pill'}>
+            {isValid ? 'Pronto para salvar' : isOverLimit ? 'Acima do limite Commander' : 'Faltam nome, comandante e cartas'}
           </div>
         </div>
       </section>
 
-      <div className="form-grid">
-        <label>
-          Nome do deck
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Gruul Revels" />
-        </label>
-
-        <label>
-          Comandante
-          <input value={commander} onChange={(e) => setCommander(e.target.value)} placeholder="Xenagos, God of Revels" />
-        </label>
-      </div>
-
-      <div className="deck-health">
-        <div>
-          <strong className={isOverLimit ? 'is-invalid' : ''}>{mainDeckTotal}/99</strong>
-          <span> cartas no deck principal</span>
-        </div>
-        <div className={isValid ? 'status-pill ready' : 'status-pill'}>
-          {isValid ? 'Pronto para salvar' : isOverLimit ? 'Acima do limite Commander' : 'Faltam nome, comandante e cartas'}
-        </div>
-      </div>
-
-      <section className="editor-section">
+      <section className="editor-section compact-add">
         <div className="section-heading">
           <div>
             <h3>Adicionar cartas</h3>
@@ -326,7 +328,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
                     >
                       {CARD_ZONES.map((zone) => <option key={zone.value} value={zone.value}>{zone.label}</option>)}
                     </select>
-                    <Button type="button" variant="danger" onClick={() => removeCard(card.name)}>
+                    <Button type="button" variant="secondary" className="image-remove-button" aria-label={`Remover ${card.name}`} onClick={() => removeCard(card.name)}>
                       Remover
                     </Button>
                   </div>

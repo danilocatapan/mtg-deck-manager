@@ -18,3 +18,4 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Telas de analise e recomendacoes foram compactadas para priorizar os 3-5 sinais mais importantes para jogadores de Commander, deixando detalhes secundarios em uma area avancada recolhida.
 - Painel de legalidade Commander recebeu mais respiro entre titulo, status e diagnosticos para melhorar a leitura dos checks.
 - Visualizacao por imagens da lista do deck evita sobreposicao dos controles e permite recarregar artes quando a busca em lote falhar temporariamente.
+- Tela de edicao do deck foi compactada para trazer a lista de cartas mais cedo, recolher a legalidade quando estiver sem bloqueios e evitar overflow do cabecalho no mobile.

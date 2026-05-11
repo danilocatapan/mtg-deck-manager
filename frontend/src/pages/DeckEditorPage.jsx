@@ -238,7 +238,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
 
   return (
     <section>
-      <div className="zone zone-command page-heading">
+      <div className="zone zone-command page-heading deck-editor-heading">
         <div>
           <p className="eyebrow">Command Zone</p>
           <h1>{mode === 'create' ? 'Criar Deck' : currentDeck?.name || 'Editar Deck'}</h1>
@@ -271,7 +271,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       {error && <div className="status error">{error}</div>}
 
       {mode === 'edit' && (
-        <div className="card zone zone-command">
+        <div className="card zone zone-command legality-card">
           <DeckLegalityPanel legality={legality} loading={loadingLegality} error={legalityError} />
         </div>
       )}

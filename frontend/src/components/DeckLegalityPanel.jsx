@@ -2,15 +2,54 @@ import StateMessage from './ui/StateMessage'
 
 export default function DeckLegalityPanel({ legality, loading = false, error = null }) {
   if (loading) {
-    return <StateMessage title="Verificando legalidade Commander...">Validando tamanho, cores, singleton e banlist.</StateMessage>
+    return (
+      <section className="legality-panel compact" aria-label="Legalidade Commander">
+        <details open>
+          <summary>
+            <span>
+              <span className="eyebrow">Regras Commander</span>
+              <strong>Verificando legalidade...</strong>
+            </span>
+            <span className="status-pill">Validando</span>
+          </summary>
+          <StateMessage title="Verificando legalidade Commander...">Validando tamanho, cores, singleton e banlist.</StateMessage>
+        </details>
+      </section>
+    )
   }
 
   if (error) {
-    return <StateMessage tone="error" title="Nao foi possivel verificar a legalidade">Tente salvar novamente ou recarregar o deck.</StateMessage>
+    return (
+      <section className="legality-panel compact" aria-label="Legalidade Commander">
+        <details open>
+          <summary>
+            <span>
+              <span className="eyebrow">Regras Commander</span>
+              <strong>Legalidade indisponivel</strong>
+            </span>
+            <span className="status-pill danger">Revisar</span>
+          </summary>
+          <StateMessage tone="error" title="Nao foi possivel verificar a legalidade">Tente salvar novamente ou recarregar o deck.</StateMessage>
+        </details>
+      </section>
+    )
   }
 
   if (!legality) {
-    return <StateMessage title="Legalidade ainda nao verificada">Salve o deck para validar regras Commander.</StateMessage>
+    return (
+      <section className="legality-panel compact" aria-label="Legalidade Commander">
+        <details open>
+          <summary>
+            <span>
+              <span className="eyebrow">Regras Commander</span>
+              <strong>Legalidade ainda nao verificada</strong>
+            </span>
+            <span className="status-pill">Pendente</span>
+          </summary>
+          <StateMessage title="Legalidade ainda nao verificada">Salve o deck para validar regras Commander.</StateMessage>
+        </details>
+      </section>
+    )
   }
 
   const checks = [
@@ -57,50 +96,59 @@ export default function DeckLegalityPanel({ legality, loading = false, error = n
       detail: legality.gameChangerCount ? joinNames(legality.gameChangers) : 'Nenhum Game Changer detectado',
     },
   ]
+  const failedChecks = checks.filter((check) => !check.ok).length
+  const mainDeckSize = legality.mainDeckSize ?? 0
+  const targetMainDeckSize = legality.targetMainDeckSize ?? 99
+  const detailsOpen = !legality.legal || failedChecks > 0
 
   return (
-    <section className="legality-panel" aria-label="Legalidade Commander">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Regras Commander</p>
-          <h3>Legalidade</h3>
-          <p>Validacao do deck principal, comandante, cores, duplicatas e banlist.</p>
-        </div>
-        <div className={legality.legal ? 'status-pill ready' : 'status-pill danger'}>
-          {legality.legal ? 'Legal' : 'Revisar'}
-        </div>
-      </div>
+    <section className="legality-panel compact" aria-label="Legalidade Commander">
+      <details open={detailsOpen}>
+        <summary>
+          <span>
+            <span className="eyebrow">Regras Commander</span>
+            <strong>Legalidade</strong>
+          </span>
+          <span className="legality-summary-metrics">
+            <span>{mainDeckSize}/{targetMainDeckSize}</span>
+            <span>{failedChecks ? `${failedChecks} ajuste(s)` : 'Sem bloqueios'}</span>
+            <span className={legality.legal ? 'status-pill ready' : 'status-pill danger'}>
+              {legality.legal ? 'Legal' : 'Revisar'}
+            </span>
+          </span>
+        </summary>
 
-      <div className="diagnostic-grid">
-        {checks.map((check) => (
-          <article key={check.label} className={`diagnostic-card metric-${check.ok ? 'good' : 'bad'}`}>
-            <div className="diagnostic-card-header">
-              <span>{check.label}</span>
-              <strong>{check.value}</strong>
-            </div>
-            <small>{check.detail}</small>
-          </article>
-        ))}
-      </div>
-
-      {legality.estimatedBracket && (
-        <div className="state-message">
-          <strong>Bracket estimado: {legality.estimatedBracket.level} - {legality.estimatedBracket.label}</strong>
-          <span>Estimativa baseada na lista atual; use como apoio para conversa de mesa, nao como nota absoluta.</span>
+        <div className="diagnostic-grid">
+          {checks.map((check) => (
+            <article key={check.label} className={`diagnostic-card metric-${check.ok ? 'good' : 'bad'}`}>
+              <div className="diagnostic-card-header">
+                <span>{check.label}</span>
+                <strong>{check.value}</strong>
+              </div>
+              <small>{check.detail}</small>
+            </article>
+          ))}
         </div>
-      )}
 
-      {legality.rulesSnapshot && (
-        <details className="recommendation-source-details">
-          <summary>Snapshot de regras</summary>
-          <div>
-            <span className="source-pill enabled">Banlist: {legality.rulesSnapshot.banlistDate || 'sem data'}</span>
-            <span className="source-pill enabled">Game Changers: {legality.rulesSnapshot.gameChangersDate || 'sem data'}</span>
-            <span className="source-pill enabled">Bracket: {legality.rulesSnapshot.bracketVersion || 'desconhecido'}</span>
-            <span className="source-pill">Scryfall: {legality.rulesSnapshot.scryfallLegalityVersion || 'cache atual'}</span>
+        {legality.estimatedBracket && (
+          <div className="state-message">
+            <strong>Bracket estimado: {legality.estimatedBracket.level} - {legality.estimatedBracket.label}</strong>
+            <span>Estimativa baseada na lista atual; use como apoio para conversa de mesa, nao como nota absoluta.</span>
           </div>
-        </details>
-      )}
+        )}
+
+        {legality.rulesSnapshot && (
+          <details className="recommendation-source-details">
+            <summary>Snapshot de regras</summary>
+            <div>
+              <span className="source-pill enabled">Banlist: {legality.rulesSnapshot.banlistDate || 'sem data'}</span>
+              <span className="source-pill enabled">Game Changers: {legality.rulesSnapshot.gameChangersDate || 'sem data'}</span>
+              <span className="source-pill enabled">Bracket: {legality.rulesSnapshot.bracketVersion || 'desconhecido'}</span>
+              <span className="source-pill">Scryfall: {legality.rulesSnapshot.scryfallLegalityVersion || 'cache atual'}</span>
+            </div>
+          </details>
+        )}
+      </details>
     </section>
   )
 }

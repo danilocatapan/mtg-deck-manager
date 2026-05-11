@@ -460,8 +460,8 @@ textarea {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  margin-bottom: 16px;
+  padding: 10px;
+  margin-bottom: 12px;
   border: 2px solid var(--xenagos-black);
   border-radius: 8px;
   background: linear-gradient(90deg, rgba(157, 58, 37, 0.14), rgba(31, 107, 66, 0.14)), rgba(251, 246, 231, 0.72);
@@ -470,7 +470,7 @@ textarea {
 
 .deck-health strong {
   font-family: var(--heading);
-  font-size: 30px;
+  font-size: 26px;
 }
 
 .status-pill {
@@ -498,7 +498,19 @@ textarea {
 }
 
 .editor-section {
-  margin-top: 16px;
+  margin-top: 12px;
+}
+
+.editor-section.compact-add {
+  margin-top: 8px;
+}
+
+.editor-section.compact-add .section-heading {
+  margin-bottom: 8px;
+}
+
+.editor-section.compact-add .card-search {
+  gap: 8px;
 }
 
 .section-heading,
@@ -834,6 +846,7 @@ body::before {
   justify-content: space-between;
   gap: 16px;
   padding-block: 12px;
+  min-width: 0;
 }
 
 .auth-status {
@@ -841,11 +854,21 @@ body::before {
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
   color: var(--color-gold-soft);
   font-size: 0.88rem;
 }
 
+.auth-status span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .auth-status .btn {
+  flex: 0 0 auto;
   min-height: 32px;
   padding: 6px 10px;
 }
@@ -1434,6 +1457,21 @@ label small,
   align-items: center;
 }
 
+.deck-editor-heading {
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.deck-editor-heading h1 {
+  margin-block: 2px 4px;
+  font-size: clamp(30px, 3.2vw, 38px);
+}
+
+.deck-editor-heading .page-description {
+  margin: 0;
+  line-height: 1.4;
+}
+
 .zone-library {
   border-color: rgba(214, 168, 79, 0.42);
 }
@@ -1550,13 +1588,15 @@ textarea:focus {
 .workflow-stepper {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .workflow-stepper .step {
   justify-content: flex-start;
-  gap: 10px;
+  gap: 8px;
+  min-height: 38px;
+  padding-block: 6px;
   background: var(--color-surface);
   color: var(--color-muted);
   border: 1px solid var(--color-border);
@@ -1593,12 +1633,36 @@ textarea:focus {
   pointer-events: none;
 }
 
+.deck-identity-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
+  grid-template-areas:
+    "fields commander"
+    "health commander";
+  gap: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.deck-identity-panel .form-grid {
+  grid-area: fields;
+  margin-bottom: 0;
+}
+
+.deck-identity-panel .commander-card {
+  grid-area: commander;
+}
+
+.deck-identity-panel .deck-health {
+  grid-area: health;
+  margin-bottom: 0;
+}
+
 .commander-card {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 12px;
   align-items: center;
-  padding: 16px;
+  padding: 10px;
   border: 1px solid rgba(214, 168, 79, 0.5);
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(214, 168, 79, 0.12), rgba(94, 143, 70, 0.08));
@@ -1606,18 +1670,20 @@ textarea:focus {
 
 .commander-sigil {
   display: grid;
-  width: 76px;
-  height: 76px;
+  width: 58px;
+  height: 58px;
   place-items: center;
   border-radius: 8px;
   background: #06120c;
   border: 1px solid var(--color-primary);
   color: var(--color-value);
-  font: 800 24px/1 var(--font-display);
+  font: 800 20px/1 var(--font-display);
 }
 
 .commander-details h2 {
-  margin: 2px 0 8px;
+  margin: 1px 0 6px;
+  font-size: 22px;
+  line-height: 1.1;
 }
 
 .commander-meta {
@@ -1627,11 +1693,11 @@ textarea:focus {
 }
 
 .commander-meta span {
-  padding: 4px 8px;
+  padding: 3px 7px;
   border: 1px solid var(--color-border);
   border-radius: 999px;
   color: #c9b98f;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .validation-summary,
@@ -1651,6 +1717,69 @@ textarea:focus {
 .legality-panel {
   display: grid;
   gap: 16px;
+}
+
+.legality-card {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.legality-panel.compact {
+  gap: 0;
+}
+
+.legality-panel.compact details {
+  display: grid;
+  gap: 10px;
+}
+
+.legality-panel.compact details[open] {
+  gap: 12px;
+}
+
+.legality-panel.compact summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.legality-panel.compact summary::-webkit-details-marker {
+  display: none;
+}
+
+.legality-panel.compact summary > span:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.legality-panel.compact summary strong {
+  color: var(--color-text);
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.legality-summary-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.legality-summary-metrics > span:not(.status-pill) {
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: rgba(8, 17, 12, 0.58);
 }
 
 .legality-panel .section-heading {
@@ -1679,9 +1808,10 @@ textarea:focus {
 }
 
 .legality-panel .diagnostic-grid {
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
   margin-bottom: 0;
+  margin-top: 10px;
 }
 
 .validation-item,
@@ -1697,8 +1827,9 @@ textarea:focus {
 .legality-panel .diagnostic-card {
   display: grid;
   align-content: start;
-  gap: 12px;
-  min-height: 132px;
+  gap: 8px;
+  min-height: 0;
+  padding: 10px;
 }
 
 .diagnostic-card-header {
@@ -1716,16 +1847,16 @@ textarea:focus {
 
 .legality-panel .diagnostic-card small {
   color: var(--color-text);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 650;
-  line-height: 1.55;
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
 
 .legality-panel .state-message {
   gap: 8px;
-  margin: 0;
-  padding: 16px;
+  margin: 10px 0 0;
+  padding: 12px;
   line-height: 1.45;
 }
 
@@ -1807,13 +1938,13 @@ dt {
 
 .deck-image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: 14px;
 }
 
 .deck-image-card {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
   overflow: hidden;
 }
@@ -1866,8 +1997,8 @@ dt {
 
 .image-card-actions {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -1878,8 +2009,13 @@ dt {
   min-width: 0;
 }
 
-.image-card-actions button {
-  grid-column: 1 / -1;
+.image-card-actions .image-remove-button {
+  width: auto;
+  min-height: 40px;
+  padding-inline: 10px;
+  color: #d8c89f;
+  border-color: rgba(184, 92, 69, 0.42);
+  background: rgba(184, 92, 69, 0.08);
 }
 
 .deck-image-status {
@@ -2883,9 +3019,56 @@ dt {
     border: 1px solid var(--color-border);
     border-radius: 8px;
   }
+
+  .deck-editor-heading {
+    padding: 12px;
+  }
+
+  .deck-editor-heading h1 {
+    font-size: 30px;
+  }
+
+  .deck-identity-panel {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "fields"
+      "health"
+      "commander";
+  }
+
+  .legality-panel.compact summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .legality-summary-metrics {
+    justify-content: flex-start;
+  }
+
+  .image-card-actions {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+  }
 }
 
 @media (max-width: 560px) {
+  .app-header .container {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  .brand-logo {
+    max-width: min(190px, 58vw);
+  }
+
+  .auth-status {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+
+  .auth-status span {
+    max-width: calc(100vw - 96px);
+  }
+
   .container {
     padding-inline: 12px;
   }
@@ -2895,17 +3078,40 @@ dt {
   }
 
   .commander-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: 54px minmax(0, 1fr);
+    align-items: center;
   }
 
   .commander-sigil {
-    width: 64px;
-    height: 64px;
+    width: 54px;
+    height: 54px;
+  }
+
+  .commander-meta {
+    display: none;
+  }
+
+  .deck-health {
+    gap: 8px;
+    padding: 9px;
   }
 
   .deck-row,
   .result-item {
     grid-template-columns: 1fr;
+  }
+
+  .deck-image-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .image-card-actions {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .image-card-actions .image-remove-button {
+    grid-column: 1 / -1;
+    min-height: 34px;
   }
 
   .recommendation-settings .btn,
