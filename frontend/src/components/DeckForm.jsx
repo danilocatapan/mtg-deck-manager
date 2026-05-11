@@ -38,6 +38,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   const [deckView, setDeckView] = useState('list')
   const [cardImages, setCardImages] = useState(() => readImageCache())
   const [unavailableImages, setUnavailableImages] = useState({})
+  const [requestedImages, setRequestedImages] = useState({})
   const [loadingImages, setLoadingImages] = useState(false)
   const [error, setError] = useState(null)
   const [savedMessage, setSavedMessage] = useState(null)
@@ -52,7 +53,12 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
 
   useEffect(() => {
     if (deckView !== 'images' || cards.length === 0) return
-    const missingCards = cards.filter((card) => card.name && !cardImages[card.name] && !unavailableImages[card.name])
+    const missingCards = cards.filter((card) => (
+      card.name
+      && !cardImages[card.name]
+      && !unavailableImages[card.name]
+      && !requestedImages[card.name]
+    ))
     if (missingCards.length === 0) return
 
     let cancelled = false
@@ -61,13 +67,20 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       const nextImages = {}
       const fetchedCards = await fetchCardsByNames(missingCards.map((card) => card.name))
       const fetchedByName = new Map(fetchedCards.map((card) => [card.name?.toLowerCase(), card]))
+      const unavailable = {}
       for (const deckCard of missingCards) {
         const fetched = fetchedByName.get(deckCard.name.toLowerCase())
         if (fetched?.imageUrl) {
           nextImages[deckCard.name] = fetched.imageUrl
+        } else if (fetched) {
+          unavailable[deckCard.name] = true
         }
       }
       if (!cancelled) {
+        setRequestedImages((prev) => ({
+          ...prev,
+          ...missingCards.reduce((acc, card) => ({ ...acc, [card.name]: true }), {}),
+        }))
         if (Object.keys(nextImages).length > 0) {
           setCardImages((prev) => {
             const merged = { ...prev, ...nextImages }
@@ -75,9 +88,6 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
             return merged
           })
         }
-        const unavailable = missingCards
-          .filter((card) => !nextImages[card.name])
-          .reduce((acc, card) => ({ ...acc, [card.name]: true }), {})
         if (Object.keys(unavailable).length > 0) {
           setUnavailableImages((prev) => ({ ...prev, ...unavailable }))
         }
@@ -88,11 +98,12 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
     return () => {
       cancelled = true
     }
-  }, [deckView, cards, cardImages, unavailableImages])
+  }, [deckView, cards, cardImages, unavailableImages, requestedImages])
 
   const mainDeckTotal = useMemo(() => cards
     .filter((card) => (card.zone || 'main') === 'main')
     .reduce((sum, card) => sum + Number(card.quantity || 0), 0), [cards])
+  const missingImageCount = useMemo(() => cards.filter((card) => card.name && !cardImages[card.name]).length, [cards, cardImages])
   const isOverLimit = mainDeckTotal > 99
   const isValid = Boolean(name.trim() && commander.trim() && mainDeckTotal > 0 && !isOverLimit)
   const commanderInitials = commander
@@ -120,12 +131,18 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
 
   function markImageUnavailable(cardName) {
     setUnavailableImages((prev) => ({ ...prev, [cardName]: true }))
+    setRequestedImages((prev) => ({ ...prev, [cardName]: true }))
     setCardImages((prev) => {
       const merged = { ...prev }
       delete merged[cardName]
       writeImageCache(merged)
       return merged
     })
+  }
+
+  function retryImages() {
+    setUnavailableImages({})
+    setRequestedImages({})
   }
 
   function removeCard(nameToRemove) {
@@ -264,7 +281,16 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
           </div>
         ) : (
           <>
-            {loadingImages && <div className="loading">Carregando imagens das cartas...</div>}
+            {(loadingImages || missingImageCount > 0) && (
+              <div className="deck-image-status">
+                {loadingImages ? <span>Carregando imagens das cartas...</span> : <span>{missingImageCount} imagem(ns) pendente(s).</span>}
+                {missingImageCount > 0 && (
+                  <Button type="button" variant="secondary" onClick={retryImages}>
+                    Recarregar imagens
+                  </Button>
+                )}
+              </div>
+            )}
             <div className="deck-image-grid">
               {cards.map((card) => (
                 <article key={card.name} className="deck-image-card">
