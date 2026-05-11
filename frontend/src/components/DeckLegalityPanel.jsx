@@ -74,8 +74,10 @@ export default function DeckLegalityPanel({ legality, loading = false, error = n
       <div className="diagnostic-grid">
         {checks.map((check) => (
           <article key={check.label} className={`diagnostic-card metric-${check.ok ? 'good' : 'bad'}`}>
-            <span>{check.label}</span>
-            <strong>{check.value}</strong>
+            <div className="diagnostic-card-header">
+              <span>{check.label}</span>
+              <strong>{check.value}</strong>
+            </div>
             <small>{check.detail}</small>
           </article>
         ))}

@@ -1648,6 +1648,42 @@ textarea:focus {
   margin-bottom: 16px;
 }
 
+.legality-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.legality-panel .section-heading {
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 0;
+}
+
+.legality-panel .section-heading > div:first-child {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.legality-panel .section-heading h3 {
+  line-height: 1.15;
+}
+
+.legality-panel .section-heading p:not(.eyebrow) {
+  max-width: 720px;
+  line-height: 1.5;
+}
+
+.legality-panel .status-pill {
+  flex: 0 0 auto;
+}
+
+.legality-panel .diagnostic-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 0;
+}
+
 .validation-item,
 .diagnostic-card,
 .gap-item,
@@ -1656,6 +1692,45 @@ textarea:focus {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: rgba(6, 18, 12, 0.48);
+}
+
+.legality-panel .diagnostic-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 132px;
+}
+
+.diagnostic-card-header {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.legality-panel .diagnostic-card strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.legality-panel .diagnostic-card small {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.legality-panel .state-message {
+  gap: 8px;
+  margin: 0;
+  padding: 16px;
+  line-height: 1.45;
+}
+
+.legality-panel .recommendation-source-details {
+  margin: 0;
 }
 
 .validation-item span,
