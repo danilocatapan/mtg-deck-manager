@@ -15,9 +15,31 @@ public class BracketMetaPolicy {
     CommanderBracketService commanderBracketService;
 
     public String normalizeBracket(String bracket) {
+        String directAlias = directRecommendationAlias(bracket);
+        if (directAlias != null) {
+            return directAlias;
+        }
         CommanderBracketService service = commanderBracketService == null ? new CommanderBracketService() : commanderBracketService;
         String normalized = service.normalizeAlias(bracket);
         return "precon".equals(normalized) ? "casual" : normalized;
+    }
+
+    private String directRecommendationAlias(String bracket) {
+        if (bracket == null || bracket.isBlank()) {
+            return null;
+        }
+        String normalized = bracket.trim()
+                .toLowerCase(Locale.ROOT)
+                .replace("_", "-")
+                .replaceAll("\\s+", " ");
+        normalized = normalized.replace("bracket ", "").trim();
+        return switch (normalized) {
+            case "1", "precon", "exhibition" -> "casual";
+            case "2", "mid", "upgraded" -> "mid";
+            case "3", "high-power", "highpower", "optimized" -> "high-power";
+            case "4", "cedh", "cedh/max" -> "cedh";
+            default -> null;
+        };
     }
 
     public String normalizeSourceMode(String sourceMode) {

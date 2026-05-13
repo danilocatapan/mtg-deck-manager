@@ -271,6 +271,57 @@ class StrategicRecommendationServiceTest {
     }
 
     @Test
+    void shouldUseFourLevelBracketAliasesForStrategicRecommendations() {
+        Deck deck = xenagosDeck();
+        CommanderMetaProfile profile = profile("Xenagos, God of Revels", "high-power", 4, List.of(
+                new MetaCard("Nature's Lore", 0.90, "ramp", 2.0),
+                new MetaCard("Heroic Intervention", 0.80, "protection", 2.0),
+                new MetaCard("Beast Within", 0.75, "removal", 3.0)
+        ));
+
+        when(deckRepository.findById(1L)).thenReturn(deck);
+        when(commanderMetaProfileService.findByCommanderAndBracket("Xenagos, God of Revels", "high-power")).thenReturn(profile);
+        when(cardService.findByNames(Mockito.anyList())).thenReturn(xenagosCards());
+
+        List<StrategicRecommendation> recommendations = sut.recommend(1L, new RecommendationParamsDTO(null, "bracket 3", null, null));
+
+        assertFalse(recommendations.isEmpty());
+        assertTrue(recommendations.stream().allMatch(recommendation -> recommendation.bracket().equals("high-power")));
+        assertTrue(recommendations.stream().allMatch(recommendation -> recommendation.add() != null && !recommendation.add().isBlank()));
+        assertTrue(recommendations.stream().allMatch(recommendation -> recommendation.remove() != null && !recommendation.remove().isBlank()));
+    }
+
+    @Test
+    void shouldTreatBracketFourAsCedhAndPreferEfficientFallbacksOverSlowCards() {
+        Deck deck = dimirCedhDeckWithSlowCards();
+
+        when(deckRepository.findById(2L)).thenReturn(deck);
+        when(commanderMetaProfileService.findByCommanderAndBracket("Talion, the Kindly Lord", "cedh")).thenReturn(null);
+        when(metaProvider.getTopCards("Talion, the Kindly Lord")).thenReturn(List.of());
+        when(cardService.findByNames(Mockito.anyList())).thenReturn(dimirCards());
+
+        List<StrategicRecommendation> recommendations = sut.recommend(2L, new RecommendationParamsDTO(null, "bracket 4", null, null));
+
+        assertFalse(recommendations.isEmpty());
+        assertTrue(recommendations.stream().allMatch(recommendation -> recommendation.bracket().equals("cedh")));
+        Set<String> adds = recommendations.stream().map(StrategicRecommendation::add).collect(java.util.stream.Collectors.toSet());
+        assertTrue(adds.stream().anyMatch(add -> Set.of(
+                "Mystic Remora",
+                "Flusterstorm",
+                "Swan Song",
+                "Spell Pierce",
+                "Dark Ritual",
+                "Thassa's Oracle",
+                "Demonic Consultation"
+        ).contains(add)));
+        Set<String> cuts = recommendations.stream().map(StrategicRecommendation::remove).collect(java.util.stream.Collectors.toSet());
+        assertTrue(cuts.stream().anyMatch(cut -> Set.of("Phyrexian Arena", "Diabolic Tutor", "Cancel").contains(cut)));
+        assertFalse(cuts.contains("Talion, the Kindly Lord"));
+        long landCuts = cuts.stream().filter(cut -> Set.of("Island", "Swamp").contains(cut)).count();
+        assertTrue(29 - landCuts >= 27);
+    }
+
+    @Test
     void shouldStillRecommendForCedhWhenCardMetadataIsUnavailable() {
         Deck deck = xenagosDeck();
 
@@ -310,6 +361,22 @@ class StrategicRecommendationServiceTest {
         return deck;
     }
 
+    private static Deck dimirCedhDeckWithSlowCards() {
+        Deck deck = new Deck();
+        deck.setId(2L);
+        deck.setCommander("Talion, the Kindly Lord");
+        deck.setColorIdentity("UB");
+        deck.setCards(List.of(
+                new DeckCard("Phyrexian Arena", 1),
+                new DeckCard("Diabolic Tutor", 1),
+                new DeckCard("Cancel", 1),
+                new DeckCard("Mind Stone", 1),
+                new DeckCard("Island", 15),
+                new DeckCard("Swamp", 14)
+        ));
+        return deck;
+    }
+
     private static CommanderMetaProfile profile(String commander, String bracket, int sampleSize, List<MetaCard> cards) {
         return new CommanderMetaProfile(
                 commander,
@@ -339,6 +406,18 @@ class StrategicRecommendationServiceTest {
                 entry(card("Beast Within", "{2}{G}", "Instant", "Destroy target permanent.", 3.0, List.of("G"))),
                 entry(card("Overwhelming Stampede", "{3}{G}{G}", "Sorcery", "Creatures you control gain trample and get +X/+X until end of turn.", 5.0, List.of("G"))),
                 entry(card("Arcane Signet", "{2}", "Artifact", "Add one mana of any color in your commander's color identity.", 2.0, List.of()))
+        );
+    }
+
+    private static Map<String, CardResponseDTO> dimirCards() {
+        return Map.ofEntries(
+                entry(card("Talion, the Kindly Lord", "{2}{U}{B}", "Legendary Creature - Faerie Noble", "As this creature enters, choose a number between 1 and 10. Whenever an opponent casts a spell with mana value, power, or toughness equal to the chosen number, they lose 2 life and you draw a card.", 4.0, List.of("U", "B"))),
+                entry(card("Phyrexian Arena", "{1}{B}{B}", "Enchantment", "At the beginning of your upkeep, you draw a card and you lose 1 life.", 3.0, List.of("B"))),
+                entry(card("Diabolic Tutor", "{2}{B}{B}", "Sorcery", "Search your library for a card, put that card into your hand, then shuffle.", 4.0, List.of("B"))),
+                entry(card("Cancel", "{1}{U}{U}", "Instant", "Counter target spell.", 3.0, List.of("U"))),
+                entry(card("Mind Stone", "{2}", "Artifact", "{T}: Add {C}.", 2.0, List.of())),
+                entry(card("Island", "", "Basic Land - Island", "Add {U}.", 0.0, List.of("U"))),
+                entry(card("Swamp", "", "Basic Land - Swamp", "Add {B}.", 0.0, List.of("B")))
         );
     }
 

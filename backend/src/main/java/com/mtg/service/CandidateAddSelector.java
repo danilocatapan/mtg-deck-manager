@@ -94,7 +94,7 @@ public class CandidateAddSelector {
 
         if (cards.size() < 12) {
             for (String role : prioritizedGapRoles(roles, profile)) {
-                for (CardResponseDTO card : fallbackCards(role)) {
+                for (CardResponseDTO card : fallbackCards(role, bracket)) {
                     knownCards.putIfAbsent(normalize(card.name()), card);
                     if (isLegalAdd(card, existingNames, profile.colors()) && passesFilters(card, filters)) {
                         cards.add(card);
@@ -231,7 +231,11 @@ public class CandidateAddSelector {
         return result;
     }
 
-    private List<CardResponseDTO> fallbackCards(String role) {
+    private List<CardResponseDTO> fallbackCards(String role, String bracket) {
+        List<CardResponseDTO> bracketCards = bracketFallbackCards(role, bracket);
+        if (!bracketCards.isEmpty()) {
+            return bracketCards;
+        }
         return switch (role) {
             case "ramp", "curve" -> List.of(
                     card("Nature's Lore", "{1}{G}", "Sorcery", "Search your library for a Forest card and put it onto the battlefield.", 2.0, "G"),
@@ -275,6 +279,39 @@ public class CandidateAddSelector {
                     card("Path of Ancestry", "", "Land", "Add one mana of any color in your commander's color identity.", 0.0),
                     card("Evolving Wilds", "", "Land", "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.", 0.0),
                     card("Terramorphic Expanse", "", "Land", "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.", 0.0)
+            );
+            default -> List.of();
+        };
+    }
+
+    private List<CardResponseDTO> bracketFallbackCards(String role, String bracket) {
+        String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT);
+        if (!"cedh".equals(normalizedBracket) && !"high-power".equals(normalizedBracket)) {
+            return List.of();
+        }
+        return switch (role) {
+            case "ramp", "curve" -> List.of(
+                    card("Sol Ring", "{1}", "Artifact", "{T}: Add {C}{C}.", 1.0),
+                    card("Arcane Signet", "{2}", "Artifact", "Add one mana of any color in your commander's color identity.", 2.0),
+                    card("Dark Ritual", "{B}", "Instant", "Add {B}{B}{B}.", 1.0, "B")
+            );
+            case "draw" -> List.of(
+                    card("Mystic Remora", "{U}", "Enchantment", "Whenever an opponent casts a noncreature spell, you may draw a card unless that player pays {4}.", 1.0, "U"),
+                    card("Rhystic Study", "{2}{U}", "Enchantment", "Whenever an opponent casts a spell, you may draw a card unless that player pays {1}.", 3.0, "U")
+            );
+            case "removal" -> List.of(
+                    card("Flusterstorm", "{U}", "Instant", "Counter target instant or sorcery spell unless its controller pays {1}. Storm.", 1.0, "U"),
+                    card("Swan Song", "{U}", "Instant", "Counter target enchantment, instant, or sorcery spell.", 1.0, "U"),
+                    card("Nature's Claim", "{G}", "Instant", "Destroy target artifact or enchantment.", 1.0, "G")
+            );
+            case "protection" -> List.of(
+                    card("Veil of Summer", "{G}", "Instant", "Draw a card if an opponent has cast a blue or black spell this turn. Spells you control can't be countered this turn.", 1.0, "G"),
+                    card("Silence", "{W}", "Instant", "Your opponents can't cast spells this turn.", 1.0, "W"),
+                    card("Flusterstorm", "{U}", "Instant", "Counter target instant or sorcery spell unless its controller pays {1}. Storm.", 1.0, "U")
+            );
+            case "finisher" -> List.of(
+                    card("Thassa's Oracle", "{U}{U}", "Creature - Merfolk Wizard", "When this creature enters, look at the top X cards of your library. If X is greater than or equal to the number of cards in your library, you win the game.", 2.0, "U"),
+                    card("Demonic Consultation", "{B}", "Instant", "Name a card. Exile the top six cards of your library, then reveal cards until you reveal the named card.", 1.0, "B")
             );
             default -> List.of();
         };

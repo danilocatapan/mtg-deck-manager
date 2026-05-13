@@ -17,6 +17,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Build local passa a usar metadados seguros quando o pipeline ainda nao gerou uma versao.
 - Analise do deck passa a destacar diagnosticos acionaveis em PT-BR, com alertas de curva, ramp, compra e interacao.
 - Cards de recomendacao passam a mostrar impacto antes/depois para curva, ramp, compra, interacao, Game Changers e pressao de bracket.
+- Recomendacoes estrategicas passam a aceitar aliases simples de objetivo Commander (`bracket 1` a `bracket 4`) e melhoram fallback high-power/cEDH com sugestoes mais eficientes e diretas.
 - Telas de analise e recomendacoes foram compactadas para priorizar os 3-5 sinais mais importantes para jogadores de Commander, deixando detalhes secundarios em uma area avancada recolhida.
 - Painel de legalidade Commander recebeu mais respiro entre titulo, status e diagnosticos para melhorar a leitura dos checks.
 - Visualizacao por imagens da lista do deck evita sobreposicao dos controles e permite recarregar artes quando a busca em lote falhar temporariamente.
