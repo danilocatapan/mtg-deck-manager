@@ -540,6 +540,12 @@ textarea {
   gap: 8px;
 }
 
+.deck-card-list-scroll {
+  max-height: min(520px, 60vh);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .view-toggle {
   display: inline-flex;
   gap: 4px;
@@ -3098,6 +3104,10 @@ dt {
   .deck-row,
   .result-item {
     grid-template-columns: 1fr;
+  }
+
+  .deck-card-list-scroll {
+    max-height: min(420px, 55vh);
   }
 
   .deck-image-grid {

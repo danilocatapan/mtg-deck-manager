@@ -229,7 +229,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       <section className="editor-section">
         <div className="section-heading">
           <div>
-            <h3>Lista do deck</h3>
+            <h3>Lista do deck · {mainDeckTotal} cartas</h3>
             <p>Use lista para edicoes rapidas ou imagens para reconhecer cartas visualmente.</p>
           </div>
           <div className="view-toggle" aria-label="Deck display mode">
@@ -245,22 +245,24 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
         {cards.length === 0 ? (
           <div className="empty-inline">Nenhuma carta adicionada. Busque acima para comecar.</div>
         ) : deckView === 'list' ? (
-          <div className="deck-table">
-            {cards.map((card) => (
-              <div key={card.name} className="deck-row">
-                <strong>{card.name}</strong>
-                <input
-                  aria-label={`Quantidade de ${card.name}`}
-                  type="number"
-                  value={card.quantity}
-                  min={1}
-                  onChange={(e) => changeQuantity(card.name, parseInt(e.target.value || '1', 10))}
-                />
-                <Button type="button" variant="danger" onClick={() => removeCard(card.name)}>
-                  Remover
-                </Button>
-              </div>
-            ))}
+          <div className="deck-card-list-scroll">
+            <div className="deck-table">
+              {cards.map((card) => (
+                <div key={card.name} className="deck-row">
+                  <strong>{card.name}</strong>
+                  <input
+                    aria-label={`Quantidade de ${card.name}`}
+                    type="number"
+                    value={card.quantity}
+                    min={1}
+                    onChange={(e) => changeQuantity(card.name, parseInt(e.target.value || '1', 10))}
+                  />
+                  <Button type="button" variant="danger" onClick={() => removeCard(card.name)}>
+                    Remover
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <>
