@@ -17,3 +17,17 @@ data/
 
 # OS
 .DS_Store
+
+# Playwright MCP artifacts
+.playwright-mcp/
+*.playwright-mcp
+console-*.log
+page-*.yml
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+trace.zip
+*.trace
+*.webm
