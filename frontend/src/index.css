@@ -1674,36 +1674,39 @@ textarea:focus {
   background: linear-gradient(180deg, rgba(214, 168, 79, 0.12), rgba(94, 143, 70, 0.08));
 }
 
-.commander-sigil {
+.commander-sigil,
+.commander-art {
   display: grid;
   width: 58px;
   height: 58px;
   place-items: center;
   border-radius: 8px;
+  overflow: hidden;
+}
+
+.commander-sigil {
   background: #06120c;
   border: 1px solid var(--color-primary);
   color: var(--color-value);
   font: 800 20px/1 var(--font-display);
 }
 
+.commander-art {
+  background: #06120c;
+  border: 1px solid var(--color-primary);
+}
+
+.commander-art img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
 .commander-details h2 {
   margin: 1px 0 6px;
   font-size: 22px;
   line-height: 1.1;
-}
-
-.commander-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.commander-meta span {
-  padding: 3px 7px;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  color: #c9b98f;
-  font-size: 13px;
 }
 
 .validation-summary,
@@ -3087,13 +3090,10 @@ dt {
     align-items: center;
   }
 
-  .commander-sigil {
+  .commander-sigil,
+  .commander-art {
     width: 54px;
     height: 54px;
-  }
-
-  .commander-meta {
-    display: none;
   }
 
   .deck-health {

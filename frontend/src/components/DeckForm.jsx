@@ -25,6 +25,16 @@ function writeImageCache(cache) {
   }
 }
 
+function normalizeCardName(name) {
+  return String(name || '').trim().toLowerCase()
+}
+
+function imageForName(cache, name) {
+  const normalizedName = normalizeCardName(name)
+  if (!normalizedName) return null
+  return Object.entries(cache).find(([cardName]) => normalizeCardName(cardName) === normalizedName)?.[1] || null
+}
+
 export default function DeckForm({ initial = null, onCancel, onSave }) {
   const [name, setName] = useState('')
   const [commander, setCommander] = useState('')
@@ -99,12 +109,42 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   const missingImageCount = useMemo(() => cards.filter((card) => card.name && !cardImages[card.name]).length, [cards, cardImages])
   const isOverLimit = mainDeckTotal > 99
   const isValid = Boolean(name.trim() && commander.trim() && mainDeckTotal > 0 && !isOverLimit)
+  const commanderName = commander.trim()
+  const commanderImageUrl = useMemo(() => imageForName(cardImages, commanderName), [cardImages, commanderName])
   const commanderInitials = commander
     .split(/[,\s]+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('') || 'C'
+
+  useEffect(() => {
+    if (!commanderName || commanderName.length < 3) return
+    if (commanderImageUrl || unavailableImages[normalizeCardName(commanderName)]) return
+
+    let cancelled = false
+    const timeoutId = window.setTimeout(async () => {
+      const fetchedCards = await fetchCardsByNames([commanderName])
+      const fetched = fetchedCards.find((card) => normalizeCardName(card.name) === normalizeCardName(commanderName)) || fetchedCards[0]
+
+      if (cancelled) return
+
+      if (fetched?.imageUrl) {
+        setCardImages((prev) => {
+          const merged = { ...prev, [commanderName]: fetched.imageUrl, [fetched.name]: fetched.imageUrl }
+          writeImageCache(merged)
+          return merged
+        })
+      } else {
+        setUnavailableImages((prev) => ({ ...prev, [normalizeCardName(commanderName)]: true }))
+      }
+    }, 350)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [commanderName, commanderImageUrl, unavailableImages])
 
   function addCard(card) {
     setSavedMessage(null)
@@ -123,11 +163,13 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   }
 
   function markImageUnavailable(cardName) {
-    setUnavailableImages((prev) => ({ ...prev, [cardName]: true }))
+    setUnavailableImages((prev) => ({ ...prev, [cardName]: true, [normalizeCardName(cardName)]: true }))
     setRequestedImages((prev) => ({ ...prev, [cardName]: true }))
     setCardImages((prev) => {
       const merged = { ...prev }
-      delete merged[cardName]
+      Object.keys(merged)
+        .filter((name) => normalizeCardName(name) === normalizeCardName(cardName))
+        .forEach((name) => delete merged[name])
       writeImageCache(merged)
       return merged
     })
@@ -194,14 +236,14 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
         </div>
 
         <div className="commander-card">
-          <div className="commander-sigil" aria-hidden="true">{commanderInitials}</div>
+          <div className={commanderImageUrl ? 'commander-art' : 'commander-sigil'} aria-hidden="true">
+            {commanderImageUrl ? (
+              <img src={commanderImageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => markImageUnavailable(commanderName)} />
+            ) : commanderInitials}
+          </div>
           <div className="commander-details">
-            <p className="eyebrow">Identidade do Comandante</p>
+            <p className="eyebrow">Comandante</p>
             <h2>{commander.trim() || 'Escolha seu comandante'}</h2>
-            <div className="commander-meta">
-              <span>{commander.trim() ? 'Legalidade verificada apos salvar' : 'O nome define identidade de cor e recomendacoes'}</span>
-              <span>{name.trim() || 'Deck sem titulo'}</span>
-            </div>
           </div>
         </div>
 
@@ -229,7 +271,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       <section className="editor-section">
         <div className="section-heading">
           <div>
-            <h3>Lista do deck · {mainDeckTotal} cartas</h3>
+            <h3>Lista do deck - {mainDeckTotal} cartas</h3>
             <p>Use lista para edicoes rapidas ou imagens para reconhecer cartas visualmente.</p>
           </div>
           <div className="view-toggle" aria-label="Deck display mode">
