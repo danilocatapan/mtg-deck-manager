@@ -5,13 +5,11 @@ import DeckLegalityPanel from '../components/DeckLegalityPanel'
 import RecommendationPanel from '../components/recommendations/RecommendationPanel'
 import RecommendationSettings from '../components/recommendations/RecommendationSettings'
 import {
-  addPackageToMaybeboard,
   applyRecommendationSwap,
   createDeck,
   getCommanderMeta,
   getDeckAnalysis,
   getDeckLegality,
-  getDeckPackages,
   getMetaSources,
   getRecommendations,
   getSimilarDeckComparison,
@@ -29,7 +27,6 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
   const [metaProfile, setMetaProfile] = useState(null)
   const [metaSources, setMetaSources] = useState([])
   const [comparison, setComparison] = useState(null)
-  const [packages, setPackages] = useState([])
   const [recommendationParams, setRecommendationParams] = useState({ bracket: 'casual' })
   const [loadingAnalysis, setLoadingAnalysis] = useState(false)
   const [loadingLegality, setLoadingLegality] = useState(false)
@@ -45,7 +42,6 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
 
   const initial = mode === 'edit' ? currentDeck : null
   const savedCardCount = useMemo(() => currentDeck?.cards
-    ?.filter((card) => (card.zone || 'main') === 'main')
     .reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0, [currentDeck])
   const canAnalyze = mode === 'edit' && currentDeck?.id && savedCardCount > 0 && savedCardCount <= 99
 
@@ -138,7 +134,6 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
         bracket: params?.bracket || 'casual',
       })
       const deckComparison = await getSimilarDeckComparison(currentDeck.id, params)
-      const deckPackages = await getDeckPackages(currentDeck.id)
       console.log('recommendations', recommendations)
       console.info('event=recommendation.request.completed', { deckId: currentDeck.id, count: Array.isArray(recommendations) ? recommendations.length : 0 })
       if (!profile || Number(profile.sampleSize || 0) < 3) {
@@ -147,7 +142,6 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       setRec(recommendations)
       setMetaProfile(profile)
       setComparison(deckComparison)
-      setPackages(deckPackages)
       setActivePanel('recommendations')
       setMessage(`${Array.isArray(recommendations) ? recommendations.length : 0} recomendacoes estrategicas geradas.`)
     } catch (e) {
@@ -223,19 +217,6 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
     }
   }
 
-  async function handleAddPackage(packageId) {
-    if (!canAnalyze || !packageId) return
-    try {
-      setError(null)
-      const updatedDeck = await addPackageToMaybeboard(currentDeck.id, packageId)
-      setCurrentDeck(updatedDeck)
-      setMessage('Pacote adicionado ao maybeboard.')
-    } catch (e) {
-      console.error('add package error', e)
-      setError(e.message || 'Nao foi possivel adicionar o pacote.')
-    }
-  }
-
   return (
     <section>
       <div className="zone zone-command page-heading deck-editor-heading">
@@ -300,10 +281,10 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       )}
 
       {activePanel === 'recommendations' && (
-        <div className="card zone zone-sideboard">
+        <div className="card zone zone-planning">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Sideboard / Caminho de Upgrade</p>
+              <p className="eyebrow">Otimização</p>
               <h2>Recomendacoes</h2>
               <p>Trocas cientes de bracket explicam o problema, por que a adicao ajuda e por que o corte e aceitavel.</p>
             </div>
@@ -326,9 +307,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
             applyingKey={applyingSwapKey}
             appliedKeys={visibleAppliedSwapKeys}
             comparison={comparison}
-            packages={packages}
             history={currentDeck?.history || []}
-            onAddPackage={handleAddPackage}
           />
         </div>
       )}

@@ -1480,7 +1480,7 @@ label small,
   border-color: rgba(94, 143, 70, 0.55);
 }
 
-.zone-sideboard {
+.zone-planning {
   border-color: rgba(240, 200, 106, 0.44);
 }
 
@@ -2311,8 +2311,7 @@ dt {
   overflow-wrap: anywhere;
 }
 
-.recommendation-comparison,
-.recommendation-packages {
+.recommendation-comparison {
   display: grid;
   gap: 12px;
   padding: 14px;

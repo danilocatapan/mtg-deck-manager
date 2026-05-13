@@ -15,7 +15,6 @@ public record DeckLegalityDTO(
         BanlistStatusDTO banlist,
         boolean commanderValid,
         List<CommanderDTO> commanders,
-        CompanionStatusDTO companion,
         BracketEstimateDTO estimatedBracket,
         List<String> gameChangers,
         int gameChangerCount,

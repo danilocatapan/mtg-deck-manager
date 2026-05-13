@@ -78,22 +78,15 @@ public class CandidateAddSelector {
             Set<String> filters
     ) {
         Set<String> existingNames = new HashSet<>();
-        Set<String> ownedNames = new HashSet<>();
         deck.getCards().stream()
-                .filter(deckCard -> "main".equals(deckCard.getZone()))
                 .map(DeckCard::getName)
                 .map(this::normalize)
                 .forEach(existingNames::add);
-        deck.getCards().stream()
-                .filter(deckCard -> Set.of("maybeboard", "considering").contains(deckCard.getZone()))
-                .map(DeckCard::getName)
-                .map(this::normalize)
-                .forEach(ownedNames::add);
         List<CardResponseDTO> cards = new ArrayList<>();
 
         for (MetaCard metaCard : metaCards.stream().limit(50).toList()) {
             CardResponseDTO card = knownCards.get(normalize(metaCard.getName()));
-            if (isLegalAdd(card, existingNames, profile.colors()) && passesFilters(card, filters, ownedNames)) {
+            if (isLegalAdd(card, existingNames, profile.colors()) && passesFilters(card, filters)) {
                 cards.add(card);
             }
             if (cards.size() >= 30) break;
@@ -103,7 +96,7 @@ public class CandidateAddSelector {
             for (String role : prioritizedGapRoles(roles, profile)) {
                 for (CardResponseDTO card : fallbackCards(role)) {
                     knownCards.putIfAbsent(normalize(card.name()), card);
-                    if (isLegalAdd(card, existingNames, profile.colors()) && passesFilters(card, filters, ownedNames)) {
+                    if (isLegalAdd(card, existingNames, profile.colors()) && passesFilters(card, filters)) {
                         cards.add(card);
                     }
                 }
@@ -138,16 +131,12 @@ public class CandidateAddSelector {
         return new StrategicCandidate(card, role, score, addReason(role, profile), metaProfileDriven && metaCard != null, inclusionRate, commanderSynergy, source);
     }
 
-    private boolean passesFilters(CardResponseDTO card, Set<String> filters, Set<String> ownedNames) {
+    private boolean passesFilters(CardResponseDTO card, Set<String> filters) {
         if (filters == null || filters.isEmpty()) {
             return true;
         }
         String oracle = text(card == null ? null : card.oracleText());
         String type = text(card == null ? null : card.typeLine());
-        String name = normalize(card == null ? null : card.name());
-        if (filters.contains("owned-only") && !ownedNames.contains(name)) {
-            return false;
-        }
         if (filters.contains("avoid-tutors") && (oracle.contains("search your library") && !oracle.contains("land card"))) {
             return false;
         }

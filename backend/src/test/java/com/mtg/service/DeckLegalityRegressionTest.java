@@ -115,21 +115,6 @@ class DeckLegalityRegressionTest {
     }
 
     @Test
-    void companionZoneDoesNotBreakLegalDeck() {
-        Deck deck = deck("Five Color Cmd", "WUBRG", List.of(
-                card("Forest", 98),
-                card("Sol Ring", 1)
-        ));
-        deck.getCards().add(new DeckCard("Jegantha, the Wellspring", 1, "companion"));
-
-        DeckLegalityDTO legality = check(deck);
-
-        assertTrue(legality.legal());
-        assertTrue(legality.companion().present());
-        assertTrue(legality.companion().legal());
-    }
-
-    @Test
     void partnerBackgroundContractRemainsLegal() {
         Deck deck = deck("Wilson, Refined Grizzly", "G", List.of(
                 card("Forest", 98),

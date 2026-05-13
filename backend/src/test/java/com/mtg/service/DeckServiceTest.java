@@ -107,15 +107,16 @@ class DeckServiceTest {
     }
 
     @Test
-    void exportDeck_ignoresNonMainZones() {
-        DeckCard main = new DeckCard("Sol Ring", 1);
-        DeckCard maybe = new DeckCard("Beast Within", 1, "maybeboard");
-        Deck deck = new Deck("My Deck", "Cmd", List.of(main, maybe));
+    void exportDeck_includesAllDeckCards() {
+        Deck deck = new Deck("My Deck", "Cmd", List.of(
+                new DeckCard("Sol Ring", 1),
+                new DeckCard("Beast Within", 1)
+        ));
         when(deckRepository.findByIdAndOwner(1L, OWNER_ID)).thenReturn(deck);
 
         String exported = deckService.exportDeck(1L, OWNER_ID);
 
-        assertEquals("1 Sol Ring", exported);
+        assertEquals("1 Sol Ring\n1 Beast Within", exported);
     }
 
     @Test
@@ -158,10 +159,10 @@ class DeckServiceTest {
     }
 
     @Test
-    void createDeck_preservesCardZones() {
+    void createDeck_usesSimpleDeckCardsWithoutZones() {
         DeckRequestDTO request = new DeckRequestDTO("My Deck", "Commander", List.of(
                 new DeckCardDTO("Sol Ring", 1),
-                new DeckCardDTO("Beast Within", 1, "maybeboard")
+                new DeckCardDTO("Beast Within", 1)
         ));
         doAnswer(invocation -> {
             Deck deck = invocation.getArgument(0);
@@ -171,8 +172,8 @@ class DeckServiceTest {
 
         DeckResponseDTO response = deckService.createDeck(request, OWNER_ID);
 
-        assertTrue(response.cards().stream().anyMatch(card -> card.name().equals("Sol Ring") && card.zone().equals("main")));
-        assertTrue(response.cards().stream().anyMatch(card -> card.name().equals("Beast Within") && card.zone().equals("maybeboard")));
+        assertTrue(response.cards().stream().anyMatch(card -> card.name().equals("Sol Ring")));
+        assertTrue(response.cards().stream().anyMatch(card -> card.name().equals("Beast Within")));
     }
 
     @Test

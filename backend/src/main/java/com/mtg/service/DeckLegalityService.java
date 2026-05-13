@@ -7,7 +7,6 @@ import com.mtg.dto.BanlistStatusDTO;
 import com.mtg.dto.BracketEstimateDTO;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.CommanderDTO;
-import com.mtg.dto.CompanionStatusDTO;
 import com.mtg.dto.DeckLegalityDTO;
 import com.mtg.dto.RulesSnapshotDTO;
 import com.mtg.domain.ComboAnalysis;
@@ -97,12 +96,10 @@ public class DeckLegalityService {
         BanlistStatusDTO banlist = new BanlistStatusDTO(bannedCards.isEmpty(), bannedCards);
 
         boolean commanderValid = commanders.stream().allMatch(commander -> isCommanderValid(commander, knownCards.get(normalize(commander.name()))));
-        CompanionStatusDTO companion = companionStatus(deck, knownCards);
-
         double averageCmc = averageCmc(deck, knownCards);
         int interaction = interactionCount(deck, knownCards);
         int ramp = rampCount(deck, knownCards);
-        boolean legal = sizeLegal && singletonLegal && colorIdentityLegal && banlist.legal() && commanderValid && companion.legal();
+        boolean legal = sizeLegal && singletonLegal && colorIdentityLegal && banlist.legal() && commanderValid;
         List<String> gameChangers = gameChangers(deck, commanders);
         BracketSignals signals = bracketSignals(deck, knownCards);
         int comboDensity = comboDensity(deck);
@@ -136,7 +133,6 @@ public class DeckLegalityService {
                 banlist,
                 commanderValid,
                 commanders,
-                companion,
                 bracket,
                 gameChangers,
                 gameChangers.size(),
@@ -214,11 +210,6 @@ public class DeckLegalityService {
                 banned.add(card.getName());
             }
         }
-        for (DeckCard card : companionCards(deck)) {
-            if (commanderBanlistService.isBanned(card.getName())) {
-                banned.add(card.getName());
-            }
-        }
         return banned.stream().sorted(String.CASE_INSENSITIVE_ORDER).toList();
     }
 
@@ -234,30 +225,6 @@ public class DeckLegalityService {
         }
         return oracle.contains("can be your commander")
                 || (type.contains("legendary") && type.contains("creature"));
-    }
-
-    private CompanionStatusDTO companionStatus(Deck deck, Map<String, CardResponseDTO> knownCards) {
-        List<DeckCard> companions = companionCards(deck);
-        if (!companions.isEmpty()) {
-            DeckCard companion = companions.getFirst();
-            return new CompanionStatusDTO(true, companion.getName(), companions.size() == 1,
-                    companions.size() == 1 ? "Companion declarado fora do deck principal." : "Apenas um companion pode ser declarado.");
-        }
-        for (DeckCard deckCard : mainDeckCards(deck)) {
-            CardResponseDTO card = knownCards.get(normalize(deckCard.getName()));
-            if (card == null) {
-                continue;
-            }
-            if (text(card.oracleText()).contains("companion")) {
-                return new CompanionStatusDTO(
-                        true,
-                        card.name(),
-                        false,
-                        "Companion detectado na lista principal; ainda nao ha zona companion dedicada neste contrato."
-                );
-            }
-        }
-        return new CompanionStatusDTO(false, null, true, "Nenhum companion declarado.");
     }
 
     private double averageCmc(Deck deck, Map<String, CardResponseDTO> knownCards) {
@@ -290,10 +257,6 @@ public class DeckLegalityService {
                 .filter(commanderGameChangerService::isGameChanger)
                 .forEach(names::add);
         mainDeckCards(deck).stream()
-                .map(DeckCard::getName)
-                .filter(commanderGameChangerService::isGameChanger)
-                .forEach(names::add);
-        companionCards(deck).stream()
                 .map(DeckCard::getName)
                 .filter(commanderGameChangerService::isGameChanger)
                 .forEach(names::add);
@@ -378,7 +341,7 @@ public class DeckLegalityService {
                 gameChangerSnapshot.effectiveDate(),
                 gameChangerSnapshot.bracketVersion(),
                 "scryfall-cache-current",
-                List.of("banlist", "gameChangers", "colorIdentity", "singleton", "companion", "commanderValidity")
+                List.of("banlist", "gameChangers", "colorIdentity", "singleton", "commanderValidity")
         );
     }
 
@@ -418,15 +381,7 @@ public class DeckLegalityService {
     }
 
     private List<DeckCard> mainDeckCards(Deck deck) {
-        return deck.getCards().stream()
-                .filter(card -> "main".equals(card.getZone()))
-                .toList();
-    }
-
-    private List<DeckCard> companionCards(Deck deck) {
-        return deck.getCards().stream()
-                .filter(card -> "companion".equals(card.getZone()))
-                .toList();
+        return deck.getCards();
     }
 
     private record BracketSignals(int tutors, int fastMana, int extraTurns, int massLandDestruction) {

@@ -269,33 +269,6 @@ export async function undoRecommendationSwap(deckId, recommendationId) {
   }
 }
 
-export async function getDeckPackages(deckId) {
-  try {
-    if (deckId === undefined || deckId === null || isNaN(Number(deckId))) {
-      throw new Error('Invalid deck id')
-    }
-    return await request(`/decks/${deckId}/packages`)
-  } catch (e) {
-    console.error('getDeckPackages error', e)
-    return []
-  }
-}
-
-export async function addPackageToMaybeboard(deckId, packageId) {
-  try {
-    if (deckId === undefined || deckId === null || isNaN(Number(deckId))) {
-      throw new Error('Invalid deck id')
-    }
-    return await request(`/decks/${deckId}/packages/${encodeURIComponent(packageId)}/maybeboard`, {
-      method: 'POST',
-      body: JSON.stringify({}),
-    })
-  } catch (e) {
-    console.error('addPackageToMaybeboard error', e)
-    throw e
-  }
-}
-
 export async function getSimilarDeckComparison(deckId, params) {
   try {
     if (deckId === undefined || deckId === null || isNaN(Number(deckId))) {
@@ -357,8 +330,6 @@ export default {
   getStrategicRecommendations,
   applyRecommendationSwap,
   undoRecommendationSwap,
-  getDeckPackages,
-  addPackageToMaybeboard,
   getSimilarDeckComparison,
   getMetaSources,
   getCommanderMeta,

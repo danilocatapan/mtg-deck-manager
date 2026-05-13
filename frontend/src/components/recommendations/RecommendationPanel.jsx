@@ -27,9 +27,7 @@ export default function RecommendationPanel({
   applyingKey = null,
   appliedKeys = new Set(),
   comparison = null,
-  packages = [],
   history = [],
-  onAddPackage,
 }) {
   const items = Array.isArray(recommendations) ? recommendations : []
   const hasGenerated = Array.isArray(recommendations)
@@ -114,7 +112,7 @@ export default function RecommendationPanel({
         </div>
       )}
 
-      {(comparison?.metrics?.length > 0 || packages.length > 0 || history.length > 0 || metaSources.length > 0) && (
+      {(comparison?.metrics?.length > 0 || history.length > 0 || metaSources.length > 0) && (
         <details className="recommendation-source-details advanced-recommendation-details">
           <summary>Informacoes avancadas</summary>
 
@@ -134,29 +132,6 @@ export default function RecommendationPanel({
                     <strong>{formatMetric(metric.deckValue)} / {formatMetric(metric.similarAverage)}</strong>
                     <small>{metric.message}</small>
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {packages.length > 0 && (
-            <section className="recommendation-packages">
-              <div className="section-heading compact">
-                <div>
-                  <p className="eyebrow">Maybeboard</p>
-                  <h4>Pacotes sugeridos</h4>
-                </div>
-              </div>
-              <div className="package-grid">
-                {packages.slice(0, 3).map((deckPackage) => (
-                  <article key={deckPackage.id} className="package-card">
-                    <strong>{deckPackage.name}</strong>
-                    <p>{deckPackage.description}</p>
-                    <small>{(deckPackage.cards || []).map((card) => card.name).join(', ')}</small>
-                    <button type="button" onClick={() => onAddPackage && onAddPackage(deckPackage.id)}>
-                      Adicionar ao maybeboard
-                    </button>
-                  </article>
                 ))}
               </div>
             </section>

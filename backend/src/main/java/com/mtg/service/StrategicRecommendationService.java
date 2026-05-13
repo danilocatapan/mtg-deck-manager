@@ -74,7 +74,7 @@ public class StrategicRecommendationService {
         }
         int mainDeckCount = mainDeckCards(deck).stream().mapToInt(DeckCard::getQuantity).sum();
         if (mainDeckCount > 99) {
-            throw new IllegalStateException("Commander deck main deck must have at most 99 cards");
+            throw new IllegalStateException("Commander deck must have at most 99 cards");
         }
 
         BracketMetaPolicy policy = bracketMetaPolicy == null ? new BracketMetaPolicy() : bracketMetaPolicy;
@@ -232,7 +232,6 @@ public class StrategicRecommendationService {
             return Set.of();
         }
         java.util.LinkedHashSet<String> filters = new java.util.LinkedHashSet<>();
-        if (Boolean.TRUE.equals(params.ownedOnly())) filters.add("owned-only");
         if (Boolean.TRUE.equals(params.avoidSalt())) filters.add("avoid-salt");
         if (Boolean.TRUE.equals(params.avoidTutors())) filters.add("avoid-tutors");
         if (Boolean.TRUE.equals(params.improveMana())) filters.add("improve-mana");
@@ -256,8 +255,6 @@ public class StrategicRecommendationService {
     }
 
     private List<DeckCard> mainDeckCards(Deck deck) {
-        return deck.getCards().stream()
-                .filter(card -> "main".equals(card.getZone()))
-                .toList();
+        return deck.getCards();
     }
 }

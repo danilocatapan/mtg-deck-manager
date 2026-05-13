@@ -5,12 +5,6 @@ import Button from './ui/Button'
 import { fetchCardsByNames } from '../services/api'
 
 const CARD_IMAGE_CACHE_KEY = 'mtg-card-image-cache-v2'
-const CARD_ZONES = [
-  { value: 'main', label: 'Deck principal' },
-  { value: 'maybeboard', label: 'Maybeboard' },
-  { value: 'considering', label: 'Considerando' },
-  { value: 'companion', label: 'Companion' },
-]
 
 function readImageCache() {
   try {
@@ -47,7 +41,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
     if (initial) {
       setName(initial.name || '')
       setCommander(initial.commander || '')
-      setCards(initial.cards ? initial.cards.map((card) => ({ name: card.name, quantity: card.quantity, zone: card.zone || 'main' })) : [])
+      setCards(initial.cards ? initial.cards.map((card) => ({ name: card.name, quantity: card.quantity })) : [])
     }
   }, [initial])
 
@@ -101,7 +95,6 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   }, [deckView, cards, cardImages, unavailableImages, requestedImages])
 
   const mainDeckTotal = useMemo(() => cards
-    .filter((card) => (card.zone || 'main') === 'main')
     .reduce((sum, card) => sum + Number(card.quantity || 0), 0), [cards])
   const missingImageCount = useMemo(() => cards.filter((card) => card.name && !cardImages[card.name]).length, [cards, cardImages])
   const isOverLimit = mainDeckTotal > 99
@@ -118,7 +111,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
     setCards((prev) => {
       const found = prev.find((item) => item.name === card.name)
       if (found) return prev.map((item) => (item.name === card.name ? { ...item, quantity: item.quantity + 1 } : item))
-      return [...prev, { name: card.name, quantity: 1, zone: 'main' }]
+      return [...prev, { name: card.name, quantity: 1 }]
     })
     if (card.imageUrl) {
       setCardImages((prev) => {
@@ -155,18 +148,13 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
     setCards((prev) => prev.map((card) => (card.name === cardName ? { ...card, quantity: Math.max(1, qty) } : card)))
   }
 
-  function changeZone(cardName, zone) {
-    setSavedMessage(null)
-    setCards((prev) => prev.map((card) => (card.name === cardName ? { ...card, zone } : card)))
-  }
-
   function validate() {
     if (!name.trim() || !commander.trim()) {
       setError('Nome do deck e comandante sao obrigatorios.')
       return false
     }
     if (mainDeckTotal === 0) {
-      setError('Adicione pelo menos uma carta ao deck principal antes de salvar.')
+      setError('Adicione pelo menos uma carta ao deck antes de salvar.')
       return false
     }
     if (isOverLimit) {
@@ -184,7 +172,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
     const payload = {
       name: name.trim(),
       commander: commander.trim(),
-      cards: cards.map((card) => ({ name: card.name, quantity: card.quantity, zone: card.zone || 'main' })),
+      cards: cards.map((card) => ({ name: card.name, quantity: card.quantity })),
     }
     setSavedMessage('Salvando deck...')
     onSave && onSave(payload)
@@ -220,7 +208,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
         <div className="deck-health">
           <div>
             <strong className={isOverLimit ? 'is-invalid' : ''}>{mainDeckTotal}/99</strong>
-            <span> cartas no deck principal</span>
+            <span> cartas no deck</span>
           </div>
           <div className={isValid ? 'status-pill ready' : 'status-pill'}>
             {isValid ? 'Pronto para salvar' : isOverLimit ? 'Acima do limite Commander' : 'Faltam nome, comandante e cartas'}
@@ -232,7 +220,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
         <div className="section-heading">
           <div>
             <h3>Adicionar cartas</h3>
-            <p>Busque uma carta e use Adicionar para coloca-la no deck principal.</p>
+            <p>Busque uma carta e use Adicionar para coloca-la no deck.</p>
           </div>
         </div>
         <CardSearch onSelect={addCard} />
@@ -268,13 +256,6 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
                   min={1}
                   onChange={(e) => changeQuantity(card.name, parseInt(e.target.value || '1', 10))}
                 />
-                <select
-                  aria-label={`Zona de ${card.name}`}
-                  value={card.zone || 'main'}
-                  onChange={(e) => changeZone(card.name, e.target.value)}
-                >
-                  {CARD_ZONES.map((zone) => <option key={zone.value} value={zone.value}>{zone.label}</option>)}
-                </select>
                 <Button type="button" variant="danger" onClick={() => removeCard(card.name)}>
                   Remover
                 </Button>
@@ -321,13 +302,6 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
                       min={1}
                       onChange={(e) => changeQuantity(card.name, parseInt(e.target.value || '1', 10))}
                     />
-                    <select
-                      aria-label={`Zona de ${card.name}`}
-                      value={card.zone || 'main'}
-                      onChange={(e) => changeZone(card.name, e.target.value)}
-                    >
-                      {CARD_ZONES.map((zone) => <option key={zone.value} value={zone.value}>{zone.label}</option>)}
-                    </select>
                     <Button type="button" variant="secondary" className="image-remove-button" aria-label={`Remover ${card.name}`} onClick={() => removeCard(card.name)}>
                       Remover
                     </Button>

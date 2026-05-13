@@ -284,40 +284,6 @@ public class DeckController {
         }
     }
 
-    @GET
-    @Path("{id}/packages")
-    @Authenticated
-    @Operation(summary = "Suggest deckbuilding packages")
-    public Response packages(@PathParam("id") String idStr) {
-        Long id = parseDeckId(idStr);
-        if (id == null) return badRequest("Invalid deck id");
-
-        var packages = deckService.recommendPackages(id, currentUserId());
-        if (packages == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        return Response.ok(packages).build();
-    }
-
-    @POST
-    @Path("{id}/packages/{packageId}/maybeboard")
-    @Authenticated
-    @Operation(summary = "Add a package to the deck maybeboard")
-    public Response addPackageToMaybeboard(@PathParam("id") String idStr, @PathParam("packageId") String packageId) {
-        Long id = parseDeckId(idStr);
-        if (id == null) return badRequest("Invalid deck id");
-
-        try {
-            DeckResponseDTO updated = deckService.addPackageToMaybeboard(id, packageId, currentUserId());
-            if (updated == null) {
-                return Response.status(Response.Status.NOT_FOUND).build();
-            }
-            return Response.ok(updated).build();
-        } catch (IllegalArgumentException e) {
-            return badRequest(e.getMessage());
-        }
-    }
-
     @POST
     @Path("{id}/comparison")
     @Authenticated

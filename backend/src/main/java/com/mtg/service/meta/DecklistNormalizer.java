@@ -82,8 +82,6 @@ public class DecklistNormalizer {
         return lower.equals("commander")
                 || lower.equals("commanders")
                 || lower.equals("deck")
-                || lower.equals("sideboard")
-                || lower.equals("maybeboard")
                 || lower.startsWith("//")
                 || lower.startsWith("#");
     }

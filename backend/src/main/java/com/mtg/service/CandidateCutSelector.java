@@ -25,7 +25,6 @@ public class CandidateCutSelector {
 
     public List<StrategicCandidate> select(Deck deck, Map<String, CardResponseDTO> cardsByName, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket) {
         return deck.getCards().stream()
-                .filter(deckCard -> "main".equals(deckCard.getZone()))
                 .filter(deckCard -> !normalize(deckCard.getName()).equals(normalize(deck.getCommander())))
                 .map(deckCard -> toCandidate(deckCard, fallbackCard(deckCard), cardsByName.get(normalize(deckCard.getName())), profile, roles, bracket))
                 .filter(candidate -> candidate.card() != null)

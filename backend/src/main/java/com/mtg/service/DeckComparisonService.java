@@ -121,7 +121,6 @@ public class DeckComparisonService {
             names.add(deck.getCommander());
         }
         deck.getCards().stream()
-                .filter(card -> "main".equals(card.getZone()) || "companion".equals(card.getZone()))
                 .map(com.mtg.model.DeckCard::getName)
                 .filter(commanderGameChangerService::isGameChanger)
                 .forEach(names::add);

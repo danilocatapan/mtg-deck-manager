@@ -27,7 +27,6 @@ export default function DeckList({ decks = [], onEdit, onDelete, onCreate, onImp
     <div className="deck-list">
       {decks.map((deck) => {
         const totalCards = deck.cards
-          ?.filter((card) => (card.zone || 'main') === 'main')
           .reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0
 
         return (

@@ -391,8 +391,6 @@ public class DeckAnalysisService {
     }
 
     private List<DeckCard> mainDeckCards(Deck deck) {
-        return deck.getCards().stream()
-                .filter(card -> "main".equals(card.getZone()))
-                .toList();
+        return deck.getCards();
     }
 }

@@ -12,6 +12,8 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Endpoint publico para metadados da API.
 
 ### Changed
+- Cadastro, edicao, importacao, analise e recomendacoes agora tratam cartas somente como cartas do deck, sem selecao de grupo.
+- Contrato de cartas do deck deixou de expor/enviar campo de grupo, e swaps de recomendacao aplicam remove/add diretamente no deck.
 - Build local passa a usar metadados seguros quando o pipeline ainda nao gerou uma versao.
 - Analise do deck passa a destacar diagnosticos acionaveis em PT-BR, com alertas de curva, ramp, compra e interacao.
 - Cards de recomendacao passam a mostrar impacto antes/depois para curva, ramp, compra, interacao, Game Changers e pressao de bracket.

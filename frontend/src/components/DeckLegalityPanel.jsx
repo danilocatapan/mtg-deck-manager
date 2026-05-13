@@ -57,7 +57,7 @@ export default function DeckLegalityPanel({ legality, loading = false, error = n
       label: 'Tamanho',
       value: `${legality.mainDeckSize}/${legality.targetMainDeckSize}`,
       ok: legality.sizeLegal,
-      detail: legality.sizeLegal ? 'Deck principal completo' : 'Commander usa 99 cartas fora do comandante',
+      detail: legality.sizeLegal ? 'Deck completo' : 'Commander usa 99 cartas fora do comandante',
     },
     {
       label: 'Singleton',
@@ -82,12 +82,6 @@ export default function DeckLegalityPanel({ legality, loading = false, error = n
       value: legality.commanderValid ? 'OK' : 'Revisar',
       ok: legality.commanderValid,
       detail: commanderNames(legality.commanders),
-    },
-    {
-      label: 'Companion',
-      value: legality.companion?.present ? legality.companion.name : 'Nenhum',
-      ok: legality.companion?.legal,
-      detail: legality.companion?.reason || 'Nenhum companion declarado',
     },
     {
       label: 'Game Changers',

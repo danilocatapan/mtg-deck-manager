@@ -160,7 +160,6 @@ class DeckControllerTest {
                 .body("colorIdentityLegal", is(true))
                 .body("banlist.legal", is(true))
                 .body("commanderValid", is(true))
-                .body("companion.present", is(false))
                 .body("estimatedBracket.level", is(2))
                 .body("gameChangerCount", is(0))
                 .body("rulesSnapshot.banlistDate", is("2026-05-07"))

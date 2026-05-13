@@ -157,7 +157,7 @@ export default function ImportDeckPage({ onDone }) {
           </div>
         </Card>
 
-        <Card className="zone zone-sideboard">
+        <Card className="zone zone-planning">
           <div className="section-heading">
             <div>
               <h2>Preview</h2>
