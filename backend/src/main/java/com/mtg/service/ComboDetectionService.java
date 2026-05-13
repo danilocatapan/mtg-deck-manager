@@ -61,6 +61,25 @@ public class ComboDetectionService {
         );
     }
 
+    public List<ComboCompletionSignal> completionSignals(Set<String> deckCardNames) {
+        ComboAnalysis analysis = analyze(deckCardNames);
+        return analysis.oneCardAway().stream()
+                .map(nearMiss -> new ComboCompletionSignal(nearMiss.missingCard(), nearMiss.name()))
+                .toList();
+    }
+
+    public Set<String> protectedPieces(Set<String> deckCardNames) {
+        ComboAnalysis analysis = analyze(deckCardNames);
+        Set<String> protectedNames = new HashSet<>();
+        for (ComboHit hit : analysis.present()) {
+            hit.cards().stream().map(this::normalize).forEach(protectedNames::add);
+        }
+        for (ComboNearMiss nearMiss : analysis.oneCardAway()) {
+            nearMiss.presentCards().stream().map(this::normalize).forEach(protectedNames::add);
+        }
+        return protectedNames;
+    }
+
     private ComboSnapshot load() {
         List<ComboDefinition> current = combos.get();
         if (current != null) {
@@ -125,5 +144,8 @@ public class ComboDetectionService {
         ComboDefinition {
             cards = cards == null ? List.of() : List.copyOf(cards);
         }
+    }
+
+    public record ComboCompletionSignal(String missingCard, String comboName) {
     }
 }

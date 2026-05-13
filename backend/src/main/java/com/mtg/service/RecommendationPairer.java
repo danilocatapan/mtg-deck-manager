@@ -345,7 +345,7 @@ public class RecommendationPairer {
             default -> 0;
         };
         String archetype = profile == null ? "" : profile.archetype();
-        if ("combat damage".equals(archetype) || "ramp".equals(archetype)) {
+        if ("combat".equals(archetype) || "combat damage".equals(archetype) || "midrange".equals(archetype) || "ramp".equals(archetype)) {
             if ("ramp".equals(role) || "protection".equals(role)) target++;
             if ("finisher".equals(role)) target += 2;
         }

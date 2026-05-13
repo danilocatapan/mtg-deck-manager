@@ -7,6 +7,7 @@ import com.mtg.service.rules.CommanderBanlistService;
 import com.mtg.service.meta.MetaCard;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -18,6 +19,7 @@ import java.util.Set;
 
 @ApplicationScoped
 public class CandidateAddSelector {
+    private static final Logger LOG = Logger.getLogger(CandidateAddSelector.class);
 
     @Inject
     CardService cardService;
@@ -27,6 +29,12 @@ public class CandidateAddSelector {
 
     @Inject
     CommanderBanlistService commanderBanlistService;
+
+    @Inject
+    CardRoleClassifier roleClassifier;
+
+    @Inject
+    ComboDetectionService comboDetectionService;
 
     public List<StrategicCandidate> select(
             Deck deck,
@@ -83,6 +91,7 @@ public class CandidateAddSelector {
                 .map(this::normalize)
                 .forEach(existingNames::add);
         List<CardResponseDTO> cards = new ArrayList<>();
+        Map<String, String> comboSignals = comboSignals(deck);
 
         for (MetaCard metaCard : metaCards.stream().limit(50).toList()) {
             CardResponseDTO card = knownCards.get(normalize(metaCard.getName()));
@@ -104,14 +113,14 @@ public class CandidateAddSelector {
         }
 
         return cards.stream()
-                .map(card -> toCandidate(card, metaCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget, filters))
+                .map(card -> toCandidate(card, metaCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget, filters, comboSignals))
                 .sorted(Comparator.comparingDouble(StrategicCandidate::score).reversed())
                 .distinct()
                 .limit(12)
                 .toList();
     }
 
-    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, boolean metaProfileDriven, String recommendationMode, Double budget, Set<String> filters) {
+    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, boolean metaProfileDriven, String recommendationMode, Double budget, Set<String> filters, Map<String, String> comboSignals) {
         String role = classifyRole(card);
         double commanderSynergy = synergyEngine.computeSynergy(synergyEngine.tagsForCard(card), roles.deckTags(), profile.commanderTags());
         double gapScore = roles.gaps().containsKey(role) || ("curve".equals(role) && roles.gaps().containsKey("curve")) ? 1.0 : 0.3;
@@ -125,10 +134,27 @@ public class CandidateAddSelector {
         double metaScore = metaCard == null ? 0.2 : Math.min(1.0, inclusionRate * metaCard.getBracketWeight() + metaCard.getPerformanceWeight());
         double bracketFit = bracketFit(card, bracket, metaCard);
         double score = scoreForBracket(bracket, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore, bracketFit, role);
+        String comboName = comboSignals.get(normalize(card.name()));
+        if (comboName != null && isCompetitiveBracket(bracket)) {
+            score += 0.25;
+            LOG.infov("event=combo.recommendation.signal missingCard=\"{0}\" combo=\"{1}\"", card.name(), comboName);
+        }
         score = applyIntent(score, recommendationMode, budget, card, role, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore);
         score = applyFilters(score, filters, card, role, commanderSynergy, archetypeFit);
-        String source = metaCard == null ? "heuristic_fallback" : nullSafeSource(metaCard.getSource());
-        return new StrategicCandidate(card, role, score, addReason(role, profile), metaProfileDriven && metaCard != null, inclusionRate, commanderSynergy, source);
+        String source = comboName != null && metaCard == null ? "combo_database" : metaCard == null ? "heuristic_fallback" : nullSafeSource(metaCard.getSource());
+        String reason = comboName == null ? addReason(role, profile) : "completa o combo " + comboName;
+        return new StrategicCandidate(card, role, score, reason, metaProfileDriven && metaCard != null, inclusionRate, commanderSynergy, source);
+    }
+
+    private Map<String, String> comboSignals(Deck deck) {
+        ComboDetectionService service = comboDetectionService == null ? new ComboDetectionService() : comboDetectionService;
+        return service.completionSignals(deck.getCards().stream().map(DeckCard::getName).collect(java.util.stream.Collectors.toSet()))
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        signal -> normalize(signal.missingCard()),
+                        ComboDetectionService.ComboCompletionSignal::comboName,
+                        (first, ignored) -> first
+                ));
     }
 
     private boolean passesFilters(CardResponseDTO card, Set<String> filters) {
@@ -225,7 +251,7 @@ public class CandidateAddSelector {
                 result.add(role);
             }
         }
-        if ("combat damage".equals(profile.archetype()) && !result.contains("protection")) {
+        if (isCombat(profile.archetype()) && !result.contains("protection")) {
             result.add("protection");
         }
         return result;
@@ -339,14 +365,19 @@ public class CandidateAddSelector {
     }
 
     private String classifyRole(CardResponseDTO card) {
-        String oracle = text(card.oracleText());
-        String type = text(card.typeLine());
-        if (oracle.contains("indestructible") || oracle.contains("hexproof") || oracle.contains("phase out") || oracle.contains("protection")) return "protection";
-        if (oracle.contains("draw")) return "draw";
-        if (oracle.contains("destroy") || oracle.contains("exile") || oracle.contains("counter target")) return "removal";
-        if (oracle.contains("add ") || oracle.contains("search your library for a land")) return "ramp";
-        if (type.contains("creature") && card.cmc() != null && card.cmc() >= 5.0) return "finisher";
-        return "value";
+        return classifier().primaryRole(card);
+    }
+
+    private CardRoleClassifier classifier() {
+        return roleClassifier == null ? new CardRoleClassifier() : roleClassifier;
+    }
+
+    private boolean isCompetitiveBracket(String bracket) {
+        return "cedh".equalsIgnoreCase(bracket) || "high-power".equalsIgnoreCase(bracket);
+    }
+
+    private boolean isCombat(String archetype) {
+        return "combat".equals(archetype) || "combat damage".equals(archetype);
     }
 
     private double efficiency(CardResponseDTO card) {
@@ -359,7 +390,7 @@ public class CandidateAddSelector {
 
     private double archetypeFit(CardResponseDTO card, CommanderArchetypeProfile profile) {
         String oracle = text(card.oracleText());
-        if ("combat damage".equals(profile.archetype()) && (oracle.contains("trample") || oracle.contains("combat") || oracle.contains("double strike"))) return 1.0;
+        if (isCombat(profile.archetype()) && (oracle.contains("trample") || oracle.contains("combat") || oracle.contains("double strike"))) return 1.0;
         if ("tokens".equals(profile.archetype()) && oracle.contains("token")) return 1.0;
         if ("aristocrats".equals(profile.archetype()) && (oracle.contains("sacrifice") || oracle.contains("graveyard"))) return 1.0;
         if ("control".equals(profile.archetype()) && (oracle.contains("counter target") || oracle.contains("draw") || oracle.contains("exile"))) return 0.9;

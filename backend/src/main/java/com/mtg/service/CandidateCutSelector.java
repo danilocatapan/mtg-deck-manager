@@ -6,6 +6,7 @@ import com.mtg.model.DeckCard;
 import com.mtg.service.synergy.SynergyEngine;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 import java.util.Comparator;
 import java.util.List;
@@ -15,17 +16,26 @@ import java.util.Set;
 
 @ApplicationScoped
 public class CandidateCutSelector {
+    private static final Logger LOG = Logger.getLogger(CandidateCutSelector.class);
 
     @Inject
     SynergyEngine synergyEngine;
+
+    @Inject
+    CardRoleClassifier roleClassifier;
+
+    @Inject
+    ComboDetectionService comboDetectionService;
 
     public List<StrategicCandidate> select(Deck deck, Map<String, CardResponseDTO> cardsByName, CommanderArchetypeProfile profile, DeckRoleSummary roles) {
         return select(deck, cardsByName, profile, roles, "casual");
     }
 
     public List<StrategicCandidate> select(Deck deck, Map<String, CardResponseDTO> cardsByName, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket) {
+        Set<String> protectedComboPieces = protectedComboPieces(deck);
         return deck.getCards().stream()
                 .filter(deckCard -> !normalize(deckCard.getName()).equals(normalize(deck.getCommander())))
+                .filter(deckCard -> canCutComboPiece(deckCard, protectedComboPieces))
                 .map(deckCard -> toCandidate(deckCard, fallbackCard(deckCard), cardsByName.get(normalize(deckCard.getName())), profile, roles, bracket))
                 .filter(candidate -> candidate.card() != null)
                 .filter(candidate -> !"land".equals(candidate.role()) || roles.lands() > minLandTarget(bracket))
@@ -73,15 +83,7 @@ public class CandidateCutSelector {
     }
 
     private String classifyRole(CardResponseDTO card) {
-        String oracle = text(card.oracleText());
-        String type = text(card.typeLine());
-        if (type.contains("land")) return "land";
-        if (oracle.contains("indestructible") || oracle.contains("hexproof") || oracle.contains("phase out") || oracle.contains("protection")) return "protection";
-        if (oracle.contains("draw")) return "draw";
-        if (oracle.contains("destroy") || oracle.contains("exile") || oracle.contains("counter target")) return "removal";
-        if (oracle.contains("add ") || oracle.contains("search your library for a land")) return "ramp";
-        if (type.contains("creature") && card.cmc() != null && card.cmc() >= 5.0) return "finisher";
-        return "value";
+        return classifier().primaryRole(card);
     }
 
     private double lowEfficiency(CardResponseDTO card) {
@@ -104,7 +106,7 @@ public class CandidateCutSelector {
     }
 
     private double weakRoleFit(String role, CommanderArchetypeProfile profile) {
-        if ("combat damage".equals(profile.archetype()) && ("finisher".equals(role) || "protection".equals(role) || "ramp".equals(role))) return 0.1;
+        if (isCombat(profile.archetype()) && ("finisher".equals(role) || "protection".equals(role) || "ramp".equals(role))) return 0.1;
         if ("control".equals(profile.archetype()) && ("removal".equals(role) || "draw".equals(role))) return 0.1;
         if ("tokens".equals(profile.archetype()) && "finisher".equals(role)) return 0.65;
         return "value".equals(role) ? 0.6 : 0.35;
@@ -190,5 +192,29 @@ public class CandidateCutSelector {
 
     private String normalize(String name) {
         return name == null ? "" : name.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private Set<String> protectedComboPieces(Deck deck) {
+        ComboDetectionService service = comboDetectionService == null ? new ComboDetectionService() : comboDetectionService;
+        return service.protectedPieces(deck.getCards().stream()
+                .map(DeckCard::getName)
+                .collect(java.util.stream.Collectors.toSet()));
+    }
+
+    private boolean canCutComboPiece(DeckCard deckCard, Set<String> protectedComboPieces) {
+        String normalizedName = normalize(deckCard.getName());
+        if (!protectedComboPieces.contains(normalizedName)) {
+            return true;
+        }
+        LOG.infov("event=cut.protected reason=combo_piece card=\"{0}\"", deckCard.getName());
+        return false;
+    }
+
+    private CardRoleClassifier classifier() {
+        return roleClassifier == null ? new CardRoleClassifier() : roleClassifier;
+    }
+
+    private boolean isCombat(String archetype) {
+        return "combat".equals(archetype) || "combat damage".equals(archetype);
     }
 }

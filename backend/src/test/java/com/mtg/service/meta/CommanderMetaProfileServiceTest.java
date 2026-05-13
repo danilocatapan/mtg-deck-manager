@@ -89,6 +89,30 @@ class CommanderMetaProfileServiceTest {
         assertEquals(1, profiles.getFirst().sampleSize());
     }
 
+    @Test
+    void appliesPerformanceWeightFromCompetitivePlacements() {
+        CommanderMetaProfileService service = new CommanderMetaProfileService();
+        service.bracketMetaPolicy = new BracketMetaPolicy();
+
+        List<CommanderMetaProfile> profiles = service.buildProfiles(List.of(
+                competitiveDeck("Tymna the Weaver", "cedh", 1, 128, "Thassa's Oracle", "Demonic Consultation"),
+                competitiveDeck("Tymna the Weaver", "cedh", 32, 128, "Slow Value Card", "Demonic Consultation")
+        ));
+
+        CommanderMetaProfile profile = profiles.getFirst();
+        MetaCard oracle = profile.topCards().stream()
+                .filter(card -> card.getName().equals("Thassa's Oracle"))
+                .findFirst()
+                .orElseThrow();
+        MetaCard slowCard = profile.topCards().stream()
+                .filter(card -> card.getName().equals("Slow Value Card"))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(0.5, oracle.getInclusion());
+        org.junit.jupiter.api.Assertions.assertTrue(oracle.getPerformanceWeight() > slowCard.getPerformanceWeight());
+    }
+
     private MetaDeck deck(String commander, String bracket, String... cards) {
         return new MetaDeck(
                 "test",
@@ -104,6 +128,25 @@ class CommanderMetaProfileServiceTest {
                 null,
                 null,
                 null,
+                OffsetDateTime.now()
+        );
+    }
+
+    private MetaDeck competitiveDeck(String commander, String bracket, Integer placement, Integer players, String... cards) {
+        return new MetaDeck(
+                "TopDeck",
+                commander + ":" + placement,
+                commander,
+                List.of(),
+                List.of(),
+                bracket,
+                List.of(),
+                List.of(cards).stream().map(name -> card(name, 1)).toList(),
+                "cEDH Open",
+                java.time.LocalDate.now().minusDays(10),
+                placement,
+                players,
+                "https://topdeck.gg/example",
                 OffsetDateTime.now()
         );
     }

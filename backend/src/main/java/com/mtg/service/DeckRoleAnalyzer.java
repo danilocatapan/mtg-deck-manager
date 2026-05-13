@@ -20,6 +20,9 @@ public class DeckRoleAnalyzer {
     @Inject
     SynergyEngine synergyEngine;
 
+    @Inject
+    CardRoleClassifier roleClassifier;
+
     public DeckRoleSummary analyze(Deck deck, Map<String, CardResponseDTO> cardsByName, String bracket) {
         List<DeckCard> mainDeckCards = mainDeckCards(deck);
         int totalCards = mainDeckCards.stream().mapToInt(DeckCard::getQuantity).sum();
@@ -40,20 +43,21 @@ public class DeckRoleAnalyzer {
                 continue;
             }
 
-            String typeLine = text(card.typeLine());
             String oracle = text(card.oracleText());
             double cmc = card.cmc() != null ? card.cmc() : 0.0;
             cmcSum += cmc * qty;
             Set<String> tags = synergyEngine.tagsForCard(card);
+            Set<String> cardRoles = classifier().rolesFor(card);
             deckTags.addAll(tags);
+            deckTags.addAll(cardRoles);
 
-            if (typeLine.contains("land")) lands += qty;
-            if (tags.contains("ramp") || tags.contains("treasure") || tags.contains("mana-rock") || isRamp(card)) ramp += qty;
-            if (tags.contains("draw") || tags.contains("impulse-draw") || oracle.contains("look at the top") || oracle.contains("impulse")) draw += qty;
-            if (tags.contains("removal") || tags.contains("stack-interaction")) removal += qty;
-            if (tags.contains("protection")) protection += qty;
+            if (cardRoles.contains("land")) lands += qty;
+            if (cardRoles.contains("ramp") || tags.contains("treasure") || tags.contains("mana-rock")) ramp += qty;
+            if (cardRoles.contains("draw") || cardRoles.contains("selection") || tags.contains("impulse-draw") || oracle.contains("impulse")) draw += qty;
+            if (cardRoles.contains("removal") || cardRoles.contains("counterspell") || tags.contains("stack-interaction")) removal += qty;
+            if (cardRoles.contains("protection")) protection += qty;
             if (oracle.contains("destroy all") || oracle.contains("exile all") || oracle.contains("all creatures")) boardWipes += qty;
-            if (cmc >= 5.0 && (typeLine.contains("creature") || oracle.contains("win the game") || oracle.contains("double"))) finishers += qty;
+            if (cardRoles.contains("finisher")) finishers += qty;
         }
 
         double averageCmc = totalCards > 0 ? cmcSum / totalCards : 0.0;
@@ -99,15 +103,12 @@ public class DeckRoleAnalyzer {
         return gaps;
     }
 
-    private boolean isRamp(CardResponseDTO card) {
-        String typeLine = text(card.typeLine());
-        String oracle = text(card.oracleText());
-        return oracle.contains("add ") || oracle.contains("search your library for a land")
-                || typeLine.contains("land") && oracle.contains("add {");
-    }
-
     private String text(String value) {
         return value == null ? "" : value.toLowerCase();
+    }
+
+    private CardRoleClassifier classifier() {
+        return roleClassifier == null ? new CardRoleClassifier() : roleClassifier;
     }
 
     private String normalize(String name) {

@@ -52,7 +52,7 @@ public class DecklistNormalizer {
             }
 
             String lower = line.toLowerCase(Locale.ROOT);
-            if (lower.equals("commander") || lower.equals("commanders")) {
+            if (lower.equals("commander") || lower.equals("commanders") || lower.equals("~~commanders~~")) {
                 nextCardIsCommander = true;
                 continue;
             }
@@ -82,6 +82,9 @@ public class DecklistNormalizer {
         return lower.equals("commander")
                 || lower.equals("commanders")
                 || lower.equals("deck")
+                || lower.equals("mainboard")
+                || lower.equals("~~commanders~~")
+                || lower.equals("~~mainboard~~")
                 || lower.startsWith("//")
                 || lower.startsWith("#");
     }

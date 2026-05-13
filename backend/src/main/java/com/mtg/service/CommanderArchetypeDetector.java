@@ -4,12 +4,15 @@ import com.mtg.dto.CardResponseDTO;
 import com.mtg.service.synergy.SynergyEngine;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @ApplicationScoped
 public class CommanderArchetypeDetector {
+    private static final Logger LOG = Logger.getLogger(CommanderArchetypeDetector.class);
 
     @Inject
     SynergyEngine synergyEngine;
@@ -24,26 +27,51 @@ public class CommanderArchetypeDetector {
 
         String archetype;
         String plan;
-        if (allTags.contains("token")) {
+        if (allTags.contains("stax")) {
+            archetype = "stax";
+            plan = "limitar recursos dos oponentes e vencer com vantagem incremental protegida";
+        } else if (allTags.contains("combo-piece") && (allTags.contains("tutor") || roleSummary.averageCmc() <= 2.8)) {
+            archetype = "turbo-combo";
+            plan = "montar uma condicao de vitoria compacta com velocidade e protecao";
+        } else if (allTags.contains("token")) {
             archetype = "tokens";
-            plan = "criar massa de permanentes, converter quantidade em dano ou valor e manter pressão incremental";
+            plan = "criar massa de permanentes, converter quantidade em dano ou valor e manter pressao incremental";
         } else if (allTags.contains("sacrifice") || allTags.contains("graveyard")) {
             archetype = "aristocrats";
-            plan = "gerar valor com sacrifícios, recorrência e recursos do cemitério";
+            plan = "gerar valor com sacrificios, recorrencia e recursos do cemiterio";
+        } else if (allTags.contains("recursion") || allTags.contains("self-mill")) {
+            archetype = "reanimator";
+            plan = "transformar cemiterio em recurso e reutilizar ameacas ou pecas-chave";
+        } else if (allTags.contains("counterspell") && allTags.contains("selection")) {
+            archetype = "spellslinger";
+            plan = "encadear magicas baratas, selecao e interacao para manter ritmo";
         } else if (allTags.contains("combat") || allTags.contains("trample") || allTags.contains("big-creature")) {
-            archetype = "combat damage";
-            plan = "acelerar ameaças relevantes e transformar combate em pressão letal";
+            archetype = "combat";
+            plan = "acelerar ameacas relevantes e transformar combate em pressao letal";
         } else if (roleSummary.removal() >= 10 && roleSummary.averageCmc() <= 3.4) {
             archetype = "control";
-            plan = "controlar a mesa, trocar recursos com eficiência e vencer com poucas ameaças resilientes";
+            plan = "controlar a mesa, trocar recursos com eficiencia e vencer com poucas ameacas resilientes";
         } else if (roleSummary.ramp() >= 12) {
-            archetype = "ramp";
-            plan = "acelerar mana cedo e converter vantagem de recursos em ameaças de alto impacto";
+            archetype = "midrange";
+            plan = "acelerar mana cedo e converter vantagem de recursos em ameacas de alto impacto";
         } else {
             archetype = "value";
-            plan = "acumular vantagem incremental, manter consistência e vencer por qualidade média das cartas";
+            plan = "acumular vantagem incremental, manter consistencia e vencer por qualidade media das cartas";
         }
 
+        LOG.infov(
+                "event=deck.archetype.detected commander=\"{0}\" archetype={1} signals={2}",
+                commanderName,
+                archetype,
+                signalTags(allTags)
+        );
         return new CommanderArchetypeProfile(commanderName, colors, archetype, plan, commanderTags);
+    }
+
+    private List<String> signalTags(Set<String> tags) {
+        return tags.stream()
+                .filter(tag -> Set.of("stax", "combo-piece", "tutor", "token", "sacrifice", "graveyard", "combat", "counterspell", "selection").contains(tag))
+                .sorted()
+                .toList();
     }
 }

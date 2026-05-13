@@ -11,6 +11,7 @@ import org.jboss.logging.Logger;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -103,14 +104,17 @@ public class CommanderMetaProfileService {
         MetaDeck first = group.getFirst();
         int sampleSize = group.size();
         Map<String, Integer> counts = new LinkedHashMap<>();
+        Map<String, Double> performance = new LinkedHashMap<>();
 
         for (MetaDeck deck : group) {
             Set<String> uniqueCards = deck.cards().stream()
                     .map(MetaDeckCard::name)
                     .filter(name -> name != null && !name.isBlank())
                     .collect(Collectors.toSet());
+            double deckPerformance = performanceWeight(deck);
             for (String card : uniqueCards) {
                 counts.merge(card, 1, Integer::sum);
+                performance.merge(card, deckPerformance, Double::sum);
             }
         }
 
@@ -122,7 +126,7 @@ public class CommanderMetaProfileService {
                         null,
                         entry.getValue(),
                         1.0,
-                        0.0,
+                        averagePerformance(entry.getKey(), performance, sampleSize),
                         List.of(),
                         first.source()
                 ))
@@ -145,6 +149,31 @@ public class CommanderMetaProfileService {
                 group.stream().map(MetaDeck::source).distinct().toList(),
                 OffsetDateTime.now()
         );
+    }
+
+    private double averagePerformance(String card, Map<String, Double> performance, int sampleSize) {
+        if (sampleSize <= 0) {
+            return 0.0;
+        }
+        double value = Math.min(0.40, performance.getOrDefault(card, 0.0) / sampleSize);
+        if (value > 0.0) {
+            LOG.infov("event=meta.performance.weighted card=\"{0}\" weight={1} source=TopDeck", card, String.format(Locale.ROOT, "%.2f", value));
+        }
+        return value;
+    }
+
+    private double performanceWeight(MetaDeck deck) {
+        if (deck == null || deck.placement() == null) {
+            return 0.0;
+        }
+        double placement = deck.placement() <= 4 ? 0.20 : deck.placement() <= 16 ? 0.12 : 0.04;
+        int players = deck.playerCount() == null ? 0 : deck.playerCount();
+        double eventSize = players >= 128 ? 0.12 : players >= 64 ? 0.08 : players >= 32 ? 0.04 : 0.0;
+        double recency = 0.0;
+        if (deck.eventDate() != null && deck.eventDate().isAfter(LocalDate.now().minusDays(90))) {
+            recency = 0.08;
+        }
+        return placement + eventSize + recency;
     }
 
     private void save() {

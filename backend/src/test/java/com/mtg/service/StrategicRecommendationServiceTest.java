@@ -41,6 +41,7 @@ class StrategicRecommendationServiceTest {
 
         DeckRoleAnalyzer roleAnalyzer = new DeckRoleAnalyzer();
         roleAnalyzer.synergyEngine = synergyEngine;
+        roleAnalyzer.roleClassifier = new CardRoleClassifier();
 
         CommanderArchetypeDetector archetypeDetector = new CommanderArchetypeDetector();
         archetypeDetector.synergyEngine = synergyEngine;
@@ -48,9 +49,13 @@ class StrategicRecommendationServiceTest {
         CandidateAddSelector addSelector = new CandidateAddSelector();
         addSelector.cardService = cardService;
         addSelector.synergyEngine = synergyEngine;
+        addSelector.roleClassifier = new CardRoleClassifier();
+        addSelector.comboDetectionService = new ComboDetectionService();
 
         CandidateCutSelector cutSelector = new CandidateCutSelector();
         cutSelector.synergyEngine = synergyEngine;
+        cutSelector.roleClassifier = new CardRoleClassifier();
+        cutSelector.comboDetectionService = new ComboDetectionService();
 
         RecommendationPairer pairer = new RecommendationPairer();
         pairer.reasoningBuilder = new RecommendationReasoningBuilder();
@@ -342,6 +347,25 @@ class StrategicRecommendationServiceTest {
         });
     }
 
+    @Test
+    void shouldRecommendMissingComboPieceAndProtectCurrentComboPieces() {
+        Deck deck = grixisComboDeck();
+
+        when(deckRepository.findById(3L)).thenReturn(deck);
+        when(commanderMetaProfileService.findByCommanderAndBracket("Kess, Dissident Mage", "cedh")).thenReturn(null);
+        when(metaProvider.getTopCards("Kess, Dissident Mage")).thenReturn(List.of(
+                new MetaCard("Brain Freeze", 0.50, "finisher", 2.0)
+        ));
+        when(cardService.findByNames(Mockito.anyList())).thenReturn(grixisCards());
+
+        List<StrategicRecommendation> recommendations = sut.recommend(3L, new RecommendationParamsDTO(null, "cedh", null, null));
+
+        assertTrue(recommendations.stream().anyMatch(recommendation -> recommendation.add().equals("Brain Freeze")));
+        assertTrue(recommendations.stream().noneMatch(recommendation -> recommendation.remove().equals("Underworld Breach")));
+        assertTrue(recommendations.stream().noneMatch(recommendation -> recommendation.remove().equals("Lion's Eye Diamond")));
+        assertTrue(recommendations.stream().anyMatch(recommendation -> recommendation.reasoning().contains("completa o combo")));
+    }
+
     private static Map.Entry<String, CardResponseDTO> entry(CardResponseDTO card) {
         return Map.entry(card.name().toLowerCase(), card);
     }
@@ -373,6 +397,22 @@ class StrategicRecommendationServiceTest {
                 new DeckCard("Mind Stone", 1),
                 new DeckCard("Island", 15),
                 new DeckCard("Swamp", 14)
+        ));
+        return deck;
+    }
+
+    private static Deck grixisComboDeck() {
+        Deck deck = new Deck();
+        deck.setId(3L);
+        deck.setCommander("Kess, Dissident Mage");
+        deck.setColorIdentity("UBR");
+        deck.setCards(List.of(
+                new DeckCard("Underworld Breach", 1),
+                new DeckCard("Lion's Eye Diamond", 1),
+                new DeckCard("Phyrexian Arena", 1),
+                new DeckCard("Diabolic Tutor", 1),
+                new DeckCard("Island", 14),
+                new DeckCard("Swamp", 13)
         ));
         return deck;
     }
@@ -416,6 +456,19 @@ class StrategicRecommendationServiceTest {
                 entry(card("Diabolic Tutor", "{2}{B}{B}", "Sorcery", "Search your library for a card, put that card into your hand, then shuffle.", 4.0, List.of("B"))),
                 entry(card("Cancel", "{1}{U}{U}", "Instant", "Counter target spell.", 3.0, List.of("U"))),
                 entry(card("Mind Stone", "{2}", "Artifact", "{T}: Add {C}.", 2.0, List.of())),
+                entry(card("Island", "", "Basic Land - Island", "Add {U}.", 0.0, List.of("U"))),
+                entry(card("Swamp", "", "Basic Land - Swamp", "Add {B}.", 0.0, List.of("B")))
+        );
+    }
+
+    private static Map<String, CardResponseDTO> grixisCards() {
+        return Map.ofEntries(
+                entry(card("Kess, Dissident Mage", "{1}{U}{B}{R}", "Legendary Creature - Human Wizard", "During each of your turns, you may cast an instant or sorcery spell from your graveyard.", 4.0, List.of("U", "B", "R"))),
+                entry(card("Underworld Breach", "{1}{R}", "Enchantment", "Each nonland card in your graveyard has escape.", 2.0, List.of("R"))),
+                entry(card("Lion's Eye Diamond", "{0}", "Artifact", "Discard your hand, Sacrifice this artifact: Add three mana of any one color.", 0.0, List.of())),
+                entry(card("Brain Freeze", "{1}{U}", "Instant", "Target player mills three cards. Storm.", 2.0, List.of("U"))),
+                entry(card("Phyrexian Arena", "{1}{B}{B}", "Enchantment", "At the beginning of your upkeep, you draw a card and you lose 1 life.", 3.0, List.of("B"))),
+                entry(card("Diabolic Tutor", "{2}{B}{B}", "Sorcery", "Search your library for a card, put that card into your hand, then shuffle.", 4.0, List.of("B"))),
                 entry(card("Island", "", "Basic Land - Island", "Add {U}.", 0.0, List.of("U"))),
                 entry(card("Swamp", "", "Basic Land - Swamp", "Add {B}.", 0.0, List.of("B")))
         );
