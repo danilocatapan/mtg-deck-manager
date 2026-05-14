@@ -171,6 +171,8 @@ class DeckRecommendationIntegrationTest {
 
         assertTrue(adds.stream().filter(expectedAdds::contains).count() >= 4);
         assertTrue(cuts.stream().filter(expectedCuts::contains).count() >= 4);
+        assertTrue(adds.stream().noneMatch(add -> Set.of("Marble Diamond", "Sky Diamond").contains(add)));
+        assertTrue(cuts.stream().noneMatch(cut -> cut.equals("Atarka, World Render")));
         assertTrue(adds.stream().noneMatch(cuts::contains));
     }
 
@@ -235,6 +237,7 @@ class DeckRecommendationIntegrationTest {
             case "moraug, fury of akoum" -> card(name, "{4}{R}{R}", "Legendary Creature - Minotaur Warrior", "Landfall - if it's your main phase, there is an additional combat phase after this phase.", 6.0, "R");
             case "old gnawbone" -> card(name, "{5}{G}{G}", "Legendary Creature - Dragon", "Flying. Whenever a creature you control deals combat damage to a player, create that many Treasure tokens.", 7.0, "G");
             case "etali, primal conqueror" -> card(name, "{5}{R}{R}", "Legendary Creature - Elder Dinosaur", "When this creature enters, each player exiles cards from the top of their library until they exile a nonland card. You may cast any number of spells from among them.", 7.0, "R");
+            case "atarka, world render" -> card(name, "{5}{R}{G}", "Legendary Creature - Dragon", "Flying, trample. Whenever a Dragon you control attacks, it gains double strike until end of turn.", 7.0, "R", "G");
             case "overwhelming stampede" -> card(name, "{3}{G}{G}", "Sorcery", "Creatures you control gain trample and get +X/+X until end of turn.", 5.0, "G");
             case "craterhoof behemoth" -> card(name, "{5}{G}{G}{G}", "Creature - Beast", "When this creature enters, creatures you control gain trample and get +X/+X until end of turn.", 8.0, "G");
             case "approach of the second sun" -> card(name, "{6}{W}", "Sorcery", "If this spell was cast from your hand and you've cast another spell named Approach of the Second Sun this game, you win the game.", 7.0, "W");

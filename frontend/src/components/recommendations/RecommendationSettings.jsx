@@ -28,17 +28,8 @@ const BRACKETS = [
   },
 ]
 
-const INTENTS = [
-  { value: 'consistency', label: 'Mais consistente', detail: 'Prioriza curva, redundancia funcional, ramp e compra para o deck executar o plano com mais frequencia.' },
-  { value: 'casual', label: 'Mais casual', detail: 'Evita empurrar o deck para linhas muito duras e favorece cartas alinhadas ao tema e a experiencia social.' },
-  { value: 'budget', label: 'Mais barato', detail: 'Prioriza upgrades com menor preco estimado quando essa informacao estiver disponivel.' },
-  { value: 'competitive', label: 'Mais competitivo', detail: 'Prioriza eficiencia, dados meta, velocidade e interacao para mesas mais otimizadas.' },
-  { value: 'theme', label: 'Mais fiel ao tema', detail: 'Prioriza sinergia com comandante, tags do deck e plano/arquetipo detectado.' },
-]
-
 export default function RecommendationSettings({ onSubmit, disabled = false, loading = false, onParamsChange }) {
   const [bracket, setBracket] = useState('casual')
-  const [strategy, setStrategy] = useState('consistency')
   const [filters, setFilters] = useState({
     ownedOnly: false,
     avoidSalt: false,
@@ -49,10 +40,9 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
     preserveTheme: false,
   })
   const selectedBracket = BRACKETS.find((item) => item.value === bracket) || BRACKETS[0]
-  const selectedIntent = INTENTS.find((item) => item.value === strategy) || INTENTS[0]
 
   function update(next) {
-    const params = { bracket, strategy, ...filters, ...next }
+    const params = { bracket, ...filters, ...next }
     onParamsChange && onParamsChange(params)
     return params
   }
@@ -81,20 +71,6 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
           }}
         >
           {BRACKETS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-        </select>
-      </label>
-
-      <label title="Intencao usada para ponderar score, meta, preco e fidelidade ao tema.">
-        Intencao da recomendacao
-        <small>{selectedIntent.detail}</small>
-        <select
-          value={strategy}
-          onChange={(e) => {
-            setStrategy(e.target.value)
-            update({ strategy: e.target.value })
-          }}
-        >
-          {INTENTS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
       </label>
 

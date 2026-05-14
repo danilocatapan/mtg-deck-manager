@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -75,6 +76,37 @@ class CandidateAddSelectorArchetypeTest {
         assertTrue(adds.contains("Reanimate") || adds.contains("Animate Dead") || adds.contains("Entomb"));
     }
 
+    @Test
+    void rejectsFunctionalManaOutsideCommanderColors() {
+        Map<String, CardResponseDTO> knownCards = new java.util.HashMap<>();
+        knownCards.put("marble diamond", card("Marble Diamond", "{2}", "Artifact", "Marble Diamond enters the battlefield tapped. Add {W}.", 2.0));
+        knownCards.put("sky diamond", card("Sky Diamond", "{2}", "Artifact", "Sky Diamond enters the battlefield tapped. Add {U}.", 2.0));
+        knownCards.put("mind stone", card("Mind Stone", "{2}", "Artifact", "{T}: Add {C}.", 2.0));
+
+        List<StrategicCandidate> candidates = selector.select(
+                deck("Xenagos, God of Revels", "RG"),
+                List.of(
+                        new com.mtg.service.meta.MetaCard("Marble Diamond", 0.9, "ramp", 2.0),
+                        new com.mtg.service.meta.MetaCard("Sky Diamond", 0.8, "ramp", 2.0),
+                        new com.mtg.service.meta.MetaCard("Mind Stone", 0.7, "ramp", 2.0)
+                ),
+                knownCards,
+                profile("combat", "R", "G"),
+                roles(Set.of("combat", "ramp"), Map.of("ramp", 2)),
+                "cedh",
+                true,
+                "consistency",
+                null,
+                Set.of(),
+                StrategicDeckAssessment.empty()
+        );
+
+        Set<String> adds = names(candidates);
+        assertFalse(adds.contains("Marble Diamond"));
+        assertFalse(adds.contains("Sky Diamond"));
+        assertTrue(adds.contains("Mind Stone") || adds.contains("Sol Ring") || adds.contains("Arcane Signet"));
+    }
+
     private Deck deck(String commander, String colors) {
         Deck deck = new Deck();
         deck.setCommander(commander);
@@ -93,6 +125,10 @@ class CandidateAddSelectorArchetypeTest {
 
     private DeckRoleSummary roles(Set<String> tags, Map<String, Integer> gaps) {
         return new DeckRoleSummary(31, 30, 5, 4, 3, 1, 0, 2, 3.8, gaps, tags);
+    }
+
+    private CardResponseDTO card(String name, String manaCost, String typeLine, String oracle, Double cmc, String... colors) {
+        return new CardResponseDTO(name, manaCost, typeLine, oracle, cmc, List.of(colors), List.of());
     }
 
     private Set<String> names(List<StrategicCandidate> candidates) {

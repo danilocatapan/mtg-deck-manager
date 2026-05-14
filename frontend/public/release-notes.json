@@ -11,6 +11,9 @@
       ],
       "changed": [
         "Recomendacoes estrategicas agora usam diagnostico estrutural generico por arquetipo/bracket para priorizar curva, ramp, compra, interacao, protecao, inevitabilidade e combos sem depender de regras por comandante.",
+        "Recomendacoes estrategicas agora protegem finishers, pecas de combo e payoffs sinergicos contra trocas incoerentes por ramp generico, com logs de auditoria para adds, cuts, bloqueios e pareamentos.",
+        "Fallbacks de ramp removem rocks fora de cor funcional e passam a rejeitar mana que produza cores fora da identidade do comandante.",
+        "Tela de recomendacoes remove a selecao de intencao enquanto o backend estabiliza uma estrategia unica e mais confiavel.",
         "Pipeline estrategico passa a combinar perfil meta local, staples por arquetipo, upgrades funcionais e pecas que completam combos ja quase presentes.",
         "Benchmark de Xenagos high-power passa a validar qualidade real das trocas, incluindo adds/cuts esperados contra uma referencia offline, e os dados locais incluem tambem bases para Grand Arbiter e Kess.",
         "Cadastro, edicao, importacao, analise e recomendacoes agora tratam cartas somente como cartas do deck, sem selecao de grupo.",

@@ -135,6 +135,17 @@ public class StrategicRecommendationService {
         DeckRoleSummary roles = deckRoleAnalyzer.analyze(deck, knownCards, bracket);
         CommanderArchetypeProfile profile = archetypeDetector.detect(deck.getCommander(), commanderCard, roles, persistedColors(deck.getColorIdentity()));
         StrategicDeckAssessment assessment = analyzer().assess(deck, knownCards, profile, roles, bracket);
+        LOG.infov(
+                "event=recommendation.strategy.context deckId={0} commander=\"{1}\" colors={2} bracket={3} archetype={4} gaps={5} issues={6} weakCards={7}",
+                deckId,
+                deck.getCommander(),
+                profile.colors(),
+                bracket,
+                profile.archetype(),
+                roles.gaps(),
+                assessment.issues(),
+                assessment.weakCards()
+        );
 
         List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket, hasUsefulMeta, recommendationMode, budget, filters, assessment);
         List<StrategicCandidate> cuts = cutSelector.select(deck, knownCards, profile, roles, bracket, assessment);
@@ -233,17 +244,10 @@ public class StrategicRecommendationService {
     }
 
     private String normalizeRecommendationMode(String strategy) {
-        if (strategy == null || strategy.isBlank()) {
-            return "consistency";
+        if (strategy != null && !strategy.isBlank()) {
+            LOG.infov("event=recommendation.strategy.ignored requested=\"{0}\" effective=consistency", strategy);
         }
-        String normalized = strategy.trim().toLowerCase(Locale.ROOT);
-        return switch (normalized) {
-            case "casual", "mais casual" -> "casual";
-            case "budget", "cheap", "mais barato" -> "budget";
-            case "competitive", "power", "mais competitivo" -> "competitive";
-            case "theme", "thematic", "mais fiel ao tema" -> "theme";
-            default -> "consistency";
-        };
+        return "consistency";
     }
 
     private Set<String> filters(com.mtg.dto.RecommendationParamsDTO params) {

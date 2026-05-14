@@ -9,6 +9,7 @@ import com.mtg.service.meta.RoleTargets;
 import com.mtg.service.rules.CommanderGameChangerService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -18,6 +19,7 @@ import java.util.Set;
 
 @ApplicationScoped
 public class RecommendationPairer {
+    private static final Logger LOG = Logger.getLogger(RecommendationPairer.class);
 
     @Inject
     RecommendationReasoningBuilder reasoningBuilder;
@@ -97,9 +99,24 @@ public class RecommendationPairer {
 
             StrategicCandidate cut = bestCutFor(add, cuts, usedCuts);
             if (cut == null) {
+                LOG.infov(
+                        "event=recommendation.pair.skipped add=\"{0}\" addRole={1} reason=no_compatible_cut",
+                        add.card().name(),
+                        add.role()
+                );
                 continue;
             }
             usedCuts.add(normalize(cut.card().name()));
+            LOG.infov(
+                    "event=recommendation.pair.selected add=\"{0}\" addRole={1} addScore={2} cut=\"{3}\" cutRole={4} cutScore={5} compatibility=\"{6}\"",
+                    add.card().name(),
+                    add.role(),
+                    round(add.score()),
+                    cut.card().name(),
+                    cut.role(),
+                    round(cut.score()),
+                    compatibilityReason(add, cut)
+            );
             String source = add.metaDriven() ? "meta_profile" : sourceFor(add, "heuristic_fallback");
             RecommendationImpact impact = impactFor(add, cut, roles, currentGameChangers);
             recommendations.add(new StrategicRecommendation(
@@ -371,23 +388,88 @@ public class RecommendationPairer {
     }
 
     private StrategicCandidate bestCutFor(StrategicCandidate add, List<StrategicCandidate> cuts, Set<String> usedCuts) {
-        StrategicCandidate fallback = null;
+        StrategicCandidate best = null;
+        String bestReason = null;
         for (StrategicCandidate cut : cuts) {
             String cutName = normalize(cut.card().name());
             if (usedCuts.contains(cutName)) {
                 continue;
             }
-            if (add.role().equals(cut.role())) {
-                return cut;
+            String compatibility = compatibilityReason(add, cut);
+            if (compatibility == null) {
+                LOG.infov(
+                        "event=recommendation.pair.blocked add=\"{0}\" addRole={1} cut=\"{2}\" cutRole={3} reason=incompatible_roles",
+                        add.card().name(),
+                        add.role(),
+                        cut.card().name(),
+                        cut.role()
+                );
+                continue;
             }
-            if (fallback == null) {
-                fallback = cut;
+            if (best == null || ("same_role".equals(compatibility) && !"same_role".equals(bestReason))) {
+                best = cut;
+                bestReason = compatibility;
             }
         }
-        return fallback;
+        return best;
+    }
+
+    private String compatibilityReason(StrategicCandidate add, StrategicCandidate cut) {
+        if (add.role() != null && add.role().equals(cut.role()) && !"value".equals(add.role())) {
+            return "same_role";
+        }
+        String addRole = effectiveRole(add);
+        String cutRole = effectiveRole(cut);
+        if (addRole.equals(cutRole)) {
+            return "same_role";
+        }
+        return switch (addRole) {
+            case "ramp", "curve" -> Set.of("ramp", "land", "draw", "value").contains(cutRole) ? "ramp_replaces_structural_weakness" : null;
+            case "draw" -> Set.of("draw", "value").contains(cutRole) ? "draw_replaces_value_slot" : null;
+            case "removal" -> Set.of("removal", "draw", "value").contains(cutRole) ? "interaction_replaces_low_impact_slot" : null;
+            case "protection" -> Set.of("protection", "draw", "value").contains(cutRole) ? "protection_replaces_low_impact_slot" : null;
+            case "finisher" -> Set.of("finisher", "combo-piece", "land", "value").contains(cutRole) ? "win_condition_upgrade" : null;
+            case "combo-piece" -> Set.of("combo-piece", "finisher", "tutor", "draw", "land", "value").contains(cutRole) ? "combo_or_win_condition_upgrade" : null;
+            case "tutor", "selection" -> Set.of("draw", "land", "value", "tutor", "selection").contains(cutRole) ? "consistency_upgrade" : null;
+            default -> "value".equals(cutRole) ? "generic_value_upgrade" : null;
+        };
+    }
+
+    private String effectiveRole(StrategicCandidate candidate) {
+        String role = candidate.role() == null ? "" : candidate.role();
+        String oracle = candidate.card().oracleText() == null ? "" : candidate.card().oracleText().toLowerCase(java.util.Locale.ROOT);
+        String type = candidate.card().typeLine() == null ? "" : candidate.card().typeLine().toLowerCase(java.util.Locale.ROOT);
+        if ("land".equals(role) || type.contains("land")) {
+            return "land";
+        }
+        if ("combo-piece".equals(role)) {
+            return "combo-piece";
+        }
+        if (oracle.contains("search your library") && oracle.contains("land")) {
+            return "ramp";
+        }
+        if ((oracle.contains("add ") || oracle.contains("adds "))
+                && (type.contains("artifact") || type.contains("enchantment") || type.contains("instant") || type.contains("creature"))) {
+            return "ramp";
+        }
+        if (oracle.contains("draw")) {
+            return "draw";
+        }
+        if (oracle.contains("additional combat")
+                || oracle.contains("double strike")
+                || oracle.contains("creatures you control get")
+                || oracle.contains("+x/+x")
+                || oracle.contains("win the game")) {
+            return "finisher";
+        }
+        if (oracle.contains("search your library")) {
+            return "tutor";
+        }
+        return role;
     }
 
     private String normalize(String name) {
         return name == null ? "" : name.trim().toLowerCase();
     }
+
 }

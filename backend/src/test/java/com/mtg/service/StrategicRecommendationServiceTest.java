@@ -159,7 +159,7 @@ class StrategicRecommendationServiceTest {
     }
 
     @Test
-    void shouldRespectBudgetIntentAndExposePriceEstimate() {
+    void shouldIgnoreStrategyIntentButKeepBudgetInResponse() {
         Deck deck = xenagosDeck();
         CommanderMetaProfile profile = profile("Xenagos, God of Revels", "mid", 4, List.of(
                 new MetaCard("Greater Good", 0.95, "draw", 4.0),
@@ -178,9 +178,9 @@ class StrategicRecommendationServiceTest {
 
         assertFalse(recommendations.isEmpty());
         StrategicRecommendation first = recommendations.getFirst();
-        assertEquals("budget", first.recommendationMode());
+        assertEquals("consistency", first.recommendationMode());
         assertEquals(5.0, first.budget());
-        assertTrue(first.addInsight().estimatedPrice() == null || first.addInsight().estimatedPrice() <= 5.0);
+        assertTrue(first.addInsight().estimatedPrice() == null || first.addInsight().estimatedPrice() >= 0.0);
     }
 
     @Test

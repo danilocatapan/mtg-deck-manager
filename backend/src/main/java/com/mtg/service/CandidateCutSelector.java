@@ -44,8 +44,9 @@ public class CandidateCutSelector {
                 .filter(candidate -> candidate.card() != null)
                 .filter(candidate -> !"land".equals(candidate.role()) || roles.lands() > minLandTarget(bracket))
                 .filter(candidate -> roleProtectionAllowsCut(candidate.role(), candidate.card(), roles, bracket))
+                .filter(candidate -> strategicProtectionAllowsCut(candidate, profile, assessment))
                 .sorted(Comparator.comparingDouble(StrategicCandidate::score).reversed())
-                .limit(12)
+                .limit(24)
                 .toList();
     }
 
@@ -69,6 +70,8 @@ public class CandidateCutSelector {
         if (assessment != null && assessment.isWeakCard(card.name())) {
             score += 0.28;
         }
+        double keepValue = strategicKeepValue(card, role, profile, synergy);
+        score -= keepValue * 0.32;
         if (isTappedLand(card) && ("high-power".equalsIgnoreCase(bracket) || "cedh".equalsIgnoreCase(bracket))) {
             score += 0.22;
         }
@@ -76,7 +79,17 @@ public class CandidateCutSelector {
             score += 0.18;
         }
 
-        return new StrategicCandidate(card, role, score, cutReason(role, card, assessment), false, 0.0, synergy, "deck_current");
+        StrategicCandidate candidate = new StrategicCandidate(card, role, score, cutReason(role, card, assessment), false, 0.0, synergy, "deck_current");
+        LOG.infov(
+                "event=recommendation.cut_candidate.scored card=\"{0}\" role={1} score={2} synergy={3} strategicValue={4} reason=\"{5}\"",
+                card.name(),
+                role,
+                round(score),
+                round(synergy),
+                round(keepValue),
+                candidate.reason()
+        );
+        return candidate;
     }
 
     private CardResponseDTO fallbackCard(DeckCard deckCard) {
@@ -193,6 +206,68 @@ public class CandidateCutSelector {
         };
     }
 
+    private boolean strategicProtectionAllowsCut(StrategicCandidate candidate, CommanderArchetypeProfile profile, StrategicDeckAssessment assessment) {
+        if (candidate == null || candidate.card() == null) {
+            return false;
+        }
+        double keepValue = strategicKeepValue(candidate.card(), candidate.role(), profile, candidate.synergyEstimate());
+        if (keepValue >= 0.78) {
+            LOG.infov(
+                    "event=cut.protected reason=strategic_value card=\"{0}\" role={1} archetype={2} strategicValue={3} synergy={4}",
+                    candidate.card().name(),
+                    candidate.role(),
+                    profile == null ? "" : profile.archetype(),
+                    round(keepValue),
+                    round(candidate.synergyEstimate())
+            );
+            return false;
+        }
+        if (assessment != null && assessment.isWeakCard(candidate.card().name())) {
+            LOG.infov(
+                    "event=cut.allowed reason=structural_weakness card=\"{0}\" role={1} strategicValue={2}",
+                    candidate.card().name(),
+                    candidate.role(),
+                    round(keepValue)
+            );
+            return true;
+        }
+        return true;
+    }
+
+    private double strategicKeepValue(CardResponseDTO card, String role, CommanderArchetypeProfile profile, double synergy) {
+        String oracle = text(card.oracleText());
+        String type = text(card.typeLine());
+        String archetype = profile == null ? "" : profile.archetype();
+        double value = 0.0;
+
+        if ("combo-piece".equals(role)) value += 0.85;
+        if ("finisher".equals(role)) value += 0.38;
+        if ("draw".equals(role) && (oracle.contains("whenever") || oracle.contains("sacrifice"))) value += 0.18;
+        if ("protection".equals(role) && (oracle.contains("indestructible") || oracle.contains("hexproof"))) value += 0.18;
+
+        if (isCombat(archetype) || "voltron".equals(archetype)) {
+            if (hasCombatLethality(card)) value += 0.38;
+            if (oracle.contains("additional combat") || oracle.contains("untap all attacking creatures")) value += 0.32;
+            if (oracle.contains("double strike") || oracle.contains("infect")) value += 0.28;
+            if (oracle.contains("trample") || oracle.contains("flying") || oracle.contains("can't be blocked")) value += 0.12;
+            if (oracle.contains("gets +") || oracle.contains("+x/+x") || oracle.contains("damage to a player")) value += 0.12;
+        }
+        if ("tokens".equals(archetype) && (oracle.contains("token") || oracle.contains("creatures you control get"))) value += 0.3;
+        if ("aristocrats".equals(archetype) && (oracle.contains("sacrifice") || oracle.contains("dies") || oracle.contains("loses 1 life"))) value += 0.32;
+        if ("reanimator".equals(archetype) && (oracle.contains("graveyard") || oracle.contains("return target creature"))) value += 0.32;
+        if ("spellslinger".equals(archetype) && (oracle.contains("instant or sorcery") || oracle.contains("magecraft") || oracle.contains("storm"))) value += 0.32;
+        if (("control".equals(archetype) || "stax".equals(archetype))
+                && (oracle.contains("counter target") || oracle.contains("can't cast") || oracle.contains("cost") || oracle.contains("draw a card"))) {
+            value += 0.28;
+        }
+
+        if (synergy >= 0.65) value += 0.18;
+        else if (synergy >= 0.4) value += 0.10;
+        if (type.contains("legendary") && value >= 0.45) value += 0.06;
+
+        return Math.min(1.0, value);
+    }
+
     private boolean isGenericExpensiveThreat(CardResponseDTO card) {
         double cmc = card.cmc() != null ? card.cmc() : 0.0;
         String oracle = text(card.oracleText());
@@ -200,7 +275,19 @@ public class CandidateCutSelector {
                 && !oracle.contains("win the game")
                 && !oracle.contains("extra turn")
                 && !oracle.contains("combo")
-                && !oracle.contains("whenever");
+                && !oracle.contains("whenever")
+                && !hasCombatLethality(card);
+    }
+
+    private boolean hasCombatLethality(CardResponseDTO card) {
+        String oracle = text(card.oracleText());
+        return oracle.contains("double strike")
+                || oracle.contains("infect")
+                || oracle.contains("additional combat")
+                || oracle.contains("deals combat damage to a player")
+                || oracle.contains("whenever this creature attacks")
+                || oracle.contains("attacking creatures")
+                || oracle.contains("damage as though it weren't blocked");
     }
 
     private int minLandTarget(String bracket) {
@@ -258,5 +345,9 @@ public class CandidateCutSelector {
 
     private boolean isCombat(String archetype) {
         return "combat".equals(archetype) || "combat damage".equals(archetype);
+    }
+
+    private double round(double value) {
+        return Math.round(value * 1000.0) / 1000.0;
     }
 }

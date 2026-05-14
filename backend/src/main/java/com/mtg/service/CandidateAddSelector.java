@@ -16,10 +16,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @ApplicationScoped
 public class CandidateAddSelector {
     private static final Logger LOG = Logger.getLogger(CandidateAddSelector.class);
+    private static final Pattern COLORED_MANA_SYMBOL = Pattern.compile("\\{([WUBRG])\\}");
 
     @Inject
     CardService cardService;
@@ -150,9 +153,12 @@ public class CandidateAddSelector {
     }
 
     private void addIfLegal(List<CardResponseDTO> cards, CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters) {
-        if (isLegalAdd(card, existingNames, commanderColors) && passesFilters(card, filters)
-                && cards.stream().noneMatch(existing -> normalize(existing.name()).equals(normalize(card.name())))) {
+        String rejection = rejectionReason(card, existingNames, commanderColors, filters, cards);
+        if (rejection == null) {
             cards.add(card);
+            LOG.infov("event=recommendation.add_candidate.accepted card=\"{0}\" commanderColors={1}", card.name(), commanderColors);
+        } else if (card != null && card.name() != null) {
+            LOG.infov("event=recommendation.add_candidate.rejected card=\"{0}\" reason={1} commanderColors={2}", card.name(), rejection, commanderColors);
         }
     }
 
@@ -176,14 +182,25 @@ public class CandidateAddSelector {
             role = "combo-piece";
             LOG.infov("event=combo.recommendation.signal missingCard=\"{0}\" combo=\"{1}\"", card.name(), comboName);
         }
-        score = applyIntent(score, recommendationMode, budget, card, role, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore);
         score = applyFilters(score, filters, card, role, commanderSynergy, archetypeFit);
         score *= assessment == null ? 1.0 : assessment.priorityFor(role);
         String source = comboName != null && metaCard == null
                 ? "combo_database"
                 : metaProfileDriven && metaCard != null ? nullSafeSource(metaCard.getSource()) : "heuristic_fallback";
         String reason = comboName == null ? addReason(role, profile, assessment) : "completa o combo " + comboName;
-        return new StrategicCandidate(card, role, score, reason, metaProfileDriven && metaCard != null, inclusionRate, commanderSynergy, source);
+        StrategicCandidate candidate = new StrategicCandidate(card, role, score, reason, metaProfileDriven && metaCard != null, inclusionRate, commanderSynergy, source);
+        LOG.infov(
+                "event=recommendation.add_candidate.scored card=\"{0}\" role={1} score={2} source={3} reason=\"{4}\" synergy={5} gapScore={6} archetypeFit={7}",
+                card.name(),
+                role,
+                round(score),
+                source,
+                reason,
+                round(commanderSynergy),
+                round(gapScore),
+                round(archetypeFit)
+        );
+        return candidate;
     }
 
     private Map<String, String> comboSignals(Deck deck) {
@@ -239,45 +256,6 @@ public class CandidateAddSelector {
             adjusted = adjusted * 0.75 + Math.max(synergy, archetypeFit) * 0.25;
         }
         return adjusted;
-    }
-
-    private double applyIntent(double score, String mode, Double budget, CardResponseDTO card, String role, double synergy, double gapScore, double efficiency, double archetypeFit, double metaScore) {
-        String normalizedMode = mode == null || mode.isBlank() ? "consistency" : mode.toLowerCase(Locale.ROOT);
-        double adjusted = score;
-        switch (normalizedMode) {
-            case "budget", "mais barato" -> adjusted = adjusted * 0.82 + budgetFit(card, budget) * 0.18;
-            case "competitive", "mais competitivo" -> adjusted = adjusted * 0.65 + efficiency * 0.20 + metaScore * 0.15;
-            case "theme", "mais fiel ao tema" -> adjusted = adjusted * 0.60 + archetypeFit * 0.25 + synergy * 0.15;
-            case "casual", "mais casual" -> adjusted = adjusted * 0.72 + Math.min(synergy, archetypeFit) * 0.18 + casualFit(card) * 0.10;
-            default -> adjusted = adjusted * 0.85 + gapScore * 0.10 + efficiency * 0.05;
-        }
-        if ("budget".equals(normalizedMode) && budget != null && card.estimatedPrice() != null && card.estimatedPrice() > budget) {
-            adjusted *= 0.55;
-        }
-        if ("theme".equals(normalizedMode) && "value".equals(role)) {
-            adjusted *= 0.92;
-        }
-        return adjusted;
-    }
-
-    private double budgetFit(CardResponseDTO card, Double budget) {
-        Double price = card.estimatedPrice();
-        if (price == null) {
-            return 0.55;
-        }
-        if (budget == null || budget <= 0.0) {
-            return price <= 2.0 ? 1.0 : price <= 8.0 ? 0.75 : 0.35;
-        }
-        return price <= budget ? 1.0 : Math.max(0.15, budget / price);
-    }
-
-    private double casualFit(CardResponseDTO card) {
-        double cmc = card.cmc() == null ? 0.0 : card.cmc();
-        String oracle = text(card.oracleText());
-        if (oracle.contains("win the game") || oracle.contains("extra turn")) {
-            return 0.25;
-        }
-        return cmc <= 5.0 ? 0.85 : 0.55;
     }
 
     private String nullSafeSource(String source) {
@@ -401,8 +379,8 @@ public class CandidateAddSelector {
                     card("Farseek", "{1}{G}", "Sorcery", "Search your library for a Plains, Island, Swamp, or Mountain card and put it onto the battlefield tapped.", 2.0, "G"),
                     card("Arcane Signet", "{2}", "Artifact", "Add one mana of any color in your commander's color identity.", 2.0),
                     card("Fellwar Stone", "{2}", "Artifact", "Add one mana of any color that a land an opponent controls could produce.", 2.0),
-                    card("Marble Diamond", "{2}", "Artifact", "Marble Diamond enters the battlefield tapped. Add {W}.", 2.0),
-                    card("Sky Diamond", "{2}", "Artifact", "Sky Diamond enters the battlefield tapped. Add {U}.", 2.0)
+                    card("Mind Stone", "{2}", "Artifact", "{T}: Add {C}. {1}, {T}, Sacrifice this artifact: Draw a card.", 2.0),
+                    card("Thought Vessel", "{2}", "Artifact", "{T}: Add {C}. You have no maximum hand size.", 2.0)
             );
             case "draw" -> List.of(
                     card("Greater Good", "{2}{G}{G}", "Enchantment", "Sacrifice a creature: Draw cards equal to the sacrificed creature's power, then discard three cards.", 4.0, "G"),
@@ -481,13 +459,48 @@ public class CandidateAddSelector {
     }
 
     private boolean isLegalAdd(CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors) {
-        if (card == null || card.name() == null) return false;
+        return rejectionReason(card, existingNames, commanderColors, Set.of(), List.of()) == null;
+    }
+
+    private String rejectionReason(CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters, List<CardResponseDTO> alreadySelected) {
+        if (card == null || card.name() == null) return "missing_card";
         String normalizedName = normalize(card.name());
-        if (existingNames.contains(normalizedName)) return false;
-        if (commanderBanlist().isBanned(card.name())) return false;
-        if (!ColorIdentityMatcher.matches(card, commanderColors)) return false;
+        if (existingNames.contains(normalizedName)) return "already_in_deck";
+        if (commanderBanlist().isBanned(card.name())) return "commander_banned";
+        if (!ColorIdentityMatcher.matches(card, commanderColors)) return "color_identity";
+        if (!matchesFunctionalMana(card, commanderColors)) return "functional_mana_outside_color_identity";
+        if (!passesFilters(card, filters)) return "request_filter";
+        if (alreadySelected.stream().anyMatch(existing -> normalize(existing.name()).equals(normalizedName))) return "duplicate_candidate";
         String typeLine = card.typeLine() == null ? "" : card.typeLine().toLowerCase(Locale.ROOT);
-        return !typeLine.contains("plane") && !typeLine.contains("scheme") && !typeLine.contains("conspiracy");
+        if (typeLine.contains("plane") || typeLine.contains("scheme") || typeLine.contains("conspiracy")) return "unsupported_card_type";
+        return null;
+    }
+
+    private boolean matchesFunctionalMana(CardResponseDTO card, Set<String> commanderColors) {
+        if (card == null || commanderColors == null || commanderColors.isEmpty()) {
+            return true;
+        }
+        String oracle = text(card.oracleText());
+        String type = text(card.typeLine());
+        if (!(oracle.contains("add ") || oracle.contains("adds "))
+                || !(type.contains("artifact") || type.contains("land") || "ramp".equals(classifyRole(card)))) {
+            return true;
+        }
+        if (oracle.contains("commander's color identity")
+                || oracle.contains("any color")
+                || oracle.contains("any one color")
+                || oracle.contains("any combination of colors")
+                || oracle.contains("chosen color")
+                || oracle.contains("choose a color")) {
+            return true;
+        }
+        Matcher matcher = COLORED_MANA_SYMBOL.matcher(card.oracleText() == null ? "" : card.oracleText().toUpperCase(Locale.ROOT));
+        while (matcher.find()) {
+            if (!commanderColors.contains(matcher.group(1))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private CommanderBanlistService commanderBanlist() {
@@ -587,5 +600,9 @@ public class CandidateAddSelector {
 
     private String normalize(String name) {
         return name == null ? "" : name.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private double round(double value) {
+        return Math.round(value * 1000.0) / 1000.0;
     }
 }
