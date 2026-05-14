@@ -24,5 +24,16 @@ Sources:
 
 Signals used by tests:
 - Xenagos recommendations should preserve Gruul combat/ramp identity.
-- Examples: Nature's Lore, Greater Good, Heroic Intervention, Beast Within.
+- High-power Xenagos recommendations should lower curve pressure, add explosive mana, add extra-combat/combo redundancy, and improve multiplayer closing power.
+- Examples: Savage Ventmaw, Bloodthirster, Scourge of the Throne, Hellkite Charger, Finale of Devastation, Greater Good, Worldly Tutor, Utopia Sprawl.
+- Weak cuts for the benchmark include slow ramp, tapped lands, conditional draw, and expensive threats that do not immediately close the table.
+- Examples: Terastodon, Thran Dynamo, Nissa, Who Shakes the World, Garruk, Primal Hunter, Siege Behemoth, Cultivate, Nissa's Pilgrimage, Temple of Abandon, Rugged Highlands, Soul's Majesty.
 - Off-color staples must not be recommended.
+
+## Cross-Archetype Benchmarks
+
+Signals used by tests:
+- Recommendation quality is judged by archetype and bracket, not by commander-specific hard-coded rules.
+- Control/stax lists should favor cheap interaction, early draw engines, efficient stax pieces, and cuts to slow generic value.
+- Turbo-combo/cEDH lists should favor compact win conditions, cheap tutors, fast mana, stack interaction, and one-card-away combo completion.
+- Tokens, aristocrats, reanimator, spellslinger, voltron, combat, midrange, and value lists should receive candidates from their structural plan while preserving Commander invariants.

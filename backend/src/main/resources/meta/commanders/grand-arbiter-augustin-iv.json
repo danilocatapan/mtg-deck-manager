@@ -1,0 +1,17 @@
+{
+  "commander": "Grand Arbiter Augustin IV",
+  "colors": ["W", "U"],
+  "bracket": "high-power",
+  "sources": ["LOCAL"],
+  "cards": [
+    { "name": "Esper Sentinel", "inclusion": 0.82, "role": "draw", "avgCmc": 1.0 },
+    { "name": "Mystic Remora", "inclusion": 0.78, "role": "draw", "avgCmc": 1.0 },
+    { "name": "Rhystic Study", "inclusion": 0.75, "role": "draw", "avgCmc": 3.0 },
+    { "name": "Swords to Plowshares", "inclusion": 0.86, "role": "removal", "avgCmc": 1.0 },
+    { "name": "Swan Song", "inclusion": 0.74, "role": "removal", "avgCmc": 1.0 },
+    { "name": "Flusterstorm", "inclusion": 0.62, "role": "removal", "avgCmc": 1.0 },
+    { "name": "Silence", "inclusion": 0.66, "role": "protection", "avgCmc": 1.0 },
+    { "name": "Drannith Magistrate", "inclusion": 0.61, "role": "stax", "avgCmc": 2.0 },
+    { "name": "Rule of Law", "inclusion": 0.58, "role": "stax", "avgCmc": 3.0 }
+  ]
+}

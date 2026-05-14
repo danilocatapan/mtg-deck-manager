@@ -32,11 +32,15 @@ public class CandidateCutSelector {
     }
 
     public List<StrategicCandidate> select(Deck deck, Map<String, CardResponseDTO> cardsByName, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket) {
+        return select(deck, cardsByName, profile, roles, bracket, StrategicDeckAssessment.empty());
+    }
+
+    public List<StrategicCandidate> select(Deck deck, Map<String, CardResponseDTO> cardsByName, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, StrategicDeckAssessment assessment) {
         Set<String> protectedComboPieces = protectedComboPieces(deck);
         return deck.getCards().stream()
                 .filter(deckCard -> !normalize(deckCard.getName()).equals(normalize(deck.getCommander())))
                 .filter(deckCard -> canCutComboPiece(deckCard, protectedComboPieces))
-                .map(deckCard -> toCandidate(deckCard, fallbackCard(deckCard), cardsByName.get(normalize(deckCard.getName())), profile, roles, bracket))
+                .map(deckCard -> toCandidate(deckCard, fallbackCard(deckCard), cardsByName.get(normalize(deckCard.getName())), profile, roles, bracket, assessment))
                 .filter(candidate -> candidate.card() != null)
                 .filter(candidate -> !"land".equals(candidate.role()) || roles.lands() > minLandTarget(bracket))
                 .filter(candidate -> roleProtectionAllowsCut(candidate.role(), candidate.card(), roles, bracket))
@@ -45,7 +49,7 @@ public class CandidateCutSelector {
                 .toList();
     }
 
-    private StrategicCandidate toCandidate(DeckCard deckCard, CardResponseDTO fallbackCard, CardResponseDTO resolvedCard, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket) {
+    private StrategicCandidate toCandidate(DeckCard deckCard, CardResponseDTO fallbackCard, CardResponseDTO resolvedCard, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, StrategicDeckAssessment assessment) {
         CardResponseDTO card = resolvedCard == null ? fallbackCard : resolvedCard;
 
         String role = classifyRole(card);
@@ -62,8 +66,17 @@ public class CandidateCutSelector {
         if ("value".equals(role)) {
             score += weakRoleFit * 0.05;
         }
+        if (assessment != null && assessment.isWeakCard(card.name())) {
+            score += 0.28;
+        }
+        if (isTappedLand(card) && ("high-power".equalsIgnoreCase(bracket) || "cedh".equalsIgnoreCase(bracket))) {
+            score += 0.22;
+        }
+        if (isConditionalDraw(card) && ("high-power".equalsIgnoreCase(bracket) || "cedh".equalsIgnoreCase(bracket))) {
+            score += 0.18;
+        }
 
-        return new StrategicCandidate(card, role, score, cutReason(role, card), false, 0.0, synergy, "deck_current");
+        return new StrategicCandidate(card, role, score, cutReason(role, card, assessment), false, 0.0, synergy, "deck_current");
     }
 
     private CardResponseDTO fallbackCard(DeckCard deckCard) {
@@ -138,6 +151,32 @@ public class CandidateCutSelector {
         return cmc >= 5.0 ? 0.65 : 0.35;
     }
 
+    private boolean isTappedLand(CardResponseDTO card) {
+        String name = normalize(card.name());
+        String oracle = text(card.oracleText());
+        String type = text(card.typeLine());
+        return type.contains("land") && (oracle.contains("enters tapped")
+                || name.contains("temple of")
+                || name.contains("rugged highlands")
+                || name.contains("guildgate")
+                || name.contains("turf")
+                || name.contains("chancery")
+                || name.contains("aqueduct")
+                || name.contains("basilica")
+                || name.contains("garrison"));
+    }
+
+    private boolean isConditionalDraw(CardResponseDTO card) {
+        String name = normalize(card.name());
+        String oracle = text(card.oracleText());
+        return oracle.contains("draw")
+                && (oracle.contains("combat damage")
+                || oracle.contains("equal to")
+                || oracle.contains("deals damage")
+                || name.contains("soul's majesty")
+                || name.contains("hunter's insight"));
+    }
+
     private boolean roleProtectionAllowsCut(String role, CardResponseDTO card, DeckRoleSummary roles, String bracket) {
         String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT);
         int rampFloor = "cedh".equals(normalizedBracket) ? 14 : "high-power".equals(normalizedBracket) ? 12 : "mid".equals(normalizedBracket) ? 10 : 9;
@@ -174,8 +213,11 @@ public class CandidateCutSelector {
         };
     }
 
-    private String cutReason(String role, CardResponseDTO card) {
+    private String cutReason(String role, CardResponseDTO card, StrategicDeckAssessment assessment) {
         double cmc = card.cmc() != null ? card.cmc() : 0.0;
+        String structural = assessment != null && assessment.isWeakCard(card.name())
+                ? " e foi marcado como fraqueza estrutural da lista"
+                : "";
         return switch (role) {
             case "ramp" -> "é uma peça de ramp mais lenta ou redundante para a curva atual";
             case "draw" -> "ocupa slot de compra com velocidade ou escala inferiores";
@@ -183,7 +225,7 @@ public class CandidateCutSelector {
             case "finisher" -> "pressiona a curva e precisa justificar muito impacto";
             case "land" -> "só deve sair se a contagem de terrenos estiver acima do necessário";
             default -> cmc >= 4.0 ? "tem impacto genérico e custo alto para o plano" : "contribui pouco para a estratégia principal";
-        };
+        } + structural;
     }
 
     private String text(String value) {

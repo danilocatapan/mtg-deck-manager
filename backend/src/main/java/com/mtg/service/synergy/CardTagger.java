@@ -30,6 +30,8 @@ public class CardTagger {
         if (text.contains("trample")) tags.add("trample");
         if (text.contains("double strike") || text.contains("doublestrike")) tags.add("double-strike");
         if (text.contains("combat")) tags.add("combat");
+        if (text.contains("additional combat") || text.contains("extra combat") || text.contains("untap all attacking creatures")) tags.add("combo-piece");
+        if (text.contains("infect")) tags.add("infect");
         if (text.contains("add ") || text.contains("addc")) tags.add("ramp");
         if (text.contains("add one mana of any color") || text.contains("any color") || text.contains("mana of any one color")) tags.add("fixing");
         if (type.contains("artifact") && (text.contains("add ") || text.contains("mana"))) tags.add("mana-rock");

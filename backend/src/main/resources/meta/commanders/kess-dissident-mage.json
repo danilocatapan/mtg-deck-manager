@@ -1,0 +1,18 @@
+{
+  "commander": "Kess, Dissident Mage",
+  "colors": ["U", "B", "R"],
+  "bracket": "cedh",
+  "sources": ["LOCAL"],
+  "cards": [
+    { "name": "Mystic Remora", "inclusion": 0.86, "role": "draw", "avgCmc": 1.0 },
+    { "name": "Rhystic Study", "inclusion": 0.80, "role": "draw", "avgCmc": 3.0 },
+    { "name": "Brain Freeze", "inclusion": 0.76, "role": "combo-piece", "avgCmc": 2.0 },
+    { "name": "Thassa's Oracle", "inclusion": 0.74, "role": "combo-piece", "avgCmc": 2.0 },
+    { "name": "Demonic Consultation", "inclusion": 0.72, "role": "combo-piece", "avgCmc": 1.0 },
+    { "name": "Flusterstorm", "inclusion": 0.70, "role": "removal", "avgCmc": 1.0 },
+    { "name": "Swan Song", "inclusion": 0.68, "role": "removal", "avgCmc": 1.0 },
+    { "name": "Dark Ritual", "inclusion": 0.64, "role": "ramp", "avgCmc": 1.0 },
+    { "name": "Jeska's Will", "inclusion": 0.58, "role": "ramp", "avgCmc": 3.0 },
+    { "name": "Underworld Breach", "inclusion": 0.82, "role": "combo-piece", "avgCmc": 2.0 }
+  ]
+}

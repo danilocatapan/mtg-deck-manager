@@ -40,7 +40,7 @@ public class CardRoleClassifier {
 
     public String primaryRole(CardResponseDTO card) {
         Set<String> roles = rolesFor(card);
-        for (String preferred : List.of("land", "protection", "draw", "counterspell", "removal", "ramp", "tutor", "stax", "combo-piece", "finisher")) {
+        for (String preferred : List.of("land", "protection", "draw", "counterspell", "removal", "ramp", "combo-piece", "tutor", "stax", "finisher")) {
             if (roles.contains(preferred)) {
                 return "counterspell".equals(preferred) ? "removal" : preferred;
             }
@@ -73,6 +73,9 @@ public class CardRoleClassifier {
         return oracle.contains("win the game")
                 || oracle.contains("escape")
                 || oracle.contains("storm")
+                || oracle.contains("additional combat")
+                || oracle.contains("extra combat")
+                || oracle.contains("untap all attacking creatures")
                 || oracle.contains("untap target")
                 || oracle.contains("copy target activated ability");
     }
@@ -82,6 +85,9 @@ public class CardRoleClassifier {
         return oracle.contains("win the game")
                 || oracle.contains("loses the game")
                 || oracle.contains("extra turn")
+                || oracle.contains("additional combat")
+                || oracle.contains("extra combat")
+                || oracle.contains("infect")
                 || (type.contains("creature") && value >= 5.0 && (oracle.contains("trample") || oracle.contains("double")));
     }
 

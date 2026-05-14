@@ -1,10 +1,26 @@
 {
   "commander": "Xenagos, God of Revels",
   "colors": ["R", "G"],
+  "bracket": "high-power",
+  "sources": ["LOCAL", "benchmark-gpt"],
   "cards": [
     { "name": "Sol Ring", "inclusion": 0.92, "role": "ramp", "avgCmc": 1.0 },
-    { "name": "Cultivate", "inclusion": 0.81, "role": "ramp", "avgCmc": 3.0 },
-    { "name": "Beast Within", "inclusion": 0.63, "role": "removal", "avgCmc": 3.0 },
-    { "name": "Return of the Wildspeaker", "inclusion": 0.58, "role": "draw", "avgCmc": 5.0 }
+    { "name": "Utopia Sprawl", "inclusion": 0.82, "role": "ramp", "avgCmc": 1.0 },
+    { "name": "Nature's Lore", "inclusion": 0.78, "role": "ramp", "avgCmc": 2.0 },
+    { "name": "Three Visits", "inclusion": 0.74, "role": "ramp", "avgCmc": 2.0 },
+    { "name": "Greater Good", "inclusion": 0.76, "role": "draw", "avgCmc": 4.0 },
+    { "name": "Finale of Devastation", "inclusion": 0.71, "role": "tutor", "avgCmc": 2.0 },
+    { "name": "Worldly Tutor", "inclusion": 0.66, "role": "tutor", "avgCmc": 1.0 },
+    { "name": "Savage Ventmaw", "inclusion": 0.68, "role": "combo-piece", "avgCmc": 6.0 },
+    { "name": "Hellkite Charger", "inclusion": 0.55, "role": "combo-piece", "avgCmc": 6.0 },
+    { "name": "Scourge of the Throne", "inclusion": 0.62, "role": "finisher", "avgCmc": 6.0 },
+    { "name": "Bloodthirster", "inclusion": 0.58, "role": "finisher", "avgCmc": 6.0 },
+    { "name": "Pathbreaker Ibex", "inclusion": 0.57, "role": "finisher", "avgCmc": 6.0 },
+    { "name": "Moraug, Fury of Akoum", "inclusion": 0.52, "role": "finisher", "avgCmc": 6.0 },
+    { "name": "Old Gnawbone", "inclusion": 0.50, "role": "finisher", "avgCmc": 7.0 },
+    { "name": "Etali, Primal Conqueror", "inclusion": 0.46, "role": "finisher", "avgCmc": 7.0 },
+    { "name": "Heroic Intervention", "inclusion": 0.63, "role": "protection", "avgCmc": 2.0 },
+    { "name": "Beast Within", "inclusion": 0.60, "role": "removal", "avgCmc": 3.0 },
+    { "name": "Chaos Warp", "inclusion": 0.54, "role": "removal", "avgCmc": 3.0 }
   ]
 }

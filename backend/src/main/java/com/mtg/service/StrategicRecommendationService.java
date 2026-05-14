@@ -55,6 +55,9 @@ public class StrategicRecommendationService {
     RecommendationPairer pairer;
 
     @Inject
+    StrategicDeckAnalyzer strategicDeckAnalyzer;
+
+    @Inject
     BracketMetaPolicy bracketMetaPolicy;
 
     @Inject
@@ -90,6 +93,12 @@ public class StrategicRecommendationService {
         CommanderMetaProfile metaProfile = commanderMetaProfileService == null
                 ? null
                 : commanderMetaProfileService.findByCommanderAndBracket(deck.getCommander(), bracket);
+        if (!hasUsefulMeta(metaProfile) && metaProvider != null) {
+            CommanderMetaProfile providerProfile = metaProvider.getCommanderProfile(deck.getCommander(), bracket, sourceMode);
+            if (hasUsefulMeta(providerProfile)) {
+                metaProfile = providerProfile;
+            }
+        }
         boolean hasUsefulMeta = hasUsefulMeta(metaProfile);
         if (hasUsefulMeta) {
             LOG.infov(
@@ -125,9 +134,10 @@ public class StrategicRecommendationService {
         CardResponseDTO commanderCard = knownCards.get(normalize(deck.getCommander()));
         DeckRoleSummary roles = deckRoleAnalyzer.analyze(deck, knownCards, bracket);
         CommanderArchetypeProfile profile = archetypeDetector.detect(deck.getCommander(), commanderCard, roles, persistedColors(deck.getColorIdentity()));
+        StrategicDeckAssessment assessment = analyzer().assess(deck, knownCards, profile, roles, bracket);
 
-        List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket, hasUsefulMeta, recommendationMode, budget, filters);
-        List<StrategicCandidate> cuts = cutSelector.select(deck, knownCards, profile, roles, bracket);
+        List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket, hasUsefulMeta, recommendationMode, budget, filters, assessment);
+        List<StrategicCandidate> cuts = cutSelector.select(deck, knownCards, profile, roles, bracket, assessment);
 
         LOG.infov(
                 "event=strategic.recommendation.context deckId={0} commander=\"{1}\" bracket={2} sourceMode={3} sampleSize={4} sources={5} fallback={6}",
@@ -210,7 +220,16 @@ public class StrategicRecommendationService {
         if (requested == null) {
             return 5;
         }
-        return Math.max(3, Math.min(5, requested));
+        return Math.max(3, Math.min(10, requested));
+    }
+
+    private StrategicDeckAnalyzer analyzer() {
+        if (strategicDeckAnalyzer == null) {
+            strategicDeckAnalyzer = new StrategicDeckAnalyzer();
+            strategicDeckAnalyzer.comboDetectionService = new ComboDetectionService();
+            strategicDeckAnalyzer.roleClassifier = new CardRoleClassifier();
+        }
+        return strategicDeckAnalyzer;
     }
 
     private String normalizeRecommendationMode(String strategy) {

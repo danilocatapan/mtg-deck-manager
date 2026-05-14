@@ -12,6 +12,9 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Endpoint publico para metadados da API.
 
 ### Changed
+- Recomendacoes estrategicas agora usam diagnostico estrutural generico por arquetipo/bracket para priorizar curva, ramp, compra, interacao, protecao, inevitabilidade e combos sem depender de regras por comandante.
+- Pipeline estrategico passa a combinar perfil meta local, staples por arquetipo, upgrades funcionais e pecas que completam combos ja quase presentes.
+- Benchmark de Xenagos high-power passa a validar qualidade real das trocas, incluindo adds/cuts esperados contra uma referencia offline, e os dados locais incluem tambem bases para Grand Arbiter e Kess.
 - Cadastro, edicao, importacao, analise e recomendacoes agora tratam cartas somente como cartas do deck, sem selecao de grupo.
 - Contrato de cartas do deck deixou de expor/enviar campo de grupo, e swaps de recomendacao aplicam remove/add diretamente no deck.
 - Build local passa a usar metadados seguros quando o pipeline ainda nao gerou uma versao.

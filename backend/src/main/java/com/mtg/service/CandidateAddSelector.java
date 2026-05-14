@@ -85,6 +85,22 @@ public class CandidateAddSelector {
             Double budget,
             Set<String> filters
     ) {
+        return select(deck, metaCards, knownCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget, filters, StrategicDeckAssessment.empty());
+    }
+
+    public List<StrategicCandidate> select(
+            Deck deck,
+            List<MetaCard> metaCards,
+            Map<String, CardResponseDTO> knownCards,
+            CommanderArchetypeProfile profile,
+            DeckRoleSummary roles,
+            String bracket,
+            boolean metaProfileDriven,
+            String recommendationMode,
+            Double budget,
+            Set<String> filters,
+            StrategicDeckAssessment assessment
+    ) {
         Set<String> existingNames = new HashSet<>();
         deck.getCards().stream()
                 .map(DeckCard::getName)
@@ -95,32 +111,52 @@ public class CandidateAddSelector {
 
         for (MetaCard metaCard : metaCards.stream().limit(50).toList()) {
             CardResponseDTO card = knownCards.get(normalize(metaCard.getName()));
-            if (isLegalAdd(card, existingNames, profile.colors()) && passesFilters(card, filters)) {
-                cards.add(card);
-            }
+            addIfLegal(cards, card, existingNames, profile.colors(), filters);
             if (cards.size() >= 30) break;
+        }
+
+        for (String missingComboCard : comboSignals.keySet()) {
+            CardResponseDTO card = knownCards.get(missingComboCard);
+            if (card == null) {
+                card = strategicPoolCard(missingComboCard);
+                if (card != null) {
+                    knownCards.putIfAbsent(normalize(card.name()), card);
+                }
+            }
+            addIfLegal(cards, card, existingNames, profile.colors(), filters);
+        }
+
+        for (CardResponseDTO card : archetypeFallbackCards(profile, bracket)) {
+            knownCards.putIfAbsent(normalize(card.name()), card);
+            if (cards.size() >= 30) break;
+            addIfLegal(cards, card, existingNames, profile.colors(), filters);
         }
 
         if (cards.size() < 12) {
             for (String role : prioritizedGapRoles(roles, profile)) {
                 for (CardResponseDTO card : fallbackCards(role, bracket)) {
                     knownCards.putIfAbsent(normalize(card.name()), card);
-                    if (isLegalAdd(card, existingNames, profile.colors()) && passesFilters(card, filters)) {
-                        cards.add(card);
-                    }
+                    addIfLegal(cards, card, existingNames, profile.colors(), filters);
                 }
             }
         }
 
         return cards.stream()
-                .map(card -> toCandidate(card, metaCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget, filters, comboSignals))
+                .map(card -> toCandidate(card, metaCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget, filters, comboSignals, assessment))
                 .sorted(Comparator.comparingDouble(StrategicCandidate::score).reversed())
                 .distinct()
                 .limit(12)
                 .toList();
     }
 
-    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, boolean metaProfileDriven, String recommendationMode, Double budget, Set<String> filters, Map<String, String> comboSignals) {
+    private void addIfLegal(List<CardResponseDTO> cards, CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters) {
+        if (isLegalAdd(card, existingNames, commanderColors) && passesFilters(card, filters)
+                && cards.stream().noneMatch(existing -> normalize(existing.name()).equals(normalize(card.name())))) {
+            cards.add(card);
+        }
+    }
+
+    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, boolean metaProfileDriven, String recommendationMode, Double budget, Set<String> filters, Map<String, String> comboSignals, StrategicDeckAssessment assessment) {
         String role = classifyRole(card);
         double commanderSynergy = synergyEngine.computeSynergy(synergyEngine.tagsForCard(card), roles.deckTags(), profile.commanderTags());
         double gapScore = roles.gaps().containsKey(role) || ("curve".equals(role) && roles.gaps().containsKey("curve")) ? 1.0 : 0.3;
@@ -135,14 +171,18 @@ public class CandidateAddSelector {
         double bracketFit = bracketFit(card, bracket, metaCard);
         double score = scoreForBracket(bracket, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore, bracketFit, role);
         String comboName = comboSignals.get(normalize(card.name()));
-        if (comboName != null && isCompetitiveBracket(bracket)) {
-            score += 0.25;
+        if (comboName != null) {
+            score += isCompetitiveBracket(bracket) ? 0.35 : 0.22;
+            role = "combo-piece";
             LOG.infov("event=combo.recommendation.signal missingCard=\"{0}\" combo=\"{1}\"", card.name(), comboName);
         }
         score = applyIntent(score, recommendationMode, budget, card, role, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore);
         score = applyFilters(score, filters, card, role, commanderSynergy, archetypeFit);
-        String source = comboName != null && metaCard == null ? "combo_database" : metaCard == null ? "heuristic_fallback" : nullSafeSource(metaCard.getSource());
-        String reason = comboName == null ? addReason(role, profile) : "completa o combo " + comboName;
+        score *= assessment == null ? 1.0 : assessment.priorityFor(role);
+        String source = comboName != null && metaCard == null
+                ? "combo_database"
+                : metaProfileDriven && metaCard != null ? nullSafeSource(metaCard.getSource()) : "heuristic_fallback";
+        String reason = comboName == null ? addReason(role, profile, assessment) : "completa o combo " + comboName;
         return new StrategicCandidate(card, role, score, reason, metaProfileDriven && metaCard != null, inclusionRate, commanderSynergy, source);
     }
 
@@ -255,6 +295,99 @@ public class CandidateAddSelector {
             result.add("protection");
         }
         return result;
+    }
+
+    private List<CardResponseDTO> archetypeFallbackCards(CommanderArchetypeProfile profile, String bracket) {
+        String archetype = profile == null ? "" : profile.archetype();
+        String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT);
+        List<CardResponseDTO> cards = new ArrayList<>();
+
+        if (isCombat(archetype) || "voltron".equals(archetype)) {
+            cards.addAll(List.of(
+                    card("Utopia Sprawl", "{G}", "Enchantment - Aura", "Enchant Forest. As this Aura enters, choose a color. Whenever enchanted Forest is tapped for mana, its controller adds one mana of the chosen color.", 1.0, "G"),
+                    card("Greater Good", "{2}{G}{G}", "Enchantment", "Sacrifice a creature: Draw cards equal to the sacrificed creature's power, then discard three cards.", 4.0, "G"),
+                    card("Finale of Devastation", "{X}{G}{G}", "Sorcery", "Search your library and/or graveyard for a creature card with mana value X or less and put it onto the battlefield. If X is 10 or more, creatures you control get +X/+X and gain haste until end of turn.", 2.0, "G"),
+                    card("Worldly Tutor", "{G}", "Instant", "Search your library for a creature card, reveal it, then shuffle and put the card on top.", 1.0, "G")
+            ));
+            if (isCompetitiveBracket(normalizedBracket)) {
+                cards.addAll(List.of(
+                    card("Pathbreaker Ibex", "{4}{G}{G}", "Creature - Goat", "Whenever this creature attacks, creatures you control gain trample and get +X/+X until end of turn, where X is the greatest power among creatures you control.", 6.0, "G"),
+                    card("Scourge of the Throne", "{4}{R}{R}", "Creature - Dragon", "Flying. Dethrone. Whenever this creature attacks for the first time each turn, if it's attacking the player with the most life, untap all attacking creatures. After this phase, there is an additional combat phase.", 6.0, "R"),
+                    card("Bloodthirster", "{5}{R}", "Creature - Demon", "Flying, trample. Whenever this creature deals combat damage to a player, untap it. After this combat phase, there is an additional combat phase.", 6.0, "R"),
+                    card("Moraug, Fury of Akoum", "{4}{R}{R}", "Legendary Creature - Minotaur Warrior", "Each creature you control gets +1/+0 for each time it has attacked this turn. Landfall - if it's your main phase, there is an additional combat phase after this phase.", 6.0, "R"),
+                    card("Old Gnawbone", "{5}{G}{G}", "Legendary Creature - Dragon", "Flying. Whenever a creature you control deals combat damage to a player, create that many Treasure tokens.", 7.0, "G")
+                ));
+            }
+        }
+
+        if ("tokens".equals(archetype)) {
+            cards.addAll(List.of(
+                    card("Skullclamp", "{1}", "Artifact - Equipment", "Whenever equipped creature dies, draw two cards.", 1.0),
+                    card("Tendershoot Dryad", "{4}{G}", "Creature - Dryad", "At the beginning of each upkeep, create a 1/1 Saproling creature token.", 5.0, "G"),
+                    card("Beastmaster Ascension", "{2}{G}", "Enchantment", "Creatures you control get +5/+5 if this enchantment has seven or more quest counters.", 3.0, "G")
+            ));
+        }
+
+        if ("aristocrats".equals(archetype)) {
+            cards.addAll(List.of(
+                    card("Viscera Seer", "{B}", "Creature - Vampire Wizard", "Sacrifice a creature: Scry 1.", 1.0, "B"),
+                    card("Zulaport Cutthroat", "{1}{B}", "Creature - Human Rogue Ally", "Whenever this creature or another creature you control dies, each opponent loses 1 life and you gain 1 life.", 2.0, "B"),
+                    card("Pitiless Plunderer", "{3}{B}", "Creature - Human Pirate", "Whenever another creature you control dies, create a Treasure token.", 4.0, "B")
+            ));
+        }
+
+        if ("reanimator".equals(archetype)) {
+            cards.addAll(List.of(
+                    card("Reanimate", "{B}", "Sorcery", "Put target creature card from a graveyard onto the battlefield under your control. You lose life equal to its mana value.", 1.0, "B"),
+                    card("Animate Dead", "{1}{B}", "Enchantment - Aura", "Enchant creature card in a graveyard. Return it to the battlefield under your control.", 2.0, "B"),
+                    card("Entomb", "{B}", "Instant", "Search your library for a card, put that card into your graveyard, then shuffle.", 1.0, "B")
+            ));
+        }
+
+        if ("spellslinger".equals(archetype)) {
+            cards.addAll(List.of(
+                    card("Archmage Emeritus", "{2}{U}{U}", "Creature - Human Wizard", "Magecraft - Whenever you cast or copy an instant or sorcery spell, draw a card.", 4.0, "U"),
+                    card("Storm-Kiln Artist", "{3}{R}", "Creature - Dwarf Shaman", "Magecraft - Whenever you cast or copy an instant or sorcery spell, create a Treasure token.", 4.0, "R"),
+                    card("Jeska's Will", "{2}{R}", "Sorcery", "Add red mana for each card in target opponent's hand. Exile the top three cards of your library. You may play them this turn.", 3.0, "R")
+            ));
+        }
+
+        if ("control".equals(archetype) || "stax".equals(archetype)) {
+            cards.addAll(List.of(
+                    card("Esper Sentinel", "{W}", "Artifact Creature - Human Soldier", "Whenever an opponent casts their first noncreature spell each turn, draw a card unless that player pays {X}.", 1.0, "W"),
+                    card("Mystic Remora", "{U}", "Enchantment", "Whenever an opponent casts a noncreature spell, you may draw a card unless that player pays {4}.", 1.0, "U"),
+                    card("Rhystic Study", "{2}{U}", "Enchantment", "Whenever an opponent casts a spell, you may draw a card unless that player pays {1}.", 3.0, "U"),
+                    card("Swords to Plowshares", "{W}", "Instant", "Exile target creature.", 1.0, "W"),
+                    card("Swan Song", "{U}", "Instant", "Counter target enchantment, instant, or sorcery spell.", 1.0, "U")
+            ));
+        }
+
+        if ("turbo-combo".equals(archetype) || "cedh".equals(normalizedBracket)) {
+            cards.addAll(List.of(
+                    card("Mystic Remora", "{U}", "Enchantment", "Whenever an opponent casts a noncreature spell, you may draw a card unless that player pays {4}.", 1.0, "U"),
+                    card("Rhystic Study", "{2}{U}", "Enchantment", "Whenever an opponent casts a spell, you may draw a card unless that player pays {1}.", 3.0, "U"),
+                    card("Flusterstorm", "{U}", "Instant", "Counter target instant or sorcery spell unless its controller pays {1}. Storm.", 1.0, "U"),
+                    card("Swan Song", "{U}", "Instant", "Counter target enchantment, instant, or sorcery spell.", 1.0, "U"),
+                    card("Dark Ritual", "{B}", "Instant", "Add {B}{B}{B}.", 1.0, "B"),
+                    card("Thassa's Oracle", "{U}{U}", "Creature - Merfolk Wizard", "When this creature enters, look at the top X cards of your library. If X is greater than or equal to the number of cards in your library, you win the game.", 2.0, "U"),
+                    card("Demonic Consultation", "{B}", "Instant", "Name a card. Exile cards from the top of your library until you reveal the named card.", 1.0, "B")
+            ));
+        }
+
+        return cards;
+    }
+
+    private CardResponseDTO strategicPoolCard(String normalizedName) {
+        String name = normalizedName == null ? "" : normalizedName.trim().toLowerCase(Locale.ROOT);
+        return switch (name) {
+            case "savage ventmaw" -> card("Savage Ventmaw", "{4}{R}{G}", "Creature - Dragon", "Flying. Whenever this creature attacks, add {R}{R}{R}{G}{G}{G}. Until end of turn, you don't lose this mana as steps and phases end.", 6.0, "R", "G");
+            case "hellkite charger" -> card("Hellkite Charger", "{4}{R}{R}", "Creature - Dragon", "Flying, haste. Whenever this creature attacks, you may pay {5}{R}{R}. If you do, untap all attacking creatures and after this phase, there is an additional combat phase.", 6.0, "R");
+            case "bear umbra" -> card("Bear Umbra", "{2}{G}{G}", "Enchantment - Aura", "Enchant creature. Whenever enchanted creature attacks, untap all lands you control.", 4.0, "G");
+            case "brain freeze" -> card("Brain Freeze", "{1}{U}", "Instant", "Target player mills three cards. Storm.", 2.0, "U");
+            case "thassa's oracle" -> card("Thassa's Oracle", "{U}{U}", "Creature - Merfolk Wizard", "When this creature enters, look at the top X cards of your library. If X is greater than or equal to the number of cards in your library, you win the game.", 2.0, "U");
+            case "demonic consultation" -> card("Demonic Consultation", "{B}", "Instant", "Name a card. Exile cards from the top of your library until you reveal the named card.", 1.0, "B");
+            default -> null;
+        };
     }
 
     private List<CardResponseDTO> fallbackCards(String role, String bracket) {
@@ -434,15 +567,18 @@ public class CandidateAddSelector {
         return oracle.contains("counter target") || oracle.contains("you may cast") || oracle.contains("mana value 1 or less");
     }
 
-    private String addReason(String role, CommanderArchetypeProfile profile) {
+    private String addReason(String role, CommanderArchetypeProfile profile, StrategicDeckAssessment assessment) {
+        String structuralContext = assessment == null ? "" : " (" + assessment.primaryIssueForRole(role) + ")";
         return switch (role) {
             case "draw" -> "aumenta card advantage sem fugir do plano " + profile.archetype();
             case "ramp" -> "melhora a curva inicial e acelera o plano " + profile.archetype();
             case "removal" -> "aumenta interação para proteger o plano principal";
             case "protection" -> "protege comandante ou peças-chave do plano";
+            case "combo-piece" -> "aumenta redundancia de combo e inevitabilidade no plano " + profile.archetype();
+            case "tutor" -> "encontra a ameaca, resposta ou peca de combo certa com menos variancia";
             case "finisher" -> "converte recursos acumulados em condição de vitória";
             default -> "aumenta consistência e sinergia geral";
-        };
+        } + structuralContext;
     }
 
     private String text(String value) {

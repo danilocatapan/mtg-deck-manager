@@ -100,7 +100,7 @@ public class RecommendationPairer {
                 continue;
             }
             usedCuts.add(normalize(cut.card().name()));
-            String source = add.metaDriven() ? "meta_profile" : "heuristic_fallback";
+            String source = add.metaDriven() ? "meta_profile" : sourceFor(add, "heuristic_fallback");
             RecommendationImpact impact = impactFor(add, cut, roles, currentGameChangers);
             recommendations.add(new StrategicRecommendation(
                     recommendationId(add, cut),
