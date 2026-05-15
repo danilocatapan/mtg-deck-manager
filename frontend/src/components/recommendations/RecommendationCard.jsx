@@ -1,4 +1,5 @@
 import Button from '../ui/Button'
+import CardNamePreview from './CardNamePreview'
 
 function sourceLabel(source) {
   return source === 'meta_profile' ? 'meta local' : 'heurística'
@@ -34,8 +35,8 @@ export default function RecommendationCard({ item, index, bracket, onApply, onUn
       <header className="recommendation-card-header">
         <div>
           <span className="rec-label">Troca #{index + 1}</span>
-          <h4>+ {item.add}</h4>
-          <p>Remover: <strong>{item.remove}</strong></p>
+          <h4><CardNamePreview prefix="+ " name={item.add} /></h4>
+          <p>Remover: <CardNamePreview name={item.remove} /></p>
         </div>
         <div className="compact-rec-meta">
           <span>{roleLabel(item?.impact?.role)}</span>

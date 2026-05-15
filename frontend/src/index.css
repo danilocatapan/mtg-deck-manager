@@ -2446,6 +2446,72 @@ dt {
   color: var(--color-text);
 }
 
+.card-name-preview {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.card-name-trigger {
+  all: unset;
+  display: inline;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  cursor: help;
+  text-decoration: underline;
+  text-decoration-color: rgba(214, 168, 79, 0.55);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.card-name-trigger:hover,
+.card-name-trigger:focus-visible {
+  color: var(--color-value);
+  text-decoration-color: var(--color-value);
+}
+
+.card-name-popover {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  bottom: calc(100% - 2px);
+  display: none;
+  width: min(244px, 72vw);
+  min-height: 120px;
+  padding: 8px;
+  border: 1px solid rgba(214, 168, 79, 0.55);
+  border-radius: 8px;
+  background: rgba(6, 18, 12, 0.98);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.52);
+}
+
+.card-name-preview:hover .card-name-popover,
+.card-name-preview:focus-within .card-name-popover {
+  display: grid;
+  place-items: center;
+}
+
+.card-name-popover img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.card-name-popover-empty {
+  display: grid;
+  min-height: 112px;
+  place-items: center;
+  color: var(--color-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
 .compact-recommendation-card {
   gap: 12px;
 }

@@ -12,6 +12,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Endpoint publico para metadados da API.
 
 ### Changed
+- Cards de recomendação agora exibem preview hoverável da imagem das cartas sugeridas para adicionar e remover, usando a resolução existente de imagens de cartas.
 - Fluxos do frontend receberam polimento de UX: idioma `pt-BR`, microcopy com acentuação correta, estados de login mais claros, foco de teclado visível e alvos de toque maiores em botões/links.
 - Header, stepper e ações principais foram ajustados para reduzir corte e excesso de altura no mobile, mantendo CTAs e mensagens de autenticação mais previsíveis.
 - Recomendacoes estrategicas agora usam diagnostico estrutural generico por arquetipo/bracket para priorizar curva, ramp, compra, interacao, protecao, inevitabilidade e combos sem depender de regras por comandante.

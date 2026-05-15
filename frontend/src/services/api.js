@@ -69,7 +69,7 @@ async function requestOnce(path, options = {}) {
 
     if (!res.ok) {
       const message = await readErrorMessage(res)
-      throw new Error(res.status === 401 ? 'Login com Google é obrigatorio.' : message || 'Falha na requisição')
+      throw new Error(res.status === 401 ? 'Login com Google é obrigatório.' : message || 'Falha na requisição')
     }
 
     if (res.status === 204) return null
