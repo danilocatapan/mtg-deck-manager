@@ -5,6 +5,7 @@ import com.mtg.dto.CardResponseDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
 import com.mtg.service.rules.CommanderBanlistService;
+import com.mtg.service.rules.CommanderGameChangerService;
 import com.mtg.service.meta.MetaCard;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -39,6 +40,9 @@ public class CandidateAddSelector {
 
     @Inject
     ComboDetectionService comboDetectionService;
+
+    @Inject
+    CommanderGameChangerService commanderGameChangerService;
 
     public List<StrategicCandidate> select(
             Deck deck,
@@ -112,10 +116,16 @@ public class CandidateAddSelector {
                 .forEach(existingNames::add);
         List<CardResponseDTO> cards = new ArrayList<>();
         Map<String, String> comboSignals = comboSignals(deck);
+        Map<String, String> selectionOrigins = new java.util.HashMap<>();
+        Set<String> deckCardNames = deck.getCards().stream()
+                .map(DeckCard::getName)
+                .collect(java.util.stream.Collectors.toSet());
 
         for (MetaCard metaCard : metaCards.stream().limit(50).toList()) {
             CardResponseDTO card = knownCards.get(normalize(metaCard.getName()));
-            addIfLegal(cards, card, existingNames, profile.colors(), filters);
+            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, "meta_top_cards")) {
+                selectionOrigins.putIfAbsent(normalize(card.name()), "meta_top_cards");
+            }
             if (cards.size() >= 30) break;
         }
 
@@ -127,43 +137,51 @@ public class CandidateAddSelector {
                     knownCards.putIfAbsent(normalize(card.name()), card);
                 }
             }
-            addIfLegal(cards, card, existingNames, profile.colors(), filters);
+            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, "combo_completion")) {
+                selectionOrigins.putIfAbsent(normalize(card.name()), "combo_completion");
+            }
         }
 
         for (CardResponseDTO card : archetypeFallbackCards(profile, bracket)) {
             knownCards.putIfAbsent(normalize(card.name()), card);
             if (cards.size() >= 30) break;
-            addIfLegal(cards, card, existingNames, profile.colors(), filters);
+            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, "archetype_fallback")) {
+                selectionOrigins.putIfAbsent(normalize(card.name()), "archetype_fallback");
+            }
         }
 
         if (cards.size() < 12) {
             for (String role : prioritizedGapRoles(roles, profile)) {
                 for (CardResponseDTO card : fallbackCards(role, bracket)) {
                     knownCards.putIfAbsent(normalize(card.name()), card);
-                    addIfLegal(cards, card, existingNames, profile.colors(), filters);
+                    if (addIfLegal(cards, card, existingNames, profile.colors(), filters, "role_fallback:" + role)) {
+                        selectionOrigins.putIfAbsent(normalize(card.name()), "role_fallback:" + role);
+                    }
                 }
             }
         }
 
         return cards.stream()
-                .map(card -> toCandidate(card, metaCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget, filters, comboSignals, assessment))
+                .map(card -> toCandidate(card, metaCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget, filters, comboSignals, selectionOrigins, deckCardNames, assessment))
                 .sorted(Comparator.comparingDouble(StrategicCandidate::score).reversed())
                 .distinct()
                 .limit(12)
                 .toList();
     }
 
-    private void addIfLegal(List<CardResponseDTO> cards, CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters) {
+    private boolean addIfLegal(List<CardResponseDTO> cards, CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters, String origin) {
         String rejection = rejectionReason(card, existingNames, commanderColors, filters, cards);
         if (rejection == null) {
             cards.add(card);
-            LOG.infov("event=recommendation.add_candidate.accepted card=\"{0}\" commanderColors={1}", card.name(), commanderColors);
+            LOG.infov("event=recommendation.add_candidate.accepted card=\"{0}\" origin={1} commanderColors={2}", card.name(), origin, commanderColors);
+            return true;
         } else if (card != null && card.name() != null) {
-            LOG.infov("event=recommendation.add_candidate.rejected card=\"{0}\" reason={1} commanderColors={2}", card.name(), rejection, commanderColors);
+            LOG.infov("event=recommendation.add_candidate.rejected card=\"{0}\" origin={1} reason={2} commanderColors={3}", card.name(), origin, rejection, commanderColors);
         }
+        return false;
     }
 
-    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, boolean metaProfileDriven, String recommendationMode, Double budget, Set<String> filters, Map<String, String> comboSignals, StrategicDeckAssessment assessment) {
+    private StrategicCandidate toCandidate(CardResponseDTO card, List<MetaCard> metaCards, CommanderArchetypeProfile profile, DeckRoleSummary roles, String bracket, boolean metaProfileDriven, String recommendationMode, Double budget, Set<String> filters, Map<String, String> comboSignals, Map<String, String> selectionOrigins, Set<String> deckCardNames, StrategicDeckAssessment assessment) {
         String role = classifyRole(card);
         double commanderSynergy = synergyEngine.computeSynergy(synergyEngine.tagsForCard(card), roles.deckTags(), profile.commanderTags());
         double gapScore = roles.gaps().containsKey(role) || ("curve".equals(role) && roles.gaps().containsKey("curve")) ? 1.0 : 0.3;
@@ -180,7 +198,12 @@ public class CandidateAddSelector {
         double curveScore = curveScore(card, role, bracket);
         double score = scoreForBracket(bracket, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore, bracketFit, role);
         score = score * 0.85 + multiplayerScore * 0.10 + curveScore * 0.05;
-        String comboName = comboSignals.get(normalize(card.name()));
+        String normalizedName = normalize(card.name());
+        String comboName = comboSignals.get(normalizedName);
+        List<ComboDetectionService.ComboRecommendationContext> comboContexts = comboContexts(card.name(), deckCardNames);
+        boolean completesKnownCombo = comboContexts.stream().anyMatch(ComboDetectionService.ComboRecommendationContext::completesKnownCombo);
+        boolean gameChanger = commanderGameChangerService != null && commanderGameChangerService.isGameChanger(card.name());
+        String selectionOrigin = selectionOrigins.getOrDefault(normalizedName, "unknown");
         if (comboName != null) {
             score += isCompetitiveBracket(bracket) ? 0.35 : 0.22;
             role = "combo-piece";
@@ -201,20 +224,22 @@ public class CandidateAddSelector {
                 round(multiplayerScore),
                 round(curveScore),
                 round(bracketFit),
-                scoreReasons(card, role, comboName, assessment, multiplayerScore, curveScore)
+                scoreReasons(card, role, comboName, comboContexts, gameChanger, assessment, multiplayerScore, curveScore)
         );
         StrategicCandidate candidate = new StrategicCandidate(card, role, score, reason, metaProfileDriven && metaCard != null, inclusionRate, commanderSynergy, source, breakdown, null);
         LOG.infov(
-                "event=recommendation.add_candidate.scored card=\"{0}\" role={1} score={2} source={3} reason=\"{4}\" synergy={5} gapScore={6} archetypeFit={7}",
+                "event=recommendation.add_candidate.scored card=\"{0}\" role={1} score={2} source={3} origin={4} reason=\"{5}\" synergy={6} gapScore={7} archetypeFit={8}",
                 card.name(),
                 role,
                 round(score),
                 source,
+                selectionOrigin,
                 reason,
                 round(commanderSynergy),
                 round(gapScore),
                 round(archetypeFit)
         );
+        logComboDiagnostic(card, role, selectionOrigin, gameChanger, comboName, completesKnownCombo, comboContexts);
         LOG.infov(
                 "event=recommendation.add_score.breakdown card=\"{0}\" role={1} total={2} meta={3} synergy={4} efficiency={5} gap={6} multiplayer={7} curve={8} bracketFit={9}",
                 card.name(),
@@ -240,6 +265,36 @@ public class CandidateAddSelector {
                         ComboDetectionService.ComboCompletionSignal::comboName,
                         (first, ignored) -> first
                 ));
+    }
+
+    private List<ComboDetectionService.ComboRecommendationContext> comboContexts(String candidateName, Set<String> deckCardNames) {
+        ComboDetectionService service = comboDetectionService == null ? new ComboDetectionService() : comboDetectionService;
+        List<ComboDetectionService.ComboRecommendationContext> contexts = service.recommendationContexts(candidateName, deckCardNames);
+        return contexts == null ? List.of() : contexts;
+    }
+
+    private void logComboDiagnostic(
+            CardResponseDTO card,
+            String role,
+            String selectionOrigin,
+            boolean gameChanger,
+            String comboName,
+            boolean completesKnownCombo,
+            List<ComboDetectionService.ComboRecommendationContext> comboContexts
+    ) {
+        if (!gameChanger && comboContexts.isEmpty() && !"combo-piece".equals(role)) {
+            return;
+        }
+        LOG.infov(
+                "event=recommendation.add_candidate.combo_diagnostic card=\"{0}\" role={1} origin={2} gameChanger={3} comboCompletionSignal={4} completesKnownCombo={5} comboContexts={6}",
+                card.name(),
+                role,
+                selectionOrigin,
+                gameChanger,
+                comboName == null ? "" : comboName,
+                completesKnownCombo,
+                comboContexts
+        );
     }
 
     private boolean passesFilters(CardResponseDTO card, Set<String> filters) {
@@ -611,9 +666,11 @@ public class CandidateAddSelector {
         return cmc <= 2.0 ? 0.9 : cmc <= 4.0 ? 0.65 : 0.35;
     }
 
-    private List<String> scoreReasons(CardResponseDTO card, String role, String comboName, StrategicDeckAssessment assessment, double multiplayerScore, double curveScore) {
+    private List<String> scoreReasons(CardResponseDTO card, String role, String comboName, List<ComboDetectionService.ComboRecommendationContext> comboContexts, boolean gameChanger, StrategicDeckAssessment assessment, double multiplayerScore, double curveScore) {
         List<String> reasons = new ArrayList<>();
         if (comboName != null) reasons.add("combo_completion");
+        if (gameChanger) reasons.add("game_changer");
+        if (comboName == null && !comboContexts.isEmpty()) reasons.add("known_combo_piece_without_completion");
         if (assessment != null && assessment.priorityFor(role) > 1.0) reasons.add("addresses_structural_gap");
         if (multiplayerScore >= 0.75) reasons.add("multiplayer_scaling");
         if (curveScore >= 0.75) reasons.add("curve_efficiency");

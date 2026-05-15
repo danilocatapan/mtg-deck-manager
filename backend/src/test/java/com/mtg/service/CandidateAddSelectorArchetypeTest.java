@@ -134,6 +134,35 @@ class CandidateAddSelectorArchetypeTest {
         assertTrue(candidates.stream().anyMatch(candidate -> candidate.addScoreBreakdown() != null));
     }
 
+    @Test
+    void gameChangerComboPiecesExposeStandaloneComboDiagnosticReason() {
+        selector.comboDetectionService = new ComboDetectionService();
+        selector.commanderGameChangerService = new com.mtg.service.rules.CommanderGameChangerService();
+
+        List<StrategicCandidate> candidates = selector.select(
+                deck("Talion, the Kindly Lord", "UB"),
+                List.of(),
+                new java.util.HashMap<>(),
+                profile("turbo-combo", "U", "B"),
+                roles(Set.of("combo"), Map.of("finisher", 2)),
+                "cedh",
+                false,
+                "consistency",
+                null,
+                Set.of(),
+                StrategicDeckAssessment.empty()
+        );
+
+        StrategicCandidate oracle = candidates.stream()
+                .filter(candidate -> "Thassa's Oracle".equals(candidate.card().name()))
+                .findFirst()
+                .orElseThrow();
+
+        assertTrue(oracle.addScoreBreakdown().reasons().contains("game_changer"));
+        assertTrue(oracle.addScoreBreakdown().reasons().contains("known_combo_piece_without_completion"));
+        assertFalse(oracle.addScoreBreakdown().reasons().contains("combo_completion"));
+    }
+
     private Deck deck(String commander, String colors) {
         Deck deck = new Deck();
         deck.setCommander(commander);

@@ -68,6 +68,22 @@ public class ComboDetectionService {
                 .toList();
     }
 
+    public List<ComboRecommendationContext> recommendationContexts(String candidateName, Set<String> deckCardNames) {
+        if (candidateName == null || candidateName.isBlank()) {
+            return List.of();
+        }
+        Set<String> normalizedDeck = new HashSet<>();
+        if (deckCardNames != null) {
+            deckCardNames.stream().map(this::normalize).forEach(normalizedDeck::add);
+        }
+        String normalizedCandidate = normalize(candidateName);
+        return load().combos().stream()
+                .filter(combo -> combo.cards().stream().anyMatch(card -> normalize(card).equals(normalizedCandidate)))
+                .map(combo -> contextFor(combo, normalizedCandidate, normalizedDeck))
+                .limit(8)
+                .toList();
+    }
+
     public Set<String> protectedPieces(Set<String> deckCardNames) {
         ComboAnalysis analysis = analyze(deckCardNames);
         Set<String> protectedNames = new HashSet<>();
@@ -104,6 +120,24 @@ public class ComboDetectionService {
             return ComboSnapshot.empty();
         }
     }
+
+    private ComboRecommendationContext contextFor(ComboDefinition combo, String normalizedCandidate, Set<String> normalizedDeck) {
+        List<String> presentPartners = combo.cards().stream()
+                .filter(card -> !normalize(card).equals(normalizedCandidate))
+                .filter(card -> normalizedDeck.contains(normalize(card)))
+                .toList();
+        List<String> missingPartners = combo.cards().stream()
+                .filter(card -> !normalize(card).equals(normalizedCandidate))
+                .filter(card -> !normalizedDeck.contains(normalize(card)))
+                .toList();
+        return new ComboRecommendationContext(
+                combo.name(),
+                presentPartners,
+                missingPartners,
+                !presentPartners.isEmpty() && missingPartners.isEmpty()
+        );
+    }
+
 
     private ComboSnapshot readMetadata(List<ComboDefinition> currentCombos) {
         try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(RESOURCE)) {
@@ -147,5 +181,17 @@ public class ComboDetectionService {
     }
 
     public record ComboCompletionSignal(String missingCard, String comboName) {
+    }
+
+    public record ComboRecommendationContext(
+            String comboName,
+            List<String> presentPartners,
+            List<String> missingPartners,
+            boolean completesKnownCombo
+    ) {
+        public ComboRecommendationContext {
+            presentPartners = presentPartners == null ? List.of() : List.copyOf(presentPartners);
+            missingPartners = missingPartners == null ? List.of() : List.copyOf(missingPartners);
+        }
     }
 }

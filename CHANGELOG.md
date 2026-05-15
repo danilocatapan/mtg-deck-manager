@@ -28,6 +28,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Analise do deck passa a destacar diagnosticos acionaveis em PT-BR, com alertas de curva, ramp, compra e interacao.
 - Cards de recomendacao passam a mostrar impacto antes/depois para curva, ramp, compra, interacao, Game Changers e pressao de bracket.
 - Recomendacoes estrategicas passam a aceitar aliases simples de objetivo Commander (`bracket 1` a `bracket 4`) e melhoram fallback high-power/cEDH com sugestoes mais eficientes e diretas.
+- Auditoria/logs de recomendacoes estrategicas agora mostram se uma sugestao Game Changer entrou por meta/fallback ou por completar combo conhecido, incluindo parceiros presentes e ausentes.
 - Motor estrategico passa a usar classificador simples de roles/arquetipos, sinais de combos locais e adapter TopDeck offline para perfis competitivos.
 - Telas de analise e recomendacoes foram compactadas para priorizar os 3-5 sinais mais importantes para jogadores de Commander, deixando detalhes secundarios em uma area avancada recolhida.
 - Painel de legalidade Commander recebeu mais respiro entre titulo, status e diagnosticos para melhorar a leitura dos checks.
