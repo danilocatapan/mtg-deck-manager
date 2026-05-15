@@ -149,6 +149,10 @@ class StrategicRecommendationServiceTest {
         assertEquals(0.95, recommendations.getFirst().addInsight().inclusionRate(), 0.001);
         assertTrue(recommendations.getFirst().impact().bracketPressureBefore() >= 0);
         assertTrue(recommendations.getFirst().impact().bracketPressureAfter() >= 0);
+        assertTrue(recommendations.getFirst().addScoreBreakdown().totalScore() > 0);
+        assertTrue(recommendations.getFirst().addScoreBreakdown().multiplayerScore() >= 0);
+        assertTrue(recommendations.getFirst().cutScoreBreakdown().cutScore() > 0);
+        assertTrue(recommendations.getFirst().cutScoreBreakdown().strategicKeepValue() >= 0);
         assertEquals(0, recommendations.getFirst().impact().gameChangersBefore());
         assertEquals(0, recommendations.getFirst().impact().gameChangersAfter());
         assertFalse(recommendations.getFirst().comparisons().isEmpty());

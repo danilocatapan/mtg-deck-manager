@@ -1,5 +1,6 @@
 package com.mtg.service;
 
+import com.mtg.domain.CutScoreBreakdown;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
@@ -26,6 +27,9 @@ public class CandidateCutSelector {
 
     @Inject
     ComboDetectionService comboDetectionService;
+
+    @Inject
+    RecommendationAuditContext auditContext;
 
     public List<StrategicCandidate> select(Deck deck, Map<String, CardResponseDTO> cardsByName, CommanderArchetypeProfile profile, DeckRoleSummary roles) {
         return select(deck, cardsByName, profile, roles, "casual");
@@ -62,8 +66,11 @@ public class CandidateCutSelector {
         double weakRoleFit = weakRoleFit(role, profile);
         double strictUpgrade = strictUpgradeAvailable(role, card);
         double lowMetaFitForBracket = lowMetaFitForBracket(card, bracket);
+        double badMultiplayerScaling = badMultiplayerScaling(card, role, profile);
+        double manaInefficiency = manaInefficiency(card, bracket);
         double score = lowSynergy * 0.25 + lowEfficiency * 0.20 + curvePressure * 0.15
-                + redundancy * 0.15 + lowMetaFitForBracket * 0.15 + strictUpgrade * 0.10;
+                + redundancy * 0.12 + lowMetaFitForBracket * 0.13 + strictUpgrade * 0.08
+                + badMultiplayerScaling * 0.05 + manaInefficiency * 0.02;
         if ("value".equals(role)) {
             score += weakRoleFit * 0.05;
         }
@@ -79,7 +86,19 @@ public class CandidateCutSelector {
             score += 0.18;
         }
 
-        StrategicCandidate candidate = new StrategicCandidate(card, role, score, cutReason(role, card, assessment), false, 0.0, synergy, "deck_current");
+        CutScoreBreakdown breakdown = new CutScoreBreakdown(
+                round(score),
+                round(lowSynergy),
+                round(Math.max(lowEfficiency, curvePressure)),
+                round(lowMetaFitForBracket),
+                round(redundancy),
+                round(badMultiplayerScaling),
+                round(manaInefficiency),
+                round(keepValue),
+                keepValue >= 0.78,
+                cutReasons(card, role, assessment, badMultiplayerScaling, manaInefficiency, keepValue)
+        );
+        StrategicCandidate candidate = new StrategicCandidate(card, role, score, cutReason(role, card, assessment), false, 0.0, synergy, "deck_current", null, breakdown);
         LOG.infov(
                 "event=recommendation.cut_candidate.scored card=\"{0}\" role={1} score={2} synergy={3} strategicValue={4} reason=\"{5}\"",
                 card.name(),
@@ -88,6 +107,19 @@ public class CandidateCutSelector {
                 round(synergy),
                 round(keepValue),
                 candidate.reason()
+        );
+        LOG.infov(
+                "event=recommendation.cut_score.breakdown card=\"{0}\" role={1} cutScore={2} lowSynergy={3} highCmcLowImpact={4} lowMetaFit={5} redundancy={6} badMultiplayer={7} manaInefficiency={8} strategicKeepValue={9}",
+                card.name(),
+                role,
+                breakdown.cutScore(),
+                breakdown.lowSynergy(),
+                breakdown.highCmcLowImpact(),
+                breakdown.lowMetaFit(),
+                breakdown.roleRedundancy(),
+                breakdown.badMultiplayerScaling(),
+                breakdown.manaInefficiency(),
+                breakdown.strategicKeepValue()
         );
         return candidate;
     }
@@ -190,6 +222,42 @@ public class CandidateCutSelector {
                 || name.contains("hunter's insight"));
     }
 
+    private double badMultiplayerScaling(CardResponseDTO card, String role, CommanderArchetypeProfile profile) {
+        String oracle = text(card.oracleText());
+        double cmc = card.cmc() == null ? 0.0 : card.cmc();
+        double score = 0.2;
+        if (cmc >= 6.0 && !oracle.contains("each opponent") && !oracle.contains("additional combat") && !oracle.contains("draw")) score += 0.35;
+        if (isConditionalDraw(card)) score += 0.28;
+        if ("finisher".equals(role) && !hasCombatLethality(card) && !oracle.contains("when this creature enters")) score += 0.25;
+        if (oracle.contains("target creature") && !oracle.contains("each")) score += 0.1;
+        if (oracle.contains("each opponent") || oracle.contains("additional combat") || oracle.contains("indestructible")) score -= 0.25;
+        return clamp(score);
+    }
+
+    private double manaInefficiency(CardResponseDTO card, String bracket) {
+        String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT);
+        double cmc = card.cmc() == null ? 0.0 : card.cmc();
+        if (isTappedLand(card)) {
+            return "high-power".equals(normalizedBracket) || "cedh".equals(normalizedBracket) ? 1.0 : 0.55;
+        }
+        if ("high-power".equals(normalizedBracket) || "cedh".equals(normalizedBracket)) {
+            if (cmc >= 4.0 && text(card.oracleText()).contains("add ")) return 0.9;
+            if (cmc >= 3.0 && text(card.oracleText()).contains("search your library") && text(card.oracleText()).contains("basic")) return 0.75;
+        }
+        return 0.2;
+    }
+
+    private List<String> cutReasons(CardResponseDTO card, String role, StrategicDeckAssessment assessment, double badMultiplayerScaling, double manaInefficiency, double keepValue) {
+        java.util.ArrayList<String> reasons = new java.util.ArrayList<>();
+        if (assessment != null && assessment.isWeakCard(card.name())) reasons.add("structural_weakness");
+        if (badMultiplayerScaling >= 0.65) reasons.add("bad_multiplayer_scaling");
+        if (manaInefficiency >= 0.65) reasons.add("mana_inefficiency");
+        if (keepValue >= 0.78) reasons.add("strategic_keep_value");
+        if ("finisher".equals(role) && !hasCombatLethality(card)) reasons.add("low_lethality_finisher");
+        if (reasons.isEmpty()) reasons.add("lower_priority_slot");
+        return reasons;
+    }
+
     private boolean roleProtectionAllowsCut(String role, CardResponseDTO card, DeckRoleSummary roles, String bracket) {
         String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT);
         int rampFloor = "cedh".equals(normalizedBracket) ? 14 : "high-power".equals(normalizedBracket) ? 12 : "mid".equals(normalizedBracket) ? 10 : 9;
@@ -220,6 +288,9 @@ public class CandidateCutSelector {
                     round(keepValue),
                     round(candidate.synergyEstimate())
             );
+            if (auditContext != null) {
+                auditContext.recordProtectedCut(candidate.card().name(), candidate.role(), "strategic_value", round(keepValue), round(candidate.synergyEstimate()));
+            }
             return false;
         }
         if (assessment != null && assessment.isWeakCard(candidate.card().name())) {
@@ -349,5 +420,9 @@ public class CandidateCutSelector {
 
     private double round(double value) {
         return Math.round(value * 1000.0) / 1000.0;
+    }
+
+    private double clamp(double value) {
+        return Math.max(0.0, Math.min(1.0, value));
     }
 }

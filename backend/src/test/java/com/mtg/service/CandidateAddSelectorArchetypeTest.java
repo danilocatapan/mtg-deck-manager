@@ -107,6 +107,33 @@ class CandidateAddSelectorArchetypeTest {
         assertTrue(adds.contains("Mind Stone") || adds.contains("Sol Ring") || adds.contains("Arcane Signet"));
     }
 
+    @Test
+    void combatMultiplayerFinishersReceiveHighMultiplayerScore() {
+        Map<String, CardResponseDTO> knownCards = new java.util.HashMap<>();
+        knownCards.put("bloodthirster", card("Bloodthirster", "{5}{R}", "Creature - Demon", "Flying, trample. Whenever this creature deals combat damage to a player, untap it. After this combat phase, there is an additional combat phase.", 6.0, "R"));
+        knownCards.put("scourge of the throne", card("Scourge of the Throne", "{4}{R}{R}", "Creature - Dragon", "Flying. Whenever this creature attacks for the first time each turn, untap all attacking creatures. After this phase, there is an additional combat phase.", 6.0, "R"));
+
+        List<StrategicCandidate> candidates = selector.select(
+                deck("Xenagos, God of Revels", "RG"),
+                List.of(),
+                knownCards,
+                profile("combat", "R", "G"),
+                roles(Set.of("combat"), Map.of("finisher", 2)),
+                "high-power",
+                false,
+                "consistency",
+                null,
+                Set.of(),
+                StrategicDeckAssessment.empty()
+        );
+
+        assertTrue(candidates.stream()
+                .filter(candidate -> Set.of("Bloodthirster", "Scourge of the Throne").contains(candidate.card().name()))
+                .allMatch(candidate -> candidate.addScoreBreakdown() != null
+                        && candidate.addScoreBreakdown().multiplayerScore() >= 0.75));
+        assertTrue(candidates.stream().anyMatch(candidate -> candidate.addScoreBreakdown() != null));
+    }
+
     private Deck deck(String commander, String colors) {
         Deck deck = new Deck();
         deck.setCommander(commander);

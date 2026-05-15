@@ -13,6 +13,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 
 ### Changed
 - Recomendacoes estrategicas agora usam diagnostico estrutural generico por arquetipo/bracket para priorizar curva, ramp, compra, interacao, protecao, inevitabilidade e combos sem depender de regras por comandante.
+- Recomendacoes estrategicas agora persistem snapshots de auditoria com contexto, score breakdown, cut breakdown, pares bloqueados, cortes protegidos e endpoint inicial para feedback humano.
 - Recomendacoes estrategicas agora protegem finishers, pecas de combo e payoffs sinergicos contra trocas incoerentes por ramp generico, com logs de auditoria para adds, cuts, bloqueios e pareamentos.
 - Fallbacks de ramp removem rocks fora de cor funcional e passam a rejeitar mana que produza cores fora da identidade do comandante.
 - Tela de recomendacoes remove a selecao de intencao enquanto o backend estabiliza uma estrategia unica e mais confiavel.

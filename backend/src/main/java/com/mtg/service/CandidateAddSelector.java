@@ -1,5 +1,6 @@
 package com.mtg.service;
 
+import com.mtg.domain.RecommendationScoreBreakdown;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
@@ -175,7 +176,10 @@ public class CandidateAddSelector {
         double inclusionRate = metaCard == null ? 0.0 : Math.min(1.0, metaCard.getInclusion());
         double metaScore = metaCard == null ? 0.2 : Math.min(1.0, inclusionRate * metaCard.getBracketWeight() + metaCard.getPerformanceWeight());
         double bracketFit = bracketFit(card, bracket, metaCard);
+        double multiplayerScore = multiplayerScore(card, role, profile);
+        double curveScore = curveScore(card, role, bracket);
         double score = scoreForBracket(bracket, commanderSynergy, gapScore, efficiency, archetypeFit, metaScore, bracketFit, role);
+        score = score * 0.85 + multiplayerScore * 0.10 + curveScore * 0.05;
         String comboName = comboSignals.get(normalize(card.name()));
         if (comboName != null) {
             score += isCompetitiveBracket(bracket) ? 0.35 : 0.22;
@@ -188,7 +192,18 @@ public class CandidateAddSelector {
                 ? "combo_database"
                 : metaProfileDriven && metaCard != null ? nullSafeSource(metaCard.getSource()) : "heuristic_fallback";
         String reason = comboName == null ? addReason(role, profile, assessment) : "completa o combo " + comboName;
-        StrategicCandidate candidate = new StrategicCandidate(card, role, score, reason, metaProfileDriven && metaCard != null, inclusionRate, commanderSynergy, source);
+        RecommendationScoreBreakdown breakdown = new RecommendationScoreBreakdown(
+                round(score),
+                round(metaScore),
+                round(commanderSynergy),
+                round(efficiency),
+                round(gapScore),
+                round(multiplayerScore),
+                round(curveScore),
+                round(bracketFit),
+                scoreReasons(card, role, comboName, assessment, multiplayerScore, curveScore)
+        );
+        StrategicCandidate candidate = new StrategicCandidate(card, role, score, reason, metaProfileDriven && metaCard != null, inclusionRate, commanderSynergy, source, breakdown, null);
         LOG.infov(
                 "event=recommendation.add_candidate.scored card=\"{0}\" role={1} score={2} source={3} reason=\"{4}\" synergy={5} gapScore={6} archetypeFit={7}",
                 card.name(),
@@ -199,6 +214,19 @@ public class CandidateAddSelector {
                 round(commanderSynergy),
                 round(gapScore),
                 round(archetypeFit)
+        );
+        LOG.infov(
+                "event=recommendation.add_score.breakdown card=\"{0}\" role={1} total={2} meta={3} synergy={4} efficiency={5} gap={6} multiplayer={7} curve={8} bracketFit={9}",
+                card.name(),
+                role,
+                breakdown.totalScore(),
+                breakdown.metaScore(),
+                breakdown.synergyScore(),
+                breakdown.efficiencyScore(),
+                breakdown.gapScore(),
+                breakdown.multiplayerScore(),
+                breakdown.curveScore(),
+                breakdown.bracketFitScore()
         );
         return candidate;
     }
@@ -554,6 +582,47 @@ public class CandidateAddSelector {
         if ("high-power".equalsIgnoreCase(bracket)) return cmc <= 3.0 ? 1.0 : 0.45;
         if ("cedh".equalsIgnoreCase(bracket)) return cmc <= 2.0 || isStackInteraction(card) ? 1.0 : 0.35;
         return 0.6;
+    }
+
+    private double multiplayerScore(CardResponseDTO card, String role, CommanderArchetypeProfile profile) {
+        String oracle = text(card.oracleText());
+        String archetype = profile == null ? "" : profile.archetype();
+        double score = 0.45;
+        if (oracle.contains("each opponent") || oracle.contains("each player")) score += 0.25;
+        if (oracle.contains("additional combat") || oracle.contains("extra combat") || oracle.contains("untap all attacking creatures")) score += 0.3;
+        if (oracle.contains("whenever") && (oracle.contains("combat damage") || oracle.contains("attacks"))) score += 0.18;
+        if (oracle.contains("draw cards") || oracle.contains("create that many treasure")) score += 0.18;
+        if (oracle.contains("indestructible") || oracle.contains("hexproof") || oracle.contains("can't be countered")) score += 0.15;
+        if (("combat".equals(archetype) || "combat damage".equals(archetype)) && ("finisher".equals(role) || "combo-piece".equals(role))) score += 0.12;
+        if (oracle.contains("target creature") && !oracle.contains("each") && !oracle.contains("draw")) score -= 0.1;
+        return clamp(score);
+    }
+
+    private double curveScore(CardResponseDTO card, String role, String bracket) {
+        double cmc = card.cmc() == null ? 0.0 : card.cmc();
+        String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT);
+        boolean competitive = "high-power".equals(normalizedBracket) || "cedh".equals(normalizedBracket);
+        if ("finisher".equals(role) || "combo-piece".equals(role)) {
+            return cmc <= 3.0 ? 0.9 : cmc <= 6.0 ? 0.65 : 0.45;
+        }
+        if (competitive) {
+            return cmc <= 1.0 ? 1.0 : cmc <= 2.0 ? 0.85 : cmc <= 3.0 ? 0.45 : 0.2;
+        }
+        return cmc <= 2.0 ? 0.9 : cmc <= 4.0 ? 0.65 : 0.35;
+    }
+
+    private List<String> scoreReasons(CardResponseDTO card, String role, String comboName, StrategicDeckAssessment assessment, double multiplayerScore, double curveScore) {
+        List<String> reasons = new ArrayList<>();
+        if (comboName != null) reasons.add("combo_completion");
+        if (assessment != null && assessment.priorityFor(role) > 1.0) reasons.add("addresses_structural_gap");
+        if (multiplayerScore >= 0.75) reasons.add("multiplayer_scaling");
+        if (curveScore >= 0.75) reasons.add("curve_efficiency");
+        if (reasons.isEmpty()) reasons.add("baseline_strategic_fit");
+        return reasons;
+    }
+
+    private double clamp(double value) {
+        return Math.max(0.0, Math.min(1.0, value));
     }
 
     private double scoreForBracket(

@@ -27,6 +27,9 @@ public class RecommendationPairer {
     @Inject
     CommanderGameChangerService commanderGameChangerService;
 
+    @Inject
+    RecommendationAuditContext auditContext;
+
     public List<StrategicRecommendation> pair(
             List<StrategicCandidate> adds,
             List<StrategicCandidate> cuts,
@@ -136,6 +139,8 @@ public class RecommendationPairer {
                     impact,
                     insightFor(add, sampleSize, source),
                     insightFor(cut, 0, "deck_current"),
+                    add.addScoreBreakdown(),
+                    cut.cutScoreBreakdown(),
                     comparisonsFor(add, roles, bracket, profile),
                     List.of(),
                     recommendationMode,
@@ -404,6 +409,9 @@ public class RecommendationPairer {
                         cut.card().name(),
                         cut.role()
                 );
+                if (auditContext != null) {
+                    auditContext.recordBlockedPair(add.card().name(), add.role(), cut.card().name(), cut.role(), "incompatible_roles");
+                }
                 continue;
             }
             if (best == null || ("same_role".equals(compatibility) && !"same_role".equals(bestReason))) {

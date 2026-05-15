@@ -2,6 +2,8 @@ package com.mtg.controller;
 
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.DeckImportDTO;
+import com.mtg.model.RecommendationAuditRun;
+import com.mtg.repository.RecommendationAuditRepository;
 import com.mtg.service.CardService;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -9,6 +11,7 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -41,6 +44,9 @@ class DeckRecommendationIntegrationTest {
 
     @InjectMock
     CardService cardService;
+
+    @Inject
+    RecommendationAuditRepository auditRepository;
 
     @BeforeEach
     void setupCards() {
@@ -139,6 +145,8 @@ class DeckRecommendationIntegrationTest {
 
         List<String> adds = response.getList("add", String.class);
         List<String> cuts = response.getList("remove", String.class);
+        List<Map<String, Object>> addBreakdowns = response.getList("addScoreBreakdown");
+        List<Map<String, Object>> cutBreakdowns = response.getList("cutScoreBreakdown");
 
         Set<String> expectedAdds = Set.of(
                 "Savage Ventmaw",
@@ -174,6 +182,20 @@ class DeckRecommendationIntegrationTest {
         assertTrue(adds.stream().noneMatch(add -> Set.of("Marble Diamond", "Sky Diamond").contains(add)));
         assertTrue(cuts.stream().noneMatch(cut -> cut.equals("Atarka, World Render")));
         assertTrue(adds.stream().noneMatch(cuts::contains));
+        assertTrue(addBreakdowns.stream().allMatch(breakdown -> breakdown != null && breakdown.containsKey("multiplayerScore")));
+        assertTrue(cutBreakdowns.stream().allMatch(breakdown -> breakdown != null && breakdown.containsKey("strategicKeepValue")));
+
+        RecommendationAuditRun audit = auditRepository.listByDeckAndOwner(deckIdFromLocation(deckLocation), "google-user-1").getFirst();
+        assertTrue(audit.getRecommendationsJson().contains("addScoreBreakdown"));
+        assertTrue(audit.getBlockedPairsJson().contains("reason") || audit.getBlockedPairsJson().equals("[]"));
+        assertTrue(audit.getProtectedCutsJson().contains("Atarka, World Render") || audit.getProtectedCutsJson().contains("protected"));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(Map.of("status", "needs_review", "reason", "benchmark", "notes", "Auditoria validada pelo teste."))
+                .when().post("/recommendation-audits/" + audit.getId() + "/feedback")
+                .then()
+                .statusCode(204);
     }
 
     private String importFixtureDeck(String name, String commander, String fixturePath) {
@@ -185,6 +207,10 @@ class DeckRecommendationIntegrationTest {
                 .statusCode(201)
                 .extract()
                 .header("Location");
+    }
+
+    private Long deckIdFromLocation(String deckLocation) {
+        return Long.parseLong(deckLocation.substring(deckLocation.lastIndexOf('/') + 1));
     }
 
     private Map<String, CardResponseDTO> resolvedCards(List<String> names) {

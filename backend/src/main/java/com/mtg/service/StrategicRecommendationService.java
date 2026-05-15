@@ -63,6 +63,12 @@ public class StrategicRecommendationService {
     @Inject
     CommanderGameChangerService commanderGameChangerService;
 
+    @Inject
+    RecommendationAuditService recommendationAuditService;
+
+    @Inject
+    RecommendationAuditContext auditContext;
+
     public List<StrategicRecommendation> recommend(Long deckId, com.mtg.dto.RecommendationParamsDTO params) {
         return recommend(deckId, params, null);
     }
@@ -74,6 +80,9 @@ public class StrategicRecommendationService {
         }
         if (deck.getCommander() == null || deck.getCommander().isBlank()) {
             throw new IllegalStateException("Commander is required for strategic recommendations");
+        }
+        if (auditContext != null) {
+            auditContext.reset();
         }
         int mainDeckCount = mainDeckCards(deck).stream().mapToInt(DeckCard::getQuantity).sum();
         if (mainDeckCount > 99) {
@@ -185,6 +194,7 @@ public class StrategicRecommendationService {
                 deckId,
                 recommendations.size()
         );
+        persistAudit(deck, ownerId, params, bracket, profile, roles, assessment, recommendations);
         return recommendations;
     }
 
@@ -279,5 +289,35 @@ public class StrategicRecommendationService {
 
     private List<DeckCard> mainDeckCards(Deck deck) {
         return deck.getCards();
+    }
+
+    private void persistAudit(
+            Deck deck,
+            String ownerId,
+            com.mtg.dto.RecommendationParamsDTO params,
+            String bracket,
+            CommanderArchetypeProfile profile,
+            DeckRoleSummary roles,
+            StrategicDeckAssessment assessment,
+            List<StrategicRecommendation> recommendations
+    ) {
+        if (recommendationAuditService == null) {
+            return;
+        }
+        try {
+            recommendationAuditService.persistRun(
+                    deck,
+                    ownerId,
+                    params,
+                    bracket,
+                    profile,
+                    roles,
+                    assessment,
+                    recommendations,
+                    auditContext
+            );
+        } catch (Exception exception) {
+            LOG.warnv(exception, "event=recommendation.audit.failed deckId={0}", deck == null ? null : deck.getId());
+        }
     }
 }
