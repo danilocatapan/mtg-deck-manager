@@ -16,9 +16,9 @@ export default function AboutDialog({ open, onClose, onOpenReleaseNotes }) {
         setApiInfo(info)
         setStatus('ready')
       })
-      .catch((error) => {
+      .catch(() => {
         if (!active) return
-        console.error('getAppInfo error', error)
+        console.error('getAppInfo error')
         setStatus('error')
       })
 

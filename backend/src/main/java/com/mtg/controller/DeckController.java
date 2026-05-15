@@ -3,6 +3,7 @@ package com.mtg.controller;
 import com.mtg.domain.DeckAnalysis;
 import com.mtg.domain.DeckRecommendations;
 import com.mtg.domain.StrategicRecommendation;
+import com.mtg.config.SensitiveLogSanitizer;
 import com.mtg.dto.ApplyRecommendationSwapDTO;
 import com.mtg.dto.DeckLegalityDTO;
 import com.mtg.dto.DeckImportDTO;
@@ -317,7 +318,7 @@ public class DeckController {
                 "Requisicao rejeitada por violacao de regra de negocio.",
                 "INVALID_DECK_REQUEST",
                 null,
-                safeMessage
+                SensitiveLogSanitizer.reasonCode(safeMessage)
         );
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new ErrorResponseDTO(safeMessage))

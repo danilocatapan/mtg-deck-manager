@@ -101,6 +101,10 @@ function createRequestId() {
   return `web-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+function logApiError(event, error) {
+  console.error(event, { name: error?.name || 'Error', code: error?.code || null })
+}
+
 async function readErrorMessage(res) {
   const contentType = res.headers.get('content-type') || ''
   if (contentType.includes('application/json')) {
@@ -116,7 +120,7 @@ export async function fetchDecks({ throwOnError = false } = {}) {
   try {
     return await request('/decks')
   } catch (e) {
-    console.error('fetchDecks error', e)
+    logApiError('fetchDecks error', e)
     if (throwOnError) {
       throw e
     }
@@ -132,7 +136,7 @@ export async function searchCards(name) {
   try {
     return await request(`/cards?name=${encodeURIComponent(name)}`)
   } catch (e) {
-    console.error('searchCards error', e)
+    logApiError('searchCards error', e)
     return []
   }
 }
@@ -144,7 +148,7 @@ export async function createDeck(data) {
       body: JSON.stringify(data),
     })
   } catch (e) {
-    console.error('createDeck error', e)
+    logApiError('createDeck error', e)
     throw e
   }
 }
@@ -159,7 +163,7 @@ export async function updateDeck(id, data) {
       body: JSON.stringify(data),
     })
   } catch (e) {
-    console.error('updateDeck error', e)
+    logApiError('updateDeck error', e)
     throw e
   }
 }
@@ -171,7 +175,7 @@ export async function deleteDeck(id) {
     }
     await request(`/decks/${id}`, { method: 'DELETE' })
   } catch (e) {
-    console.error('deleteDeck error', e)
+    logApiError('deleteDeck error', e)
     throw e
   }
 }
@@ -183,7 +187,7 @@ export async function getDeckAnalysis(id) {
     }
     return await request(`/decks/${id}/analysis`)
   } catch (e) {
-    console.error('getDeckAnalysis error', e)
+    logApiError('getDeckAnalysis error', e)
     throw e
   }
 }
@@ -195,7 +199,7 @@ export async function getDeckLegality(id) {
     }
     return await request(`/decks/${id}/legality`)
   } catch (e) {
-    console.error('getDeckLegality error', e)
+    logApiError('getDeckLegality error', e)
     throw e
   }
 }
@@ -219,7 +223,7 @@ export async function fetchCardsByNames(names = []) {
     }
     return cards
   } catch (e) {
-    console.error('fetchCardsByNames error', e)
+    logApiError('fetchCardsByNames error', e)
     return []
   }
 }
@@ -234,7 +238,7 @@ export async function getStrategicRecommendations(id, params) {
       body: JSON.stringify(params || {}),
     })
   } catch (e) {
-    console.error('getStrategicRecommendations error', e)
+    logApiError('getStrategicRecommendations error', e)
     throw e
   }
 }
@@ -249,7 +253,7 @@ export async function applyRecommendationSwap(deckId, payload) {
       body: JSON.stringify(payload || {}),
     })
   } catch (e) {
-    console.error('applyRecommendationSwap error', e)
+    logApiError('applyRecommendationSwap error', e)
     throw e
   }
 }
@@ -264,7 +268,7 @@ export async function undoRecommendationSwap(deckId, recommendationId) {
       body: JSON.stringify({ recommendationId }),
     })
   } catch (e) {
-    console.error('undoRecommendationSwap error', e)
+    logApiError('undoRecommendationSwap error', e)
     throw e
   }
 }
@@ -279,7 +283,7 @@ export async function getSimilarDeckComparison(deckId, params) {
       body: JSON.stringify(params || {}),
     })
   } catch (e) {
-    console.error('getSimilarDeckComparison error', e)
+    logApiError('getSimilarDeckComparison error', e)
     return null
   }
 }
@@ -289,7 +293,7 @@ export async function getMetaSources() {
     const json = await request('/meta/sources')
     return json.sources || []
   } catch (e) {
-    console.error('getMetaSources error', e)
+    logApiError('getMetaSources error', e)
     return []
   }
 }
@@ -300,7 +304,7 @@ export async function getCommanderMeta(commander, { bracket = 'casual', sourceMo
     const query = new URLSearchParams({ bracket, sourceMode })
     return await request(`/meta/commanders/${encodeURIComponent(commander)}?${query}`)
   } catch (e) {
-    console.error('getCommanderMeta error', e)
+    logApiError('getCommanderMeta error', e)
     return null
   }
 }
@@ -312,9 +316,17 @@ export async function importDeck(data) {
       body: JSON.stringify(data),
     })
   } catch (e) {
-    console.error('importDeck error', e)
+    logApiError('importDeck error', e)
     throw e
   }
+}
+
+export async function exportUserData() {
+  return await request('/users/me/export', { retryOnStartup: false })
+}
+
+export async function deleteAccountData() {
+  await request('/users/me', { method: 'DELETE' })
 }
 
 export default {
@@ -334,4 +346,6 @@ export default {
   getMetaSources,
   getCommanderMeta,
   getAppInfo,
+  exportUserData,
+  deleteAccountData,
 }

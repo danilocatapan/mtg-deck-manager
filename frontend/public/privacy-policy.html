@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Politica de Privacidade - MTG Deck Manager</title>
+    <style>
+      body {
+        color: #1f2933;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        background: #f7f5ef;
+      }
+
+      main {
+        max-width: 840px;
+        margin: 0 auto;
+        padding: 48px 20px 72px;
+      }
+
+      h1,
+      h2 {
+        line-height: 1.2;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4vw, 3rem);
+        margin-bottom: 8px;
+      }
+
+      h2 {
+        margin-top: 32px;
+      }
+
+      a {
+        color: #2f6f73;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Politica de Privacidade</h1>
+      <p>Ultima atualizacao: 15 de maio de 2026.</p>
+
+      <h2>Dados coletados</h2>
+      <p>Quando voce entra com Google, tratamos o Google subject/id, nome, e-mail e avatar retornados pelo login. Tambem tratamos os decks cadastrados, incluindo nome do deck, comandante, cartas, quantidades, identidade de cor, historico de trocas e auditorias de recomendacao.</p>
+
+      <h2>Finalidade</h2>
+      <p>Usamos esses dados para autenticar o usuario, vincular decks a conta correta, permitir criacao, edicao, analise, recomendacoes, exportacao e exclusao dos dados do proprio usuario.</p>
+
+      <h2>Base legal provavel</h2>
+      <p>A base legal provavel e execucao de contrato ou procedimentos preliminares relacionados ao uso do servico. Logs tecnicos minimos e medidas de seguranca podem se apoiar em legitimo interesse, sempre com minimizacao de dados.</p>
+
+      <h2>Retencao</h2>
+      <p>Os decks e auditorias ficam retidos enquanto a conta utilizar o servico. O usuario autenticado pode exportar seus dados em JSON por <code>GET /users/me/export</code> e excluir a conta, decks e auditorias vinculadas por <code>DELETE /users/me</code>.</p>
+
+      <h2>Compartilhamento com Google</h2>
+      <p>O Google e usado como provedor de autenticacao OIDC. O app deve usar somente os escopos <code>openid</code>, <code>email</code> e <code>profile</code>. O backend valida o ID token e nao persiste access token nem refresh token do Google.</p>
+
+      <h2>Cookies, sessao e tokens</h2>
+      <p>O backend nao usa cookies de sessao para autenticacao. O frontend mantem o ID token do Google somente na sessao do navegador e respeita a expiracao do token antes de enviar chamadas autenticadas via header <code>Authorization</code>.</p>
+
+      <h2>Logs e seguranca</h2>
+      <p>Logs tecnicos devem evitar PII, tokens, cookies, headers de autorizacao e payloads sensiveis. Eventos podem registrar identificadores tecnicos de requisicao, status, duracao e contagens necessarias para operacao.</p>
+
+      <h2>Direitos do titular</h2>
+      <p>Voce pode solicitar confirmacao de tratamento, acesso, correcao, portabilidade, exclusao, informacoes sobre compartilhamento e revisao de decisoes automatizadas quando aplicavel.</p>
+
+      <h2>Contato</h2>
+      <p>Para exercer direitos ou tirar duvidas sobre privacidade, entre em contato pelo mantenedor do projeto: <a href="https://github.com/danilocatapan">github.com/danilocatapan</a>.</p>
+    </main>
+  </body>
+</html>

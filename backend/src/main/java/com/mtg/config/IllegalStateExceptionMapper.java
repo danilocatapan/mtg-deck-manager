@@ -21,7 +21,7 @@ public class IllegalStateExceptionMapper implements ExceptionMapper<IllegalState
                 "Requisicao rejeitada por violacao de regra de negocio.",
                 "BUSINESS_RULE",
                 null,
-                message
+                SensitiveLogSanitizer.reasonCode(message)
         );
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new ErrorResponseDTO(message))

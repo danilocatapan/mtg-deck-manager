@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.jboss.logging.Logger;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
@@ -50,9 +48,7 @@ public final class StructuredRestLog {
         RequestLogContext.RequestInfo info = RequestLogContext.get();
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("exceptionClass", exception.getClass().getName());
-        details.put("errorMessage", exception.getMessage());
-        details.put("cause", exception.getCause() == null ? null : exception.getCause().getMessage());
-        details.put("stackTrace", stackTrace(exception));
+        details.put("reason", SensitiveLogSanitizer.reasonCode(exception.getMessage()));
         error(
                 logger,
                 info == null ? null : info.requestId(),
@@ -103,9 +99,4 @@ public final class StructuredRestLog {
         return "Requisicao concluida com sucesso.";
     }
 
-    private static String stackTrace(Throwable exception) {
-        StringWriter writer = new StringWriter();
-        exception.printStackTrace(new PrintWriter(writer));
-        return writer.toString();
-    }
 }

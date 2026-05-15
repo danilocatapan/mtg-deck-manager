@@ -14,7 +14,6 @@ export default function CardSearch({ onSelect }) {
     const trimmed = q.trim()
     if (!trimmed) return
 
-    console.log(`event=card.search query=${trimmed}`)
     setLoading(true)
     const res = await searchCards(trimmed)
     setResults(res)

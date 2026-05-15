@@ -33,7 +33,7 @@ export default function Home() {
       const loadedDecks = await fetchDecks({ throwOnError: true })
       setDecks(loadedDecks)
     } catch (error) {
-      console.error('load decks failed', error)
+      console.error('load decks failed')
       setApiStatus(error instanceof ApiStartingError ? 'starting' : 'unavailable')
       setDecks([])
     } finally {
@@ -56,7 +56,7 @@ export default function Home() {
         }
       })
       .catch((error) => {
-        console.error('load decks failed', error)
+        console.error('load decks failed')
         if (mounted) {
           setDecks([])
           setApiStatus(error instanceof ApiStartingError ? 'starting' : 'unavailable')
@@ -124,8 +124,8 @@ export default function Home() {
       await deleteDeck(deck.id)
       setMessage(`${deck.name} excluído.`)
       await load()
-    } catch (e) {
-      console.error('delete failed', e)
+    } catch {
+      console.error('delete failed')
       setMessage('Não foi possível excluir. Tente novamente.')
     }
   }

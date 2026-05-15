@@ -17,9 +17,9 @@ export default function ReleaseNotesPage({ onBack }) {
         setNotes(loadedNotes)
         setStatus('ready')
       })
-      .catch((error) => {
+      .catch(() => {
         if (!active) return
-        console.error('getReleaseNotes error', error)
+        console.error('getReleaseNotes error')
         setStatus('error')
       })
 

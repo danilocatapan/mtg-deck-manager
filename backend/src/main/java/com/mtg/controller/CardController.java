@@ -99,7 +99,7 @@ public class CardController {
                     new ErrorResponseDTO("Scryfall rate limit reached. Please try again shortly.")
             );
         } catch (ExternalServiceException exception) {
-            LOG.error("event=cards.endpoint.failure", exception);
+            LOG.error("event=cards.endpoint.failure");
             StructuredRestLog.exception(
                     LOG,
                     exception,

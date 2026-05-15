@@ -5,6 +5,8 @@
     "title": "Versionamento e tela Sobre",
     "changes": {
       "added": [
+        "Endpoints autenticados GET /users/me/export e DELETE /users/me para exportacao LGPD e exclusao de dados do usuario.",
+        "Politica de Privacidade publica com dados coletados, finalidade, base legal provavel, retencao, compartilhamento com Google, direitos do titular e contato.",
         "Footer discreto com versao do frontend.",
         "Tela Sobre com detalhes do produto, frontend e API.",
         "Endpoint publico para metadados da API."
@@ -35,7 +37,10 @@
         "Card do comandante na edicao passa a exibir a arte resolvida da carta e remove o texto de legalidade ambigua do resumo."
       ],
       "fixed": [],
-      "security": []
+      "security": [
+        "Fluxo Google documentado para escopos minimos openid, email e profile, sem persistencia de access_token ou refresh_token.",
+        "Logs de fluxos autenticados deixam de registrar payloads de decks, nomes de cartas em validacoes e detalhes de troca de recomendacao."
+      ]
     }
   }
 ]

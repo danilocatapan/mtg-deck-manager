@@ -10,6 +10,9 @@ export default function AppFooter({ onOpenReleaseNotes }) {
       <footer className="app-footer">
         <div className="container app-footer-inner">
           <span>{FRONTEND_INFO.name} v{FRONTEND_INFO.version}</span>
+          <a className="about-link footer-action" href={`${import.meta.env.BASE_URL}privacy-policy.html`}>
+            Privacidade
+          </a>
           <button className="about-link footer-action" type="button" onClick={() => setAboutOpen(true)}>
             Sobre
           </button>

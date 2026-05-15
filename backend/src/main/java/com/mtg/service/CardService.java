@@ -50,27 +50,27 @@ public class CardService {
         String normalizedName = validateName(name);
         String query = buildNameQuery(normalizedName);
 
-        LOG.infov("event=cards.search.request name={0}", normalizedName);
+        LOG.info("event=cards.search.request");
         LOG.infov("event=scryfall.url base={0}", scryfallApiUrl);
-        LOG.infov("event=scryfall.query value={0}", query);
-        LOG.debugv("event=scryfall.search.start query={0}", query);
+        LOG.info("event=scryfall.query.prepared");
+        LOG.debug("event=scryfall.search.start");
 
         try {
             throttleScryfallRequest();
             ScryfallResponseDTO response = scryfallClient.searchByName(query);
             List<CardResponseDTO> cards = mapResponse(response);
             cards.stream().findFirst().ifPresent(card -> cardLookupCache.put(normalizeLookupName(normalizedName), card));
-            LOG.debugv("event=scryfall.search.success name={0} resultCount={1}", normalizedName, cards.size());
+            LOG.debugv("event=scryfall.search.success resultCount={0}", cards.size());
             return cards;
         } catch (NotFoundException exception) {
-            LOG.debugv("event=scryfall.search.empty name={0}", normalizedName);
+            LOG.debug("event=scryfall.search.empty");
             return List.of();
         } catch (WebApplicationException | ProcessingException exception) {
             if (isRateLimited(exception)) {
-                LOG.warnv("event=scryfall.rate_limited operation=search name={0}", normalizedName);
+                LOG.warn("event=scryfall.rate_limited operation=search");
                 throw new RateLimitedExternalServiceException("Scryfall rate limit exceeded", exception);
             }
-            LOG.errorv(exception, "event=scryfall.search.failure name={0}", normalizedName);
+            LOG.error("event=scryfall.search.failure");
             throw new ExternalServiceException("Failed to fetch cards from Scryfall", exception);
         }
     }
@@ -128,7 +128,7 @@ public class CardService {
                     LOG.warnv("event=scryfall.rate_limited operation=collection count={0}", chunk.size());
                     continue;
                 }
-                LOG.warnv(exception, "event=cards.collection.failure count={0}", chunk.size());
+                LOG.warnv("event=cards.collection.failure count={0}", chunk.size());
                 misses.addAll(chunk);
             }
         }
@@ -146,26 +146,26 @@ public class CardService {
             throw new IllegalArgumentException("Search query is too long");
         }
 
-        LOG.infov("event=cards.search.request query={0}", query);
+        LOG.info("event=cards.search.request");
         LOG.infov("event=scryfall.url base={0}", scryfallApiUrl);
-        LOG.infov("event=scryfall.query value={0}", query);
-        LOG.debugv("event=scryfall.search.start query={0}", query);
+        LOG.info("event=scryfall.query.prepared");
+        LOG.debug("event=scryfall.search.start");
 
         try {
             throttleScryfallRequest();
             ScryfallResponseDTO response = scryfallClient.searchByName(query);
             List<CardResponseDTO> cards = mapResponse(response);
-            LOG.debugv("event=scryfall.search.success query={0} resultCount={1}", query, cards.size());
+            LOG.debugv("event=scryfall.search.success resultCount={0}", cards.size());
             return cards;
         } catch (NotFoundException exception) {
-            LOG.debugv("event=scryfall.search.empty query={0}", query);
+            LOG.debug("event=scryfall.search.empty");
             return List.of();
         } catch (WebApplicationException | ProcessingException exception) {
             if (isRateLimited(exception)) {
-                LOG.warnv("event=scryfall.rate_limited operation=query query={0}", query);
+                LOG.warn("event=scryfall.rate_limited operation=query");
                 throw new RateLimitedExternalServiceException("Scryfall rate limit exceeded", exception);
             }
-            LOG.errorv(exception, "event=scryfall.search.failure query={0}", query);
+            LOG.error("event=scryfall.search.failure");
             throw new ExternalServiceException("Failed to fetch cards from Scryfall", exception);
         }
     }
@@ -221,10 +221,10 @@ public class CardService {
                     cardsByName.put(lookupName, results.get(0));
                 }
             } catch (RateLimitedExternalServiceException exception) {
-                LOG.warnv("event=cards.collection.miss.fallback.rate_limited name={0}", name);
+                LOG.warn("event=cards.collection.miss.fallback.rate_limited");
                 return;
             } catch (RuntimeException exception) {
-                LOG.warnv(exception, "event=cards.collection.miss.fallback.failed name={0}", name);
+                LOG.warn("event=cards.collection.miss.fallback.failed");
             }
         }
     }

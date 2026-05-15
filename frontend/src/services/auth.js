@@ -3,6 +3,10 @@ const TOKEN_KEY = 'mtg_google_id_token'
 const PROFILE_KEY = 'mtg_google_profile'
 const AUTH_EVENT = 'mtg-auth-change'
 
+function storage() {
+  return window.sessionStorage
+}
+
 function decodeJwtPayload(token) {
   try {
     const payload = token.split('.')[1]
@@ -14,7 +18,8 @@ function decodeJwtPayload(token) {
 }
 
 export function getAuthToken() {
-  const token = window.localStorage.getItem(TOKEN_KEY)
+  clearLegacyPersistentAuth()
+  const token = storage().getItem(TOKEN_KEY)
   const profile = getAuthProfile()
   if (!token || !profile?.exp || profile.exp * 1000 <= Date.now()) {
     clearAuthToken()
@@ -24,7 +29,8 @@ export function getAuthToken() {
 }
 
 export function getAuthProfile() {
-  const raw = window.localStorage.getItem(PROFILE_KEY)
+  clearLegacyPersistentAuth()
+  const raw = storage().getItem(PROFILE_KEY)
   if (!raw) return null
   try {
     return JSON.parse(raw)
@@ -38,15 +44,22 @@ export function setAuthToken(token) {
   if (!profile?.sub) {
     throw new Error('Invalid Google credential')
   }
-  window.localStorage.setItem(TOKEN_KEY, token)
-  window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile))
+  clearLegacyPersistentAuth()
+  storage().setItem(TOKEN_KEY, token)
+  storage().setItem(PROFILE_KEY, JSON.stringify(profile))
   window.dispatchEvent(new Event(AUTH_EVENT))
 }
 
 export function clearAuthToken() {
+  storage().removeItem(TOKEN_KEY)
+  storage().removeItem(PROFILE_KEY)
+  clearLegacyPersistentAuth()
+  window.dispatchEvent(new Event(AUTH_EVENT))
+}
+
+function clearLegacyPersistentAuth() {
   window.localStorage.removeItem(TOKEN_KEY)
   window.localStorage.removeItem(PROFILE_KEY)
-  window.dispatchEvent(new Event(AUTH_EVENT))
 }
 
 export function subscribeAuth(listener) {

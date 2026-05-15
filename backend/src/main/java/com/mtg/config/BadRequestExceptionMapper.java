@@ -21,7 +21,7 @@ public class BadRequestExceptionMapper implements ExceptionMapper<IllegalArgumen
                 "Requisicao rejeitada por violacao de regra de negocio.",
                 "INVALID_REQUEST",
                 null,
-                message
+                SensitiveLogSanitizer.reasonCode(message)
         );
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new ErrorResponseDTO(message))

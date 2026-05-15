@@ -53,7 +53,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       const deckLegality = await getDeckLegality(deckId)
       setLegality(deckLegality)
     } catch (e) {
-      console.error('legality error', e)
+      console.error('legality error')
       setLegalityError(e.message || 'Falha ao verificar legalidade.')
     } finally {
       setLoadingLegality(false)
@@ -87,17 +87,15 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       setError(null)
       if (mode === 'create') {
         const created = await createDeck(payload)
-        console.log('Deck created', created)
         onDone && onDone(`Deck ${created.name} criado. Você já pode analisar e otimizar.`, created)
       } else {
         const updated = await updateDeck(currentDeck.id, payload)
         setCurrentDeck(updated)
         await refreshLegality(updated.id)
-        console.log('Deck updated', updated)
         setMessage(`Deck ${updated.name} salvo.`)
       }
     } catch (e) {
-      console.error('save error', e)
+      console.error('save error')
       setError(e.message || 'Falha ao salvar deck.')
     }
   }
@@ -109,12 +107,11 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       setLoadingAnalysis(true)
       const deckAnalysis = await getDeckAnalysis(currentDeck.id)
       await refreshLegality(currentDeck.id)
-      console.log('analysis', deckAnalysis)
       setAnalysis(deckAnalysis)
       setActivePanel('analysis')
       setMessage('Análise atualizada.')
     } catch (e) {
-      console.error('analysis error', e)
+      console.error('analysis error')
       setError(e.message || 'Falha ao buscar análise.')
     } finally {
       setLoadingAnalysis(false)
@@ -134,7 +131,6 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
         bracket: params?.bracket || 'casual',
       })
       const deckComparison = await getSimilarDeckComparison(currentDeck.id, params)
-      console.log('recommendations', recommendations)
       console.info('event=recommendation.request.completed', { deckId: currentDeck.id, count: Array.isArray(recommendations) ? recommendations.length : 0 })
       if (!profile || Number(profile.sampleSize || 0) < 3) {
         console.info('event=recommendation.fallback.rendered', { deckId: currentDeck.id })
@@ -145,7 +141,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       setActivePanel('recommendations')
       setMessage(`${Array.isArray(recommendations) ? recommendations.length : 0} recomendações estratégicas geradas.`)
     } catch (e) {
-      console.error('recommendations error', e)
+      console.error('recommendations error')
       console.info('event=recommendation.request.failed', { deckId: currentDeck.id })
       setRecommendationError(e.message || 'Falha ao gerar recomendações.')
       setError(e.message || 'Falha ao gerar recomendações.')
@@ -180,9 +176,9 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       await refreshLegality(currentDeck.id)
       setAnalysis(deckAnalysis)
       setMessage(`Troca aplicada: ${item.add} entrou no lugar de ${item.remove}.`)
-      console.info('event=recommendation.swap.applied', { deckId: currentDeck.id, add: item.add, remove: item.remove })
+      console.info('event=recommendation.swap.applied', { deckId: currentDeck.id })
     } catch (e) {
-      console.error('apply recommendation swap error', e)
+      console.error('apply recommendation swap error')
       setRecommendationError(e.message || 'Não foi possível aplicar a troca.')
       setError(e.message || 'Não foi possível aplicar a troca.')
     } finally {
@@ -209,7 +205,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       setAnalysis(deckAnalysis)
       setMessage(`Troca desfeita: ${item.remove} voltou ao deck.`)
     } catch (e) {
-      console.error('undo recommendation swap error', e)
+      console.error('undo recommendation swap error')
       setRecommendationError(e.message || 'Não foi possível desfazer a troca.')
       setError(e.message || 'Não foi possível desfazer a troca.')
     } finally {

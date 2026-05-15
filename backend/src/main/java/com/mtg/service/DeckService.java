@@ -66,7 +66,7 @@ public class DeckService {
     public DeckResponseDTO createDeck(DeckRequestDTO request, String ownerId) {
         validateRequest(request);
         validateOwner(ownerId);
-        LOG.debug("Creating deck: " + request);
+        LOG.debug("event=deck.create.request");
         List<CommanderDTO> commanders = normalizeCommanders(request.commander(), request.commanders());
         Map<String, CardResponseDTO> resolved = validateCardsExist(commanders, request.cards());
 
@@ -76,7 +76,7 @@ public class DeckService {
         deck.setCommandersJson(toCommandersJson(commanders));
         deck.setColorIdentity(toColorIdentity(commanders, resolved));
         deckRepository.persist(deck);
-        LOG.info("Deck created: " + deck.getId());
+        LOG.infov("event=deck.created deckId={0}", deck.getId());
 
         return toDto(deck);
     }
@@ -134,7 +134,7 @@ public class DeckService {
         if (deck == null) {
             return null;
         }
-        LOG.debug("Updating deck: " + id);
+        LOG.debugv("event=deck.update.request deckId={0}", id);
         List<CommanderDTO> commanders = normalizeCommanders(request.commander(), request.commanders());
         Map<String, CardResponseDTO> resolved = validateCardsExist(commanders, request.cards());
         deck.setName(request.name().trim());
@@ -143,14 +143,14 @@ public class DeckService {
         deck.setColorIdentity(toColorIdentity(commanders, resolved));
         deck.setCards(toEntities(request.cards()));
         deckRepository.persist(deck);
-        LOG.info("Deck updated: " + id);
+        LOG.infov("event=deck.updated deckId={0}", id);
         return toDto(deck);
     }
 
     @Transactional
     public boolean deleteDeck(Long id, String ownerId) {
         validateOwner(ownerId);
-        LOG.info("Deleting deck: " + id);
+        LOG.infov("event=deck.delete.request deckId={0}", id);
         return deckRepository.delete("id = ?1 and ownerId = ?2", id, ownerId) > 0;
     }
 
@@ -200,7 +200,7 @@ public class DeckService {
         }
 
         deckRepository.persist(deck);
-        LOG.infov("event=recommendation.swap.applied deckId={0} add=\"{1}\" remove=\"{2}\"", deckId, add, remove);
+        LOG.infov("event=recommendation.swap.applied deckId={0}", deckId);
         return toDto(deck);
     }
 
@@ -231,20 +231,20 @@ public class DeckService {
         addOne(deck, entry.remove(), removedCard);
         replaceHistory(deck, markUndone(history, entry.id()));
         deckRepository.persist(deck);
-        LOG.infov("event=recommendation.swap.undone deckId={0} add=\"{1}\" remove=\"{2}\"", deckId, entry.add(), entry.remove());
+        LOG.infov("event=recommendation.swap.undone deckId={0}", deckId);
         return toDto(deck);
     }
 
     public String exportDeck(Long id, String ownerId) {
         validateOwner(ownerId);
-        LOG.info("Export requested: " + id);
+        LOG.infov("event=deck.export.request deckId={0}", id);
         Deck deck = deckRepository.findByIdAndOwner(id, ownerId);
         if (deck == null) {
-            LOG.error("Export failed: deck not found " + id);
+            LOG.errorv("event=deck.export.not_found deckId={0}", id);
             return null;
         }
         List<DeckCard> cards = mainDeckCards(deck);
-        LOG.debug("Exporting deck " + id + ", card count=" + (cards == null ? 0 : cards.size()));
+        LOG.debugv("event=deck.export.ready deckId={0} cardEntries={1}", id, cards == null ? 0 : cards.size());
         if (cards == null || cards.isEmpty()) {
             return "";
         }
@@ -332,7 +332,7 @@ public class DeckService {
         Map<String, CardResponseDTO> resolved = cardService.findByNames(names);
         for (String name : names) {
             if (!resolved.containsKey(cardService.normalizeLookupName(name))) {
-                LOG.warnv("event=deck.card_validation.failed card=\"{0}\"", name);
+                LOG.warn("event=deck.card_validation.failed reason=not_found");
                 throw new IllegalArgumentException("Card not found: " + name.trim());
             }
         }
@@ -342,7 +342,7 @@ public class DeckService {
     private void validateCardExists(String name, String message) {
         Map<String, CardResponseDTO> resolved = cardService.findByNames(List.of(name));
         if (!resolved.containsKey(cardService.normalizeLookupName(name))) {
-            LOG.warnv("event=deck.card_validation.failed card=\"{0}\"", name);
+            LOG.warn("event=deck.card_validation.failed reason=not_found");
             throw new IllegalArgumentException(message + ": " + name.trim());
         }
     }

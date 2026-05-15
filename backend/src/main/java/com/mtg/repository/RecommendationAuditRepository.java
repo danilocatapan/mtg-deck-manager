@@ -16,4 +16,8 @@ public class RecommendationAuditRepository implements PanacheRepository<Recommen
     public RecommendationAuditRun findByIdAndOwner(Long id, String ownerId) {
         return find("id = ?1 and ownerId = ?2", id, ownerId).firstResult();
     }
+
+    public List<RecommendationAuditRun> listByOwner(String ownerId) {
+        return list("ownerId = ?1 order by createdAt desc", ownerId);
+    }
 }
