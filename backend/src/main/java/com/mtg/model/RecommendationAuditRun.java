@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
@@ -38,31 +37,24 @@ public class RecommendationAuditRun {
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @Lob
     @Column(name = "gaps_json", columnDefinition = "TEXT")
     private String gapsJson;
 
-    @Lob
     @Column(name = "issues_json", columnDefinition = "TEXT")
     private String issuesJson;
 
-    @Lob
     @Column(name = "weak_cards_json", columnDefinition = "TEXT")
     private String weakCardsJson;
 
-    @Lob
     @Column(name = "params_json", columnDefinition = "TEXT")
     private String paramsJson;
 
-    @Lob
     @Column(name = "recommendations_json", columnDefinition = "TEXT")
     private String recommendationsJson;
 
-    @Lob
     @Column(name = "blocked_pairs_json", columnDefinition = "TEXT")
     private String blockedPairsJson;
 
-    @Lob
     @Column(name = "protected_cuts_json", columnDefinition = "TEXT")
     private String protectedCutsJson;
 
@@ -72,7 +64,6 @@ public class RecommendationAuditRun {
     @Column(name = "feedback_reason")
     private String feedbackReason;
 
-    @Lob
     @Column(name = "feedback_notes", columnDefinition = "TEXT")
     private String feedbackNotes;
 

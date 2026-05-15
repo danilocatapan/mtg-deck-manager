@@ -32,3 +32,6 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Tela de edicao do deck foi compactada para trazer a lista de cartas mais cedo, recolher a legalidade quando estiver sem bloqueios e evitar overflow do cabecalho no mobile.
 - Visualizacao por lista da edicao do deck agora usa rolagem interna para decks longos, mantendo o proximo passo acessivel apos as cartas.
 - Card do comandante na edicao passa a exibir a arte resolvida da carta e remove o texto de legalidade ambigua do resumo.
+
+### Fixed
+- Auditorias de recomendacao passam a mapear JSONs persistidos como `TEXT` comum no Hibernate, evitando erro de Large Object nos testes PostgreSQL do CI.
