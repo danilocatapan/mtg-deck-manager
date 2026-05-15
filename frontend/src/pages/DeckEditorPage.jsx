@@ -78,8 +78,8 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
 
   const steps = [
     { key: 'editor', label: 'Editor', state: activePanel === 'editor' ? 'active' : 'complete' },
-    { key: 'analysis', label: 'Analise', state: activePanel === 'analysis' ? 'active' : analysis ? 'complete' : 'locked' },
-    { key: 'recommendations', label: 'Recomendacoes', state: activePanel === 'recommendations' ? 'active' : rec ? 'complete' : 'locked' },
+    { key: 'analysis', label: 'Análise', state: activePanel === 'analysis' ? 'active' : analysis ? 'complete' : 'locked' },
+    { key: 'recommendations', label: 'Recomendações', state: activePanel === 'recommendations' ? 'active' : rec ? 'complete' : 'locked' },
   ]
 
   async function handleSave(payload) {
@@ -88,7 +88,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       if (mode === 'create') {
         const created = await createDeck(payload)
         console.log('Deck created', created)
-        onDone && onDone(`Deck ${created.name} criado. Voce ja pode analisar e otimizar.`, created)
+        onDone && onDone(`Deck ${created.name} criado. Você já pode analisar e otimizar.`, created)
       } else {
         const updated = await updateDeck(currentDeck.id, payload)
         setCurrentDeck(updated)
@@ -112,10 +112,10 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       console.log('analysis', deckAnalysis)
       setAnalysis(deckAnalysis)
       setActivePanel('analysis')
-      setMessage('Analise atualizada.')
+      setMessage('Análise atualizada.')
     } catch (e) {
       console.error('analysis error', e)
-      setError(e.message || 'Falha ao buscar analise.')
+      setError(e.message || 'Falha ao buscar análise.')
     } finally {
       setLoadingAnalysis(false)
     }
@@ -143,12 +143,12 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       setMetaProfile(profile)
       setComparison(deckComparison)
       setActivePanel('recommendations')
-      setMessage(`${Array.isArray(recommendations) ? recommendations.length : 0} recomendacoes estrategicas geradas.`)
+      setMessage(`${Array.isArray(recommendations) ? recommendations.length : 0} recomendações estratégicas geradas.`)
     } catch (e) {
       console.error('recommendations error', e)
       console.info('event=recommendation.request.failed', { deckId: currentDeck.id })
-      setRecommendationError(e.message || 'Falha ao gerar recomendacoes.')
-      setError(e.message || 'Falha ao gerar recomendacoes.')
+      setRecommendationError(e.message || 'Falha ao gerar recomendações.')
+      setError(e.message || 'Falha ao gerar recomendações.')
     } finally {
       setLoadingRec(false)
     }
@@ -183,8 +183,8 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       console.info('event=recommendation.swap.applied', { deckId: currentDeck.id, add: item.add, remove: item.remove })
     } catch (e) {
       console.error('apply recommendation swap error', e)
-      setRecommendationError(e.message || 'Nao foi possivel aplicar a troca.')
-      setError(e.message || 'Nao foi possivel aplicar a troca.')
+      setRecommendationError(e.message || 'Não foi possível aplicar a troca.')
+      setError(e.message || 'Não foi possível aplicar a troca.')
     } finally {
       setApplyingSwapKey(null)
     }
@@ -210,8 +210,8 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
       setMessage(`Troca desfeita: ${item.remove} voltou ao deck.`)
     } catch (e) {
       console.error('undo recommendation swap error', e)
-      setRecommendationError(e.message || 'Nao foi possivel desfazer a troca.')
-      setError(e.message || 'Nao foi possivel desfazer a troca.')
+      setRecommendationError(e.message || 'Não foi possível desfazer a troca.')
+      setError(e.message || 'Não foi possível desfazer a troca.')
     } finally {
       setApplyingSwapKey(null)
     }
@@ -225,20 +225,21 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
           <h1>{mode === 'create' ? 'Criar Deck' : currentDeck?.name || 'Editar Deck'}</h1>
           <p className="page-description">
             {mode === 'create'
-              ? 'Monte a lista primeiro. Depois de salvar, o deck abre direto para legalidade, analise e recomendacoes.'
-              : 'Edite a lista, valide a legalidade, analise a estrutura e gere recomendacoes explicaveis.'}
+              ? 'Monte a lista primeiro. Depois de salvar, o deck abre direto para legalidade, análise e recomendações.'
+              : 'Edite a lista, valide a legalidade, analise a estrutura e gere recomendações explicáveis.'}
           </p>
         </div>
         <Button variant="secondary" onClick={() => onDone && onDone()}>Voltar aos Decks</Button>
       </div>
 
-      <div className="workflow-stepper" role="tablist" aria-label="Deck workflow">
+      <nav className="workflow-stepper" aria-label="Fluxo do deck">
         {steps.map((step, index) => (
           <button
             key={step.key}
             type="button"
             className="step"
             data-state={step.state}
+            aria-current={step.state === 'active' ? 'step' : undefined}
             onClick={() => setActivePanel(step.key)}
             disabled={step.state === 'locked'}
           >
@@ -246,7 +247,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
             <span>{step.label}</span>
           </button>
         ))}
-      </div>
+      </nav>
 
       {message && <div className="status success">{message}</div>}
       {error && <div className="status error">{error}</div>}
@@ -267,16 +268,16 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
         <div className="card zone zone-battlefield">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Metricas do Campo de Batalha</p>
-              <h2>Analise</h2>
-              <p>Metricas estruturais que orientam decisoes do deck.</p>
+              <p className="eyebrow">Métricas do Campo de Batalha</p>
+              <h2>Análise</h2>
+              <p>Métricas estruturais que orientam decisões do deck.</p>
             </div>
             <Button onClick={handleAnalyze} disabled={!canAnalyze || loadingAnalysis}>
               <img className="btn-icon" src={analyzeIcon} alt="" aria-hidden="true" />
-              {loadingAnalysis ? 'Analisando...' : 'Atualizar analise'}
+              {loadingAnalysis ? 'Analisando...' : 'Atualizar análise'}
             </Button>
           </div>
-          {analysis ? <DeckAnalysis analysis={analysis} /> : <div className="empty-inline">Execute a analise pelos botoes de acao primeiro.</div>}
+          {analysis ? <DeckAnalysis analysis={analysis} /> : <div className="empty-inline">Execute a análise pelos botões de ação primeiro.</div>}
         </div>
       )}
 
@@ -285,8 +286,8 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
           <div className="section-heading">
             <div>
               <p className="eyebrow">Otimização</p>
-              <h2>Recomendacoes</h2>
-              <p>Trocas cientes de bracket explicam o problema, por que a adicao ajuda e por que o corte e aceitavel.</p>
+              <h2>Recomendações</h2>
+              <p>Trocas cientes de bracket explicam o problema, por que a adição ajuda e por que o corte é aceitável.</p>
             </div>
           </div>
           <RecommendationSettings
@@ -314,8 +315,8 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
 
       <div className="card action-card">
         <div>
-          <h3>Proximo passo</h3>
-          <p>{canAnalyze ? 'Este deck salvo pode ser analisado e otimizado.' : 'Salve um deck valido com ate 99 cartas antes da analise.'}</p>
+          <h3>Próximo passo</h3>
+          <p>{canAnalyze ? 'Este deck salvo pode ser analisado e otimizado.' : 'Salve um deck válido com até 99 cartas antes da análise.'}</p>
         </div>
         <div className="actions-row">
           <Button onClick={handleAnalyze} disabled={!canAnalyze || loadingAnalysis}>
@@ -324,7 +325,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
           </Button>
           <Button variant="secondary" onClick={() => setActivePanel('recommendations')} disabled={!canAnalyze}>
             <img className="btn-icon" src={recommendIcon} alt="" aria-hidden="true" />
-            Abrir recomendacoes
+            Abrir recomendações
           </Button>
         </div>
       </div>
@@ -339,6 +340,6 @@ function recommendationKey(item) {
 function impactSummary(item) {
   const impact = item?.impact
   if (!impact) return null
-  return `CMC ${Number(impact.averageCmcBefore || 0).toFixed(2)} -> ${Number(impact.averageCmcAfter || 0).toFixed(2)}; ramp ${impact.rampBefore ?? '-'} -> ${impact.rampAfter ?? '-'}; compra ${impact.drawBefore ?? '-'} -> ${impact.drawAfter ?? '-'}; interacao ${impact.removalBefore ?? '-'} -> ${impact.removalAfter ?? '-'}.`
-    + ` Game Changers ${impact.gameChangersBefore ?? '-'} -> ${impact.gameChangersAfter ?? '-'}; pressao bracket ${impact.bracketPressureBefore ?? '-'} -> ${impact.bracketPressureAfter ?? '-'}.`
+  return `CMC ${Number(impact.averageCmcBefore || 0).toFixed(2)} -> ${Number(impact.averageCmcAfter || 0).toFixed(2)}; ramp ${impact.rampBefore ?? '-'} -> ${impact.rampAfter ?? '-'}; compra ${impact.drawBefore ?? '-'} -> ${impact.drawAfter ?? '-'}; interação ${impact.removalBefore ?? '-'} -> ${impact.removalAfter ?? '-'}.`
+    + ` Game Changers ${impact.gameChangersBefore ?? '-'} -> ${impact.gameChangersAfter ?? '-'}; pressão bracket ${impact.bracketPressureBefore ?? '-'} -> ${impact.bracketPressureAfter ?? '-'}.`
 }

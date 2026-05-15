@@ -7,7 +7,7 @@ const API_STARTUP_RETRY_DELAYS_MS = [1500, 3000, 5000]
 const CARD_COLLECTION_BATCH_SIZE = 75
 
 export class ApiStartingError extends Error {
-  constructor(message = 'A API esta iniciando. Tente novamente em alguns instantes.') {
+  constructor(message = 'A API está iniciando. Tente novamente em alguns instantes.') {
     super(message)
     this.name = 'ApiStartingError'
     this.code = 'API_STARTING'

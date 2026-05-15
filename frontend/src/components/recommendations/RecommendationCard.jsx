@@ -1,21 +1,21 @@
 import Button from '../ui/Button'
 
 function sourceLabel(source) {
-  return source === 'meta_profile' ? 'meta local' : 'heuristica'
+  return source === 'meta_profile' ? 'meta local' : 'heurística'
 }
 
 function confidenceLabel(confidence) {
   if (confidence === 'high') return 'alta'
   if (confidence === 'low') return 'baixa'
-  return 'media'
+  return 'média'
 }
 
 function roleLabel(role) {
   if (role === 'draw') return 'compra'
   if (role === 'ramp') return 'ramp'
-  if (role === 'removal') return 'interacao'
-  if (role === 'protection') return 'protecao'
-  if (role === 'finisher') return 'condicao de vitoria'
+  if (role === 'removal') return 'interação'
+  if (role === 'protection') return 'proteção'
+  if (role === 'finisher') return 'condição de vitória'
   return role || 'valor'
 }
 
@@ -97,9 +97,9 @@ function impactHighlights(impact) {
     makeHighlight('Curva', impact.averageCmcBefore, impact.averageCmcAfter, false, 2),
     makeHighlight('Ramp', impact.rampBefore, impact.rampAfter, true),
     makeHighlight('Compra', impact.drawBefore, impact.drawAfter, true),
-    makeHighlight('Interacao', impact.removalBefore, impact.removalAfter, true),
+    makeHighlight('Interação', impact.removalBefore, impact.removalAfter, true),
     makeHighlight('Game Changers', impact.gameChangersBefore, impact.gameChangersAfter, false),
-    makeHighlight('Pressao bracket', impact.bracketPressureBefore, impact.bracketPressureAfter, false),
+    makeHighlight('Pressão bracket', impact.bracketPressureBefore, impact.bracketPressureAfter, false),
   ].filter(Boolean)
 }
 

@@ -3128,3 +3128,211 @@ dt {
     width: 100%;
   }
 }
+
+/* UX polish pass: accessibility, mobile density and clearer unauthenticated flow. */
+.field-label {
+  display: block;
+}
+
+.field-label-text {
+  margin-bottom: 6px;
+}
+
+.field-error {
+  margin-top: 6px;
+  color: #fecaca;
+  font-weight: 700;
+}
+
+.btn,
+button,
+input,
+select,
+textarea {
+  min-height: 44px;
+}
+
+.btn,
+button {
+  touch-action: manipulation;
+}
+
+.btn:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 3px solid rgba(255, 231, 163, 0.92);
+  outline-offset: 3px;
+}
+
+.btn:disabled,
+button:disabled {
+  opacity: 0.72;
+}
+
+.auth-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.auth-callout > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.auth-callout strong {
+  color: var(--color-value);
+}
+
+.empty-action-hint {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.footer-action {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 4px;
+}
+
+.workflow-stepper .step[aria-current="step"],
+.workflow-stepper .step[data-state="active"] {
+  box-shadow: inset 0 0 0 1px rgba(255, 231, 163, 0.18);
+}
+
+.workflow-stepper .step:disabled {
+  opacity: 0.64;
+}
+
+.status.success,
+.status.error,
+.status {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .workflow-stepper,
+  .workflow-steps {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(148px, 1fr);
+    grid-template-columns: none;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .workflow-stepper .step,
+  .workflow-steps > div {
+    scroll-snap-align: start;
+  }
+
+  .form-actions {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-header {
+    min-height: auto;
+  }
+
+  .app-header .container {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: center;
+    padding-block: 10px;
+  }
+
+  .brand-logo {
+    align-self: center;
+    max-width: min(210px, 72vw);
+    max-height: 52px;
+  }
+
+  .auth-status {
+    flex: 0 1 auto;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .auth-status:has(span) {
+    justify-content: space-between;
+  }
+
+  .page-heading {
+    gap: 12px;
+  }
+
+  .page-heading h1 {
+    font-size: clamp(28px, 9vw, 34px);
+    line-height: 1.08;
+    margin-block: 4px 8px;
+  }
+
+  .page-description {
+    line-height: 1.48;
+  }
+
+  .page-heading > .actions-row {
+    position: static;
+    margin-inline: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .page-heading > .actions-row .btn,
+  .page-heading > .actions-row button,
+  .auth-callout .btn,
+  .auth-callout button {
+    width: 100%;
+  }
+
+  .auth-callout {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workflow-steps {
+    grid-auto-columns: minmax(168px, 74vw);
+  }
+
+  .workflow-stepper {
+    grid-auto-columns: minmax(128px, 42vw);
+  }
+
+  .workflow-stepper .step,
+  .workflow-steps > div {
+    min-height: 44px;
+  }
+
+  .empty-state-hero {
+    padding: 18px;
+  }
+
+  .empty-state-hero .actions-row,
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .empty-state-hero .btn,
+  .empty-state-hero button,
+  .form-actions .btn,
+  .form-actions button {
+    width: 100%;
+  }
+
+  .app-footer-inner {
+    align-items: center;
+  }
+}

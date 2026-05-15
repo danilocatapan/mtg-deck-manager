@@ -20,17 +20,17 @@ export default function DeckAnalysis({ analysis }) {
 
       <section className="deck-verdict-grid">
         <div className="verdict-block">
-          <h4>O que esta bom</h4>
+          <h4>O que está bom</h4>
           {strengths.length ? strengths.map((item) => (
             <p key={item.label}><strong>{item.label}:</strong> {item.goodText}</p>
-          )) : <p>O deck ainda precisa de ajustes basicos antes de ter pontos fortes claros.</p>}
+          )) : <p>O deck ainda precisa de ajustes básicos antes de ter pontos fortes claros.</p>}
         </div>
 
         <div className="verdict-block priority">
           <h4>Ajustar primeiro</h4>
           {fixes.length ? fixes.map((item) => (
             <p key={item.label}><strong>{item.label}:</strong> {item.fixText}</p>
-          )) : <p>A estrutura principal parece saudavel. As proximas melhorias podem focar tema, meta e preferencia da mesa.</p>}
+          )) : <p>A estrutura principal parece saudável. As próximas melhorias podem focar tema, meta e preferência da mesa.</p>}
         </div>
       </section>
 
@@ -59,8 +59,8 @@ function buildVitals(analysis) {
       value: `${analysis.totalCards ?? 0}/99`,
       tone: analysis.totalCards === 99 ? 'good' : analysis.totalCards >= 90 ? 'warning' : 'bad',
       summary: analysis.totalCards === 99 ? 'lista Commander completa' : 'deck ainda incompleto',
-      goodText: 'a lista principal esta no tamanho certo para Commander.',
-      fixText: 'complete a lista ate 99 cartas antes de avaliar upgrades finos.',
+      goodText: 'a lista principal está no tamanho certo para Commander.',
+      fixText: 'complete a lista até 99 cartas antes de avaliar upgrades finos.',
     },
     {
       label: 'Mana base',
@@ -74,33 +74,33 @@ function buildVitals(analysis) {
       label: 'Curva',
       value: Number.isFinite(averageCmc) ? averageCmc.toFixed(2) : '-',
       tone: averageCmc > 0 && averageCmc <= 3.4 ? 'good' : averageCmc <= 4.0 ? 'warning' : 'bad',
-      summary: 'CMC medio',
-      goodText: 'a curva deve deixar o deck jogar antes de ficar atras da mesa.',
+      summary: 'CMC médio',
+      goodText: 'a curva deve deixar o deck jogar antes de ficar atrás da mesa.',
       fixText: 'corte cartas caras de baixo impacto e aumente jogadas de custo 1-3.',
     },
     {
       label: 'Ramp',
       value: String(ramp),
       tone: ramp >= 10 ? 'good' : ramp >= 7 ? 'warning' : 'bad',
-      summary: 'fontes de aceleracao',
-      goodText: 'ha aceleracao suficiente para executar o plano com regularidade.',
-      fixText: 'adicione ramp barato, rocks ou buscas de terreno alinhadas as cores.',
+      summary: 'fontes de aceleração',
+      goodText: 'há aceleração suficiente para executar o plano com regularidade.',
+      fixText: 'adicione ramp barato, rocks ou buscas de terreno alinhadas às cores.',
     },
     {
       label: 'Compra',
       value: String(draw),
       tone: draw >= 8 ? 'good' : draw >= 5 ? 'warning' : 'bad',
       summary: 'fontes de card advantage',
-      goodText: 'o deck tem meios razoaveis de recuperar recursos.',
-      fixText: 'inclua compra, selecao ou motores de valor para nao ficar sem cartas.',
+      goodText: 'o deck tem meios razoáveis de recuperar recursos.',
+      fixText: 'inclua compra, seleção ou motores de valor para não ficar sem cartas.',
     },
     {
-      label: 'Interacao',
+      label: 'Interação',
       value: String(interaction),
       tone: interaction >= 8 ? 'good' : interaction >= 5 ? 'warning' : 'bad',
-      summary: 'respostas/remocoes',
-      goodText: 'o deck tem respostas para impedir planos adversarios.',
-      fixText: 'adicione remocoes flexiveis, protecao ou interacao de pilha conforme o bracket.',
+      summary: 'respostas/remoções',
+      goodText: 'o deck tem respostas para impedir planos adversários.',
+      fixText: 'adicione remoções flexíveis, proteção ou interação de pilha conforme o bracket.',
     },
   ]
 }
@@ -112,14 +112,14 @@ function comboSummary(combos) {
     return {
       tone: 'good',
       title: `${present} combo${present > 1 ? 's' : ''} detectado${present > 1 ? 's' : ''}`,
-      text: 'O deck ja tem linhas conhecidas de fechamento. Confirme se elas combinam com a proposta da mesa.',
+      text: 'O deck já tem linhas conhecidas de fechamento. Confirme se elas combinam com a proposta da mesa.',
     }
   }
   if (near > 0) {
     return {
       tone: 'warning',
       title: `${near} linha${near > 1 ? 's' : ''} a uma carta`,
-      text: 'Pode valer buscar a peca faltante se o objetivo for aumentar consistencia de vitoria.',
+      text: 'Pode valer buscar a peça faltante se o objetivo for aumentar consistência de vitória.',
     }
   }
   return null

@@ -29,7 +29,7 @@ export default function AboutDialog({ open, onClose, onOpenReleaseNotes }) {
 
   if (!open) return null
 
-  const objective = apiInfo?.objective || 'Analise e otimizacao de decks Commander com recomendacoes explicaveis.'
+  const objective = apiInfo?.objective || 'Análise e otimização de decks Commander com recomendações explicáveis.'
   const creator = apiInfo?.creator || 'Danilo Catapan'
 
   return (
@@ -54,7 +54,7 @@ export default function AboutDialog({ open, onClose, onOpenReleaseNotes }) {
         <p className="about-objective">{objective}</p>
 
         <div className="about-actions">
-          <span>Versao {FRONTEND_INFO.version}</span>
+          <span>Versão {FRONTEND_INFO.version}</span>
           <button className="about-link" type="button" onClick={onOpenReleaseNotes}>
             Ver novidades
           </button>
@@ -107,12 +107,12 @@ function apiRows(apiInfo, status) {
   }
 
   if (status === 'error') {
-    return [['Status', 'API indisponivel']]
+    return [['Status', 'API indisponível']]
   }
 
   return [
     ['Nome', apiInfo?.name || 'MTG Deck Manager API'],
-    ['Versao', `v${apiInfo?.version || 'desconhecida'}`],
+    ['Versão', `v${apiInfo?.version || 'desconhecida'}`],
     ['Commit', shortCommit(apiInfo?.commit || 'desconhecido')],
     ['Branch', apiInfo?.branch || 'desconhecida'],
     ['Build', apiInfo?.buildTime || 'desconhecido'],

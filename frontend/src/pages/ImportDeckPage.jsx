@@ -28,7 +28,7 @@ function parsePreview(content) {
     const quantity = Number(match[1])
     const name = match[2].trim()
     if (quantity < 1 || !name) {
-      errors.push({ line: index + 1, message: `Linha ${index + 1}: a quantidade deve ser maior que zero e o nome da carta e obrigatorio.` })
+      errors.push({ line: index + 1, message: `Linha ${index + 1}: a quantidade deve ser maior que zero e o nome da carta é obrigatório.` })
       return
     }
 
@@ -74,7 +74,7 @@ export default function ImportDeckPage({ onDone }) {
       setError(null)
       setMessage(null)
       if (!name.trim() || !commander.trim()) {
-        setError('Nome do deck e comandante sao obrigatorios.')
+        setError('Nome do deck e comandante são obrigatórios.')
         return
       }
       if (preview.errors.length > 0) {
@@ -82,7 +82,7 @@ export default function ImportDeckPage({ onDone }) {
         return
       }
       if (isOverLimit) {
-        setError(`O deck importado tem ${preview.total} cartas; o maximo e 99.`)
+        setError(`O deck importado tem ${preview.total} cartas; o máximo é 99.`)
         return
       }
       if (preview.cards.length === 0) {
@@ -95,7 +95,7 @@ export default function ImportDeckPage({ onDone }) {
       setMessage(`${created.name} importado.`)
       onDone && onDone(`${created.name} importado.`, created)
     } catch (e) {
-      setError(e.message || 'Falha na importacao.')
+      setError(e.message || 'Falha na importação.')
     } finally {
       setLoading(false)
     }
@@ -107,7 +107,7 @@ export default function ImportDeckPage({ onDone }) {
         <div>
           <p className="eyebrow">Command Zone</p>
           <h1>Importar Deck</h1>
-          <p className="page-description">Cole uma lista Commander com uma carta por linha. O preview roda antes de salvar; cores sao validadas apos resolver as cartas no backend.</p>
+          <p className="page-description">Cole uma lista Commander com uma carta por linha. O preview roda antes de salvar; cores são validadas após resolver as cartas no backend.</p>
         </div>
         <Button variant="secondary" onClick={() => onDone && onDone()}>Voltar aos Decks</Button>
       </section>
@@ -161,7 +161,7 @@ export default function ImportDeckPage({ onDone }) {
           <div className="section-heading">
             <div>
               <h2>Preview</h2>
-              <p className={isOverLimit ? 'is-invalid' : ''}>{preview.total}/99 cards parsed</p>
+              <p className={isOverLimit ? 'is-invalid' : ''}>{preview.total}/99 cartas lidas</p>
             </div>
           </div>
 

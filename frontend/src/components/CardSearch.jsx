@@ -99,7 +99,7 @@ export default function CardSearch({ onSelect }) {
       )}
 
       {hasSearched && !loading && !debouncing && results.length === 0 && (
-        <p className="empty-inline">Nenhuma carta encontrada. Tente o nome exato em ingles.</p>
+        <p className="empty-inline">Nenhuma carta encontrada. Tente o nome exato em inglês.</p>
       )}
     </div>
   )

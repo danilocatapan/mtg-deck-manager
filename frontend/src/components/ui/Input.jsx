@@ -1,9 +1,9 @@
 export default function Input({ label, error, id, ...props }) {
   return (
-    <label style={{ display: 'block' }} htmlFor={id}>
-      {label && <div style={{ marginBottom: 6 }}>{label}</div>}
+    <label className="field-label" htmlFor={id}>
+      {label && <div className="field-label-text">{label}</div>}
       <input id={id} {...props} />
-      {error && <div style={{ color: 'red', marginTop: 6 }}>{error}</div>}
+      {error && <div className="field-error">{error}</div>}
     </label>
   )
 }

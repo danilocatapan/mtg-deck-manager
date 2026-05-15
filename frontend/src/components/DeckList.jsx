@@ -2,19 +2,20 @@ import Button from './ui/Button'
 import createIcon from '../assets/icons/create.png'
 import importIcon from '../assets/icons/import.png'
 
-export default function DeckList({ decks = [], onEdit, onDelete, onCreate, onImport }) {
+export default function DeckList({ decks = [], onEdit, onDelete, onCreate, onImport, actionsDisabled = false, actionHint = '' }) {
   if (!decks || decks.length === 0) {
     return (
       <div className="empty-state empty-state-hero">
         <p className="eyebrow">Biblioteca vazia</p>
         <h3>Nenhum deck ainda</h3>
-        <p>Crie um deck Commander do zero ou importe uma lista de texto quando ja tiver as 99 cartas separadas.</p>
-        <div className="actions-row">
-          <Button className="cta-primary" onClick={onCreate}>
+        <p>Crie um deck Commander do zero ou importe uma lista de texto quando já tiver as 99 cartas separadas.</p>
+        {actionsDisabled && actionHint && <p id="empty-action-hint" className="empty-action-hint">{actionHint}</p>}
+        <div className="actions-row" aria-describedby={actionsDisabled && actionHint ? 'empty-action-hint' : undefined}>
+          <Button className="cta-primary" onClick={onCreate} disabled={actionsDisabled}>
             <img className="btn-icon" src={createIcon} alt="" aria-hidden="true" />
             Criar Deck
           </Button>
-          <Button variant="secondary" onClick={onImport}>
+          <Button variant="secondary" onClick={onImport} disabled={actionsDisabled}>
             <img className="btn-icon" src={importIcon} alt="" aria-hidden="true" />
             Importar Deck
           </Button>

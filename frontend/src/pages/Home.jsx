@@ -122,11 +122,11 @@ export default function Home() {
     if (!confirm(`Excluir o deck ${deck.name}?`)) return
     try {
       await deleteDeck(deck.id)
-      setMessage(`${deck.name} excluido.`)
+      setMessage(`${deck.name} excluído.`)
       await load()
     } catch (e) {
       console.error('delete failed', e)
-      setMessage('Nao foi possivel excluir. Tente novamente.')
+      setMessage('Não foi possível excluir. Tente novamente.')
     }
   }
 
@@ -139,6 +139,10 @@ export default function Home() {
     }
     setMessage(nextMessage || null)
     load()
+  }
+
+  function focusLogin() {
+    document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   if (view === 'create' || view === 'edit') {
@@ -155,14 +159,14 @@ export default function Home() {
         <div>
           <p className="eyebrow">Command Zone</p>
           <h1>Biblioteca de Decks</h1>
-          <p className="page-description">Crie ou importe um deck, ajuste a lista, valide a legalidade, analise a estrutura e gere recomendacoes explicaveis.</p>
+          <p className="page-description">Crie ou importe um deck, ajuste a lista, valide a legalidade, analise a estrutura e gere recomendações explicáveis.</p>
         </div>
-        <div className="actions-row">
-          <Button className="cta-primary" onClick={handleCreate}>
+        <div className="actions-row" aria-describedby={!isAuthenticated ? 'auth-required-message' : undefined}>
+          <Button className="cta-primary" onClick={handleCreate} disabled={!isAuthenticated}>
             <img className="btn-icon" src={createIcon} alt="" aria-hidden="true" />
             Criar Deck
           </Button>
-          <Button variant="secondary" onClick={handleImport}>
+          <Button variant="secondary" onClick={handleImport} disabled={!isAuthenticated}>
             <img className="btn-icon" src={importIcon} alt="" aria-hidden="true" />
             Importar Deck
           </Button>
@@ -180,18 +184,22 @@ export default function Home() {
 
       {message && <div className="status success">{message}</div>}
       {!isAuthenticated && (
-        <div className="status">
-          Entre com Google para criar, importar, editar, listar ou excluir seus decks.
+        <div id="auth-required-message" className="status auth-callout" role="status" aria-live="polite">
+          <div>
+            <strong>Login necessário</strong>
+            <span>Entre com Google para criar, importar, editar, listar ou excluir seus decks.</span>
+          </div>
+          <Button variant="secondary" onClick={focusLogin}>Ir para login</Button>
         </div>
       )}
       {apiStatus === 'starting' && (
         <StateMessage tone="neutral" title="API iniciando">
-          O servidor gratuito pode levar cerca de 50 segundos para acordar apos inatividade. Mantivemos a tela estavel; tente novamente em alguns instantes.
+          O servidor gratuito pode levar cerca de 50 segundos para acordar após inatividade. Mantivemos a tela estável; tente novamente em alguns instantes.
         </StateMessage>
       )}
       {apiStatus === 'unavailable' && (
-        <StateMessage tone="error" title="API indisponivel">
-          Nao foi possivel conectar com o backend agora. Aguarde alguns segundos e tente recarregar a biblioteca.
+        <StateMessage tone="error" title="API indisponível">
+          Não foi possível conectar com o backend agora. Aguarde alguns segundos e tente recarregar a biblioteca.
         </StateMessage>
       )}
       {loading ? (
@@ -204,6 +212,8 @@ export default function Home() {
             onDelete={handleDelete}
             onCreate={handleCreate}
             onImport={handleImport}
+            actionsDisabled={!isAuthenticated}
+            actionHint="Entre com Google antes de criar ou importar decks."
           />
         </Card>
       )}

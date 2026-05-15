@@ -36,12 +36,12 @@ export default function AuthStatus() {
   }, [clientId, profile])
 
   if (!clientId) {
-    return <div className="auth-status auth-warning">Defina VITE_GOOGLE_CLIENT_ID para habilitar login.</div>
+    return <div id="auth-section" className="auth-status auth-warning">Defina VITE_GOOGLE_CLIENT_ID para habilitar login.</div>
   }
 
   if (profile) {
     return (
-      <div className="auth-status">
+      <div id="auth-section" className="auth-status" aria-live="polite">
         <span>{profile.email || profile.name || 'Logado'}</span>
         <Button variant="secondary" onClick={clearAuthToken}>Sair</Button>
       </div>
@@ -49,7 +49,7 @@ export default function AuthStatus() {
   }
 
   return (
-    <div className="auth-status">
+    <div id="auth-section" className="auth-status">
       <div ref={buttonRef} />
       {error && <span className="auth-warning">{error}</span>}
     </div>

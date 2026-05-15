@@ -192,7 +192,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
 
   function validate() {
     if (!name.trim() || !commander.trim()) {
-      setError('Nome do deck e comandante sao obrigatorios.')
+      setError('Nome do deck e comandante são obrigatórios.')
       return false
     }
     if (mainDeckTotal === 0) {
@@ -200,7 +200,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       return false
     }
     if (isOverLimit) {
-      setError(`Decks Commander podem ter ate 99 cartas fora do comandante. A lista principal tem ${mainDeckTotal}.`)
+      setError(`Decks Commander podem ter até 99 cartas fora do comandante. A lista principal tem ${mainDeckTotal}.`)
       return false
     }
     setError(null)
@@ -262,7 +262,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
         <div className="section-heading">
           <div>
             <h3>Adicionar cartas</h3>
-            <p>Busque uma carta e use Adicionar para coloca-la no deck.</p>
+            <p>Busque uma carta e use Adicionar para colocá-la no deck.</p>
           </div>
         </div>
         <CardSearch onSelect={addCard} />
@@ -272,7 +272,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
         <div className="section-heading">
           <div>
             <h3>Lista do deck - {mainDeckTotal} cartas</h3>
-            <p>Use lista para edicoes rapidas ou imagens para reconhecer cartas visualmente.</p>
+            <p>Use lista para edições rápidas ou imagens para reconhecer cartas visualmente.</p>
           </div>
           <div className="view-toggle" aria-label="Deck display mode">
             <button type="button" className={deckView === 'list' ? 'active' : ''} onClick={() => setDeckView('list')}>
@@ -285,7 +285,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
         </div>
 
         {cards.length === 0 ? (
-          <div className="empty-inline">Nenhuma carta adicionada. Busque acima para comecar.</div>
+          <div className="empty-inline">Nenhuma carta adicionada. Busque acima para começar.</div>
         ) : deckView === 'list' ? (
           <div className="deck-card-list-scroll">
             <div className="deck-table">
@@ -333,7 +333,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
                     ) : (
                       <div className="card-art-placeholder">
                         <strong>{card.name}</strong>
-                        <span>Imagem indisponivel</span>
+                        <span>Imagem indisponível</span>
                       </div>
                     )}
                     <span className="card-quantity-badge">{card.quantity}x</span>

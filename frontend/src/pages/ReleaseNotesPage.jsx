@@ -46,8 +46,8 @@ export default function ReleaseNotesPage({ onBack }) {
       )}
 
       {status === 'error' && (
-        <StateMessage tone="error" title="Novidades indisponiveis">
-          Nao foi possivel carregar as novidades agora.
+        <StateMessage tone="error" title="Novidades indisponíveis">
+          Não foi possível carregar as novidades agora.
         </StateMessage>
       )}
 

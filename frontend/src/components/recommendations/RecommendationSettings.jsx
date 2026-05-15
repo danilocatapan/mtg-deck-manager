@@ -12,19 +12,19 @@ const BRACKETS = [
     value: 'mid',
     label: 'Bracket 3 - Upgraded',
     shortLabel: 'Mid',
-    detail: 'Deck acima de um precon: curva mais consistente, mais ramp/compra/remocao e ate algumas staples fortes, mas ainda sem plano de vencer cedo ou lockar a mesa.',
+    detail: 'Deck acima de um precon: curva mais consistente, mais ramp/compra/remoção e até algumas staples fortes, mas ainda sem plano de vencer cedo ou lockar a mesa.',
   },
   {
     value: 'high-power',
     label: 'Bracket 4 - Optimized',
     shortLabel: 'High-power',
-    detail: 'Deck otimizado para ganhar com eficiencia. Pode usar cartas muito fortes, combos e linhas duras, desde que a mesa saiba que a intencao e jogar high power.',
+    detail: 'Deck otimizado para ganhar com eficiência. Pode usar cartas muito fortes, combos e linhas duras, desde que a mesa saiba que a intenção é jogar high power.',
   },
   {
     value: 'cedh',
     label: 'Bracket 5 - cEDH',
     shortLabel: 'cEDH',
-    detail: 'Deck competitivo, pensado para meta, velocidade, interacao de stack, mulligans agressivos e linhas compactas de vitoria. A prioridade e performance.',
+    detail: 'Deck competitivo, pensado para meta, velocidade, interação de stack, mulligans agressivos e linhas compactas de vitória. A prioridade é performance.',
   },
 ]
 
@@ -61,7 +61,7 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
   return (
     <form onSubmit={handleSubmit} className="recommendation-settings">
       <label title="Power bracket usado para baselines, pesos de score e rigor dos cortes.">
-        Nivel do deck
+        Nível do deck
         <small>{selectedBracket.detail}</small>
         <select
           value={bracket}
@@ -98,7 +98,7 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
         </label>
         <label>
           <input type="checkbox" checked={filters.moreInteraction} onChange={() => toggleFilter('moreInteraction')} />
-          Mais interacao
+          Mais interação
         </label>
         <label>
           <input type="checkbox" checked={filters.preserveTheme} onChange={() => toggleFilter('preserveTheme')} />
@@ -114,8 +114,8 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
         <summary>Como escolher o bracket correto?</summary>
         <div className="bracket-guide-content">
           <p>
-            Use o bracket como uma conversa de mesa, nao como nota absoluta. O ponto principal e a intencao do deck:
-            tema e experiencia social nos brackets 1-3, otimizacao forte no 4, competicao e meta no 5.
+            Use o bracket como uma conversa de mesa, não como nota absoluta. O ponto principal é a intenção do deck:
+            tema e experiência social nos brackets 1-3, otimização forte no 4, competição e meta no 5.
           </p>
           <div className="bracket-guide-grid">
             {BRACKETS.map((item) => (
@@ -126,11 +126,11 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
             ))}
           </div>
           <p>
-            Regra pratica: se o deck ainda joga como precon melhorado, use Casual. Se ja tem upgrades claros mas evita vencer cedo, use Bracket 3.
+            Regra prática: se o deck ainda joga como precon melhorado, use Casual. Se já tem upgrades claros mas evita vencer cedo, use Bracket 3.
             Se aceita combos, staples de alto impacto e jogo mais duro, use Bracket 4. Se foi montado para torneio ou mesas cEDH, use Bracket 5.
           </p>
           <a href="https://magic.wizards.com/en/content/commander-format#brackets" target="_blank" rel="noreferrer">
-            Ver explicacao oficial de Commander Brackets na Wizards
+            Ver explicação oficial de Commander Brackets na Wizards
           </a>
         </div>
       </details>

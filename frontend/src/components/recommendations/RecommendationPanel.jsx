@@ -40,12 +40,12 @@ export default function RecommendationPanel({
         <div>
           <p className="eyebrow">Caminho de upgrade</p>
           <h3>Trocas recomendadas</h3>
-          <p>Priorize poucas trocas claras: corrigir curva, mana, compra, interacao ou encaixe com o comandante.</p>
+          <p>Priorize poucas trocas claras: corrigir curva, mana, compra, interação ou encaixe com o comandante.</p>
         </div>
         <div className="recommendation-panel-context">
           <RecommendationBadge variant="curve">Bracket: {bracket}</RecommendationBadge>
           <RecommendationBadge variant={hasFallback ? 'fallback' : 'meta'}>
-            {hasFallback ? 'Analise heuristica' : 'Perfil meta local'}
+            {hasFallback ? 'Análise heurística' : 'Perfil meta local'}
           </RecommendationBadge>
         </div>
       </header>
@@ -61,13 +61,13 @@ export default function RecommendationPanel({
         </div>
         <div>
           <span>Origem</span>
-          <strong>{hasFallback ? 'Heuristica' : 'Meta local'}</strong>
+          <strong>{hasFallback ? 'Heurística' : 'Meta local'}</strong>
         </div>
       </div>
 
       {hasFallback && items.length > 0 && (
         <StateMessage tone="warning" title="Dados meta insuficientes">
-          Usando analise heuristica: dados meta insuficientes para este comandante.
+          Usando análise heurística: dados meta insuficientes para este comandante.
         </StateMessage>
       )}
 
@@ -78,20 +78,20 @@ export default function RecommendationPanel({
       )}
 
       {error && (
-        <StateMessage tone="error" title="Nao foi possivel gerar recomendacoes">
+        <StateMessage tone="error" title="Não foi possível gerar recomendações">
           Tente novamente em instantes.
         </StateMessage>
       )}
 
       {!loading && !error && !hasGenerated && (
-        <StateMessage title="Gere recomendacoes para visualizar trocas sugeridas.">
+        <StateMessage title="Gere recomendações para visualizar trocas sugeridas.">
           Escolha o bracket e deixe o motor comparar o deck atual com o perfil do comandante.
         </StateMessage>
       )}
 
       {!loading && !error && hasGenerated && items.length === 0 && (
         <StateMessage tone="warning" title="Nenhuma troca segura foi montada nesta rodada.">
-          O deck foi selecionado, mas faltou um par add/remove confiavel para exibir. Isso normalmente indica poucos candidatos validos ou cortes protegidos pelas regras do deck.
+          O deck foi selecionado, mas faltou um par add/remove confiável para exibir. Isso normalmente indica poucos candidatos válidos ou cortes protegidos pelas regras do deck.
         </StateMessage>
       )}
 
@@ -114,13 +114,13 @@ export default function RecommendationPanel({
 
       {(comparison?.metrics?.length > 0 || history.length > 0 || metaSources.length > 0) && (
         <details className="recommendation-source-details advanced-recommendation-details">
-          <summary>Informacoes avancadas</summary>
+          <summary>Informações avançadas</summary>
 
           {comparison?.metrics?.length > 0 && (
             <section className="recommendation-comparison">
               <div className="section-heading compact">
                 <div>
-                  <p className="eyebrow">Seu deck vs media do comandante</p>
+                  <p className="eyebrow">Seu deck vs média do comandante</p>
                   <h4>{comparison.commander}</h4>
                 </div>
                 <RecommendationBadge variant="meta">Amostra: {comparison.sampleSize || 0}</RecommendationBadge>
@@ -139,7 +139,7 @@ export default function RecommendationPanel({
 
           {history.length > 0 && (
             <section>
-              <h4>Historico de trocas</h4>
+              <h4>Histórico de trocas</h4>
               <div className="history-list">
                 {history.slice().reverse().slice(0, 8).map((entry) => (
                   <span key={entry.id} className={entry.undone ? 'source-pill' : 'source-pill enabled'}>
@@ -152,7 +152,7 @@ export default function RecommendationPanel({
 
           {metaSources.length > 0 && (
             <section>
-              <h4>Fontes disponiveis</h4>
+              <h4>Fontes disponíveis</h4>
               <div>
                 {metaSources.map((sourceItem) => (
                   <span key={sourceItem.name} className={sourceItem.enabled ? 'source-pill enabled' : 'source-pill'}>

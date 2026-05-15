@@ -25,11 +25,11 @@ export default function DeckLegalityPanel({ legality, loading = false, error = n
           <summary>
             <span>
               <span className="eyebrow">Regras Commander</span>
-              <strong>Legalidade indisponivel</strong>
+              <strong>Legalidade indisponível</strong>
             </span>
             <span className="status-pill danger">Revisar</span>
           </summary>
-          <StateMessage tone="error" title="Nao foi possivel verificar a legalidade">Tente salvar novamente ou recarregar o deck.</StateMessage>
+          <StateMessage tone="error" title="Não foi possível verificar a legalidade">Tente salvar novamente ou recarregar o deck.</StateMessage>
         </details>
       </section>
     )
@@ -42,11 +42,11 @@ export default function DeckLegalityPanel({ legality, loading = false, error = n
           <summary>
             <span>
               <span className="eyebrow">Regras Commander</span>
-              <strong>Legalidade ainda nao verificada</strong>
+              <strong>Legalidade ainda não verificada</strong>
             </span>
             <span className="status-pill">Pendente</span>
           </summary>
-          <StateMessage title="Legalidade ainda nao verificada">Salve o deck para validar regras Commander.</StateMessage>
+          <StateMessage title="Legalidade ainda não verificada">Salve o deck para validar regras Commander.</StateMessage>
         </details>
       </section>
     )
@@ -127,7 +127,7 @@ export default function DeckLegalityPanel({ legality, loading = false, error = n
         {legality.estimatedBracket && (
           <div className="state-message">
             <strong>Bracket estimado: {legality.estimatedBracket.level} - {legality.estimatedBracket.label}</strong>
-            <span>Estimativa baseada na lista atual; use como apoio para conversa de mesa, nao como nota absoluta.</span>
+            <span>Estimativa baseada na lista atual; use como apoio para conversa de mesa, não como nota absoluta.</span>
           </div>
         )}
 
@@ -153,6 +153,6 @@ function joinNames(names = []) {
 }
 
 function commanderNames(commanders = []) {
-  if (!commanders.length) return 'Comandante nao informado'
+  if (!commanders.length) return 'Comandante não informado'
   return commanders.map((commander) => `${commander.name} (${commander.role})`).join(', ')
 }

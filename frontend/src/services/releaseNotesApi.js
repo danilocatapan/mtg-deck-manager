@@ -7,7 +7,7 @@ export async function getReleaseNotes() {
   })
 
   if (!response.ok) {
-    throw new Error('Nao foi possivel carregar as novidades.')
+    throw new Error('Não foi possível carregar as novidades.')
   }
 
   const notes = await response.json()
