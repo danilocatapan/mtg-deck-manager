@@ -3,6 +3,7 @@ package com.mtg.model;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Entity
 @Table(name = "decks")
@@ -102,10 +103,44 @@ public class Deck {
     }
 
     public void setCards(List<DeckCard> cards) {
-        this.cards.clear();
-        if (cards != null) {
-            cards.forEach(c -> c.setDeck(this));
-            this.cards.addAll(cards);
+        if (cards == null || cards.isEmpty()) {
+            new ArrayList<>(this.cards).forEach(card -> {
+                card.setDeck(null);
+                this.cards.remove(card);
+            });
+            return;
         }
+
+        List<String> requestedNames = new ArrayList<>();
+        for (DeckCard incoming : cards) {
+            if (incoming == null) {
+                continue;
+            }
+            String normalizedName = normalizeCardName(incoming.getName());
+            requestedNames.add(normalizedName);
+
+            DeckCard existing = this.cards.stream()
+                    .filter(card -> normalizeCardName(card.getName()).equals(normalizedName))
+                    .findFirst()
+                    .orElse(null);
+            if (existing != null) {
+                existing.setName(incoming.getName());
+                existing.setQuantity(incoming.getQuantity());
+            } else {
+                incoming.setDeck(this);
+                this.cards.add(incoming);
+            }
+        }
+
+        new ArrayList<>(this.cards).stream()
+                .filter(card -> !requestedNames.contains(normalizeCardName(card.getName())))
+                .forEach(card -> {
+                    card.setDeck(null);
+                    this.cards.remove(card);
+                });
+    }
+
+    private String normalizeCardName(String name) {
+        return name == null ? "" : name.trim().toLowerCase(Locale.ROOT);
     }
 }
