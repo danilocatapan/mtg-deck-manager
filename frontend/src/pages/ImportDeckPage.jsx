@@ -48,6 +48,7 @@ function parsePreview(content) {
 export default function ImportDeckPage({ onDone }) {
   const [name, setName] = useState('')
   const [commander, setCommander] = useState('')
+  const [visibility, setVisibility] = useState('private')
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
@@ -91,7 +92,7 @@ export default function ImportDeckPage({ onDone }) {
       }
 
       setLoading(true)
-      const created = await importDeck({ name: name.trim(), commander: commander.trim(), content })
+      const created = await importDeck({ name: name.trim(), commander: commander.trim(), content, visibility })
       setMessage(`${created.name} importado.`)
       onDone && onDone(`${created.name} importado.`, created)
     } catch (e) {
@@ -134,6 +135,13 @@ export default function ImportDeckPage({ onDone }) {
             <label>
               Comandante
               <input value={commander} onChange={(e) => setCommander(e.target.value)} placeholder="Xenagos, God of Revels" />
+            </label>
+            <label>
+              Visibilidade
+              <select value={visibility} onChange={(e) => setVisibility(e.target.value)}>
+                <option value="private">Privado</option>
+                <option value="public">Publico</option>
+              </select>
             </label>
           </div>
 

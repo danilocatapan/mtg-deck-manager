@@ -38,6 +38,7 @@ function imageForName(cache, name) {
 export default function DeckForm({ initial = null, onCancel, onSave }) {
   const [name, setName] = useState('')
   const [commander, setCommander] = useState('')
+  const [visibility, setVisibility] = useState('private')
   const [cards, setCards] = useState([])
   const [deckView, setDeckView] = useState('list')
   const [cardImages, setCardImages] = useState(() => readImageCache())
@@ -51,6 +52,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
     if (initial) {
       setName(initial.name || '')
       setCommander(initial.commander || '')
+      setVisibility(initial.visibility || 'private')
       setCards(initial.cards ? initial.cards.map((card) => ({ name: card.name, quantity: card.quantity })) : [])
     }
   }, [initial])
@@ -214,6 +216,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
     const payload = {
       name: name.trim(),
       commander: commander.trim(),
+      visibility,
       cards: cards.map((card) => ({ name: card.name, quantity: card.quantity })),
     }
     setSavedMessage('Salvando deck...')
@@ -232,6 +235,13 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
           <label>
             Comandante
             <input value={commander} onChange={(e) => setCommander(e.target.value)} placeholder="Xenagos, God of Revels" />
+          </label>
+          <label>
+            Visibilidade
+            <select value={visibility} onChange={(e) => setVisibility(e.target.value)}>
+              <option value="private">Privado</option>
+              <option value="public">Publico</option>
+            </select>
           </label>
         </div>
 

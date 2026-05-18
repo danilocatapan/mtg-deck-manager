@@ -1,6 +1,6 @@
-INSERT INTO decks (id, name, commander, owner_id, color_identity, commanders_json) VALUES
-  (9001, 'Grand Arbiter fixture', 'Grand Arbiter Augustin IV', 'google-user-1', 'WU', '[{"name":"Grand Arbiter Augustin IV","role":"commander"}]'),
-  (9002, 'Xenagos fixture', 'Xenagos, God of Revels', 'google-user-1', 'RG', '[{"name":"Xenagos, God of Revels","role":"commander"}]');
+INSERT INTO decks (id, name, commander, owner_id, color_identity, commanders_json, visibility) VALUES
+  (9001, 'Grand Arbiter fixture', 'Grand Arbiter Augustin IV', 'google-user-1', 'WU', '[{"name":"Grand Arbiter Augustin IV","role":"commander"}]', 'private'),
+  (9002, 'Xenagos fixture', 'Xenagos, God of Revels', 'google-user-1', 'RG', '[{"name":"Xenagos, God of Revels","role":"commander"}]', 'private');
 
 INSERT INTO deck_cards (deck_id, name, quantity) VALUES
   (9001, 'Seat of the Synod', 1),

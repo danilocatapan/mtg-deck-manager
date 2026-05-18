@@ -4,12 +4,16 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.mtg.dto.ApplyRecommendationSwapDTO;
+import com.mtg.dto.AuthenticatedUserDTO;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.CommanderDTO;
 import com.mtg.dto.DeckCardDTO;
+import com.mtg.dto.DeckConsultResponseDTO;
 import com.mtg.dto.DeckHistoryEntryDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
+import com.mtg.dto.PublicDeckSummaryDTO;
+import com.mtg.model.DeckVisibility;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
 import com.mtg.repository.DeckRepository;
@@ -64,6 +68,17 @@ public class DeckService {
 
     @Transactional
     public DeckResponseDTO createDeck(DeckRequestDTO request, String ownerId) {
+        return createDeck(request, ownerId, null);
+    }
+
+    @Transactional
+    public DeckResponseDTO createDeck(DeckRequestDTO request, AuthenticatedUserDTO user) {
+        validateUser(user);
+        return createDeck(request, user.googleSubject(), user.name());
+    }
+
+    @Transactional
+    public DeckResponseDTO createDeck(DeckRequestDTO request, String ownerId, String authorDisplayName) {
         validateRequest(request);
         validateOwner(ownerId);
         LOG.debug("event=deck.create.request");
@@ -73,6 +88,8 @@ public class DeckService {
         List<DeckCard> cards = toEntities(request.cards());
         Deck deck = new Deck(request.name().trim(), primaryCommander(commanders), cards);
         deck.setOwnerId(ownerId);
+        deck.setAuthorDisplayName(toPublicAuthor(authorDisplayName));
+        deck.setVisibility(normalizeVisibility(request == null ? null : request.visibility()));
         deck.setCommandersJson(toCommandersJson(commanders));
         deck.setColorIdentity(toColorIdentity(commanders, resolved));
         deckRepository.persist(deck);
@@ -83,6 +100,17 @@ public class DeckService {
 
     @Transactional
     public DeckResponseDTO importDeck(DeckImportDTO dto, String ownerId) {
+        return importDeck(dto, ownerId, null);
+    }
+
+    @Transactional
+    public DeckResponseDTO importDeck(DeckImportDTO dto, AuthenticatedUserDTO user) {
+        validateUser(user);
+        return importDeck(dto, user.googleSubject(), user.name());
+    }
+
+    @Transactional
+    public DeckResponseDTO importDeck(DeckImportDTO dto, String ownerId, String authorDisplayName) {
         validateOwner(ownerId);
         if (dto == null) throw new IllegalArgumentException("Import payload required");
         validateDeckName(dto.name());
@@ -105,6 +133,8 @@ public class DeckService {
         deck.setName(dto.name().trim());
         deck.setCommander(primaryCommander(commanders));
         deck.setOwnerId(ownerId);
+        deck.setAuthorDisplayName(toPublicAuthor(authorDisplayName));
+        deck.setVisibility(normalizeVisibility(dto.visibility()));
         deck.setCommandersJson(toCommandersJson(commanders));
         deck.setColorIdentity(toColorIdentity(commanders, resolved));
         deck.setCards(cards);
@@ -126,8 +156,33 @@ public class DeckService {
         return toDto(deck);
     }
 
+    public List<PublicDeckSummaryDTO> listPublicDecks(Integer page, Integer size, String commander) {
+        return deckRepository.listPublic(page, size, commander).stream()
+                .map(this::toPublicSummary)
+                .collect(Collectors.toList());
+    }
+
+    public DeckConsultResponseDTO consultDeck(Long id, String ownerId) {
+        Deck deck = deckRepository.findPublicByIdOrOwner(id, ownerId);
+        if (deck == null) {
+            return null;
+        }
+        return toConsultDto(deck);
+    }
+
     @Transactional
     public DeckResponseDTO updateDeck(Long id, DeckRequestDTO request, String ownerId) {
+        return updateDeck(id, request, ownerId, null);
+    }
+
+    @Transactional
+    public DeckResponseDTO updateDeck(Long id, DeckRequestDTO request, AuthenticatedUserDTO user) {
+        validateUser(user);
+        return updateDeck(id, request, user.googleSubject(), user.name());
+    }
+
+    @Transactional
+    public DeckResponseDTO updateDeck(Long id, DeckRequestDTO request, String ownerId, String authorDisplayName) {
         validateRequest(request);
         validateOwner(ownerId);
         Deck deck = deckRepository.findByIdAndOwner(id, ownerId);
@@ -141,6 +196,11 @@ public class DeckService {
         deck.setCommander(primaryCommander(commanders));
         deck.setCommandersJson(toCommandersJson(commanders));
         deck.setColorIdentity(toColorIdentity(commanders, resolved));
+        deck.setVisibility(normalizeVisibility(request.visibility()));
+        String publicAuthor = toPublicAuthor(authorDisplayName);
+        if (publicAuthor != null) {
+            deck.setAuthorDisplayName(publicAuthor);
+        }
         deck.setCards(toEntities(request.cards()));
         deckRepository.persist(deck);
         LOG.infov("event=deck.updated deckId={0}", id);
@@ -423,11 +483,58 @@ public class DeckService {
         }
     }
 
+    private void validateUser(AuthenticatedUserDTO user) {
+        if (user == null) {
+            throw new IllegalArgumentException("Authenticated user is required");
+        }
+        validateOwner(user.googleSubject());
+    }
+
+    private DeckVisibility normalizeVisibility(DeckVisibility visibility) {
+        return visibility == null ? DeckVisibility.PRIVATE : visibility;
+    }
+
+    private String toPublicAuthor(String authorDisplayName) {
+        if (authorDisplayName == null || authorDisplayName.isBlank()) {
+            return null;
+        }
+        String trimmed = authorDisplayName.trim();
+        return trimmed.length() > 120 ? trimmed.substring(0, 120) : trimmed;
+    }
+
     private DeckResponseDTO toDto(Deck deck) {
         List<DeckCardDTO> cards = deck.getCards().stream()
                 .map(c -> new DeckCardDTO(c.getName(), c.getQuantity()))
                 .collect(Collectors.toList());
-        return new DeckResponseDTO(deck.getId(), deck.getName(), deck.getCommander(), cards, deck.getColorIdentity(), commandersFor(deck), historyFor(deck));
+        return new DeckResponseDTO(deck.getId(), deck.getName(), deck.getCommander(), cards, deck.getColorIdentity(), commandersFor(deck), historyFor(deck), deck.getVisibility());
+    }
+
+    private DeckConsultResponseDTO toConsultDto(Deck deck) {
+        List<DeckCardDTO> cards = deck.getCards().stream()
+                .map(c -> new DeckCardDTO(c.getName(), c.getQuantity()))
+                .collect(Collectors.toList());
+        return new DeckConsultResponseDTO(
+                deck.getId(),
+                deck.getName(),
+                deck.getCommander(),
+                deck.getColorIdentity(),
+                deck.getVisibility(),
+                cards,
+                commandersFor(deck),
+                deck.getAuthorDisplayName()
+        );
+    }
+
+    private PublicDeckSummaryDTO toPublicSummary(Deck deck) {
+        return new PublicDeckSummaryDTO(
+                deck.getId(),
+                deck.getName(),
+                deck.getCommander(),
+                deck.getColorIdentity(),
+                deck.getVisibility(),
+                deck.getAuthorDisplayName(),
+                totalCards(deck)
+        );
     }
 
     private List<DeckCard> mainDeckCards(Deck deck) {

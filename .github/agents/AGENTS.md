@@ -76,6 +76,7 @@ Invariantes globais do dominio
 - Recomendacao/complemento deve mirar 99 cartas no deck + comandante = 100 quando o fluxo for Commander completo.
 - Nao introduzir cartas que ja existem no deck como sugestao de add.
 - Sugestoes de corte nao devem remover comandante nem quebrar contratos de quantidade.
+- Decks privados nunca devem aparecer em listagens publicas nem ser consultados por anonimos/outros usuarios; expose somente DTOs publicos sanitizados para decks publicos.
 
 Prioridades operacionais transversais
 -------------------------------------
@@ -90,6 +91,40 @@ Validacao minima antes de concluir mudanca
 - Frontend: rodar lint/build quando alterar UI, services ou assets empacotados.
 - Validar um caso manual representativo quando a mudanca afetar recomendacoes, importacao ou UI principal.
 - Se mudanca afetar contrato, adicionar testes de contrato/end-to-end ou testes de controller equivalentes.
+
+Manual produtivo para Playwright MCP
+------------------------------------
+Use este fluxo quando o pedido exigir validar UX/frontend no navegador. O objetivo e evitar retrabalho com Vite, base path e login Google.
+
+1. Antes de abrir o browser, rode as validacoes estaticas do frontend quando aplicavel: em `frontend`, execute `npm run lint` e `npm run build`.
+2. No Windows/PowerShell, suba o Vite explicitamente com `npm.cmd`, nao com `npm` via `Start-Process`, pois a associacao do Windows pode abrir o executavel errado:
+
+```powershell
+Start-Process -FilePath npm.cmd -ArgumentList 'run','dev','--','--host','127.0.0.1','--port','5173' -WorkingDirectory 'C:\Users\danilo.catapan\Documents\mtg-deck-manager\frontend' -WindowStyle Hidden -PassThru
+```
+
+3. Verifique a URL antes do Playwright:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing http://localhost:5173/mtg-deck-manager/
+```
+
+4. Abra sempre a URL com base path do Vite: `http://localhost:5173/mtg-deck-manager/`.
+5. Se a porta `5173` estiver ocupada, use outra porta e mantenha o path `/mtg-deck-manager/`.
+6. Para encerrar servidor local iniciado pelo agente, use `Stop-Process -Id [PID]` somente no PID retornado pelo `Start-Process`.
+
+Estrategia de validacao com login/API:
+- Primeiro valide o estado real anonimo sem mocks: carregamento, chamada de login, tela publica, mensagens de API indisponivel/iniciando e layout.
+- Nao tente completar login Google real no Playwright sem token/credencial fornecida explicitamente. O login depende de Google Identity Services e normalmente bloqueia automacao/local sem configuracao real.
+- Para validar fluxos autenticados, use mocks de rede no Playwright MCP (`browser_run_code_unsafe` + `page.route`) com respostas equivalentes aos contratos REST. Simule `sessionStorage` com `mtg_google_id_token` e `mtg_google_profile` apenas quando o teste precisar liberar UI autenticada; o token fake precisa ter payload JWT com `sub` e `exp` futuro para passar por `getAuthToken()`.
+- Use mocks para `GET /decks/public`, `GET /decks`, `GET /decks/{id}/consult`, create/update/import/delete e `POST /cards/collection`. Nao use chamadas reais a Scryfall para validar UX.
+- Contratos REST e autorizacao real devem ser validados por testes backend (`./mvnw.cmd test`), nao por login manual no browser.
+
+Checklist UX no Playwright:
+- Desktop e mobile: rode pelo menos `browser_resize` em 1440x1000 e 390x844 quando a mudanca afetar layout principal.
+- Use `browser_snapshot` para acessibilidade/navegacao e screenshot apenas para evidencia visual; se `fullPage` travar, use screenshot de viewport.
+- Verifique que textos nao sobrepoem botoes/cards, estados vazio/loading/erro aparecem, botoes desabilitados comunicam motivo, foco/navegacao por roles continuam claros e a acao primaria da tela fica evidente.
+- Para novos fluxos, validar caminho feliz, estado vazio, erro de API e permissao/autenticacao. Para fluxos antigos, validar que criar/importar/editar/excluir/analisar continuam acessiveis quando autenticado.
 
 Guia rapido de roteamento
 -------------------------
@@ -114,6 +149,6 @@ Depois disso, em `backend`, execute `./mvnw.cmd test` ou `./mvnw.cmd clean insta
 Endpoints principais atuais
 ---------------------------
 - `GET /cards?name=` e `POST /cards/collection`.
-- `GET /decks`, `POST /decks`, `POST /decks/import`, `GET /decks/{id}`, `PUT /decks/{id}`, `DELETE /decks/{id}`.
+- `GET /decks`, `GET /decks/public`, `POST /decks`, `POST /decks/import`, `GET /decks/{id}`, `GET /decks/{id}/consult`, `PUT /decks/{id}`, `DELETE /decks/{id}`.
 - `GET /decks/{id}/export`, `GET /decks/{id}/analysis`, `POST /decks/{id}/recommendations`, `POST /decks/{id}/recommendations/strategic`.
 - `GET /meta/sources`, `POST /meta/sync`, `GET /meta/commanders/{commander}`.

@@ -19,7 +19,9 @@ Tabelas atuais mapeadas do H2/Hibernate:
   - `name`: `String`, sem `@Column`, logo Hibernate usa `varchar(255)` por padrao no H2.
   - `commander`: `String`, sem `@Column`, `varchar(255)` por padrao.
   - `owner_id`: `String`, `@Column(name = "owner_id")`, `varchar(255)` por padrao.
+  - `author_display_name`: `String`, `@Column(name = "author_display_name")`, `varchar(255)` por padrao.
   - `color_identity`: `String`, `@Column(name = "color_identity")`, `varchar(255)` por padrao.
+  - `visibility`: `DeckVisibility`, `@Column(name = "visibility", nullable = false, length = 16)`, armazenado como `private` ou `public`.
   - Relacionamento `@OneToMany(mappedBy = "deck", cascade = ALL, orphanRemoval = true, fetch = EAGER)` para `deck_cards`.
 - `deck_cards`
   - `id`: `Long`, `@Id`, `@GeneratedValue(strategy = IDENTITY)`.
@@ -49,6 +51,7 @@ PKs, FKs, constraints e indices:
 - `deck_cards.deck_id` recebeu indice explicito porque e FK e e usado pelo carregamento da colecao.
 - `decks.owner_id` recebeu indice por ser usado em `listByOwner`.
 - `(id, owner_id)` recebeu indice para a consulta `findByIdAndOwner` e para manter o padrao de isolamento por usuario eficiente. Apesar de `id` ja ser PK, o indice composto ajuda consultas que validam propriedade no mesmo predicado.
+- `decks.visibility` recebeu constraint de dominio (`private`/`public`) e indices para `GET /decks/public` e filtro por comandante.
 - `deck_cards(deck_id, lower(name))` recebeu unique constraint funcional para impedir duplicidade indevida da mesma carta no mesmo deck. Isso reforca a regra de negocio "nao duplicar carta indevidamente" sem bloquear multiplas copias legitimas, que continuam representadas por `quantity`.
 - Checks nomeados reforcam invariantes ja validados no service: deck precisa de nome/comandante/owner, quantidade entre 1 e 99, nomes ate 120, ate 120 entradas por deck e ate 99 cartas no main deck. O limite de 99 cartas conta `quantity` em `deck_cards`, mantendo o comandante fora das linhas do deck como o fluxo atual faz.
 - As regras agregadas de quantidade/numero de entradas usam triggers porque PostgreSQL nao permite `CHECK` com agregacao entre linhas. Elas sao defensivas para producao; a API ja valida antes.
@@ -94,13 +97,16 @@ CREATE TABLE IF NOT EXISTS decks (
     name VARCHAR(255),
     commander VARCHAR(255),
     owner_id VARCHAR(255),
+    author_display_name VARCHAR(255),
     color_identity VARCHAR(255),
+    visibility VARCHAR(16) NOT NULL DEFAULT 'private',
     CONSTRAINT pk_decks PRIMARY KEY (id),
     CONSTRAINT ck_decks_name_required CHECK (name IS NOT NULL AND btrim(name) <> ''),
     CONSTRAINT ck_decks_name_length CHECK (name IS NULL OR char_length(name) <= 120),
     CONSTRAINT ck_decks_commander_required CHECK (commander IS NOT NULL AND btrim(commander) <> ''),
     CONSTRAINT ck_decks_commander_length CHECK (commander IS NULL OR char_length(commander) <= 120),
     CONSTRAINT ck_decks_owner_id_required CHECK (owner_id IS NOT NULL AND btrim(owner_id) <> ''),
+    CONSTRAINT ck_decks_visibility_value CHECK (visibility IN ('private', 'public')),
     CONSTRAINT ck_decks_color_identity_format CHECK (
         color_identity IS NULL
         OR color_identity = ''
@@ -129,6 +135,12 @@ CREATE INDEX IF NOT EXISTS ix_decks_owner_id
 
 CREATE INDEX IF NOT EXISTS ix_decks_id_owner_id
     ON decks (id, owner_id);
+
+CREATE INDEX IF NOT EXISTS ix_decks_visibility_id
+    ON decks (visibility, id DESC);
+
+CREATE INDEX IF NOT EXISTS ix_decks_visibility_commander_ci
+    ON decks (visibility, lower(commander));
 
 CREATE INDEX IF NOT EXISTS ix_decks_commander_ci
     ON decks (lower(commander));

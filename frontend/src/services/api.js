@@ -128,6 +128,34 @@ export async function fetchDecks({ throwOnError = false } = {}) {
   }
 }
 
+export async function fetchPublicDecks({ page = 0, size = 12, commander = '', throwOnError = false } = {}) {
+  try {
+    const query = new URLSearchParams()
+    query.set('page', String(page))
+    query.set('size', String(size))
+    if (commander) query.set('commander', commander)
+    return await request(`/decks/public?${query.toString()}`, { retryOnStartup: false })
+  } catch (e) {
+    logApiError('fetchPublicDecks error', e)
+    if (throwOnError) {
+      throw e
+    }
+    return []
+  }
+}
+
+export async function consultDeck(id) {
+  try {
+    if (id === undefined || id === null || isNaN(Number(id))) {
+      throw new Error('Invalid deck id')
+    }
+    return await request(`/decks/${id}/consult`)
+  } catch (e) {
+    logApiError('consultDeck error', e)
+    throw e
+  }
+}
+
 export async function getAppInfo() {
   return await request('/app/info', { retryOnStartup: false })
 }
@@ -331,6 +359,8 @@ export async function deleteAccountData() {
 
 export default {
   fetchDecks,
+  fetchPublicDecks,
+  consultDeck,
   fetchCardsByNames,
   searchCards,
   createDeck,

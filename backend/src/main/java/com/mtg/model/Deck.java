@@ -19,8 +19,14 @@ public class Deck {
     @Column(name = "owner_id")
     private String ownerId;
 
+    @Column(name = "author_display_name")
+    private String authorDisplayName;
+
     @Column(name = "color_identity")
     private String colorIdentity;
+
+    @Column(name = "visibility", nullable = false, length = 16)
+    private DeckVisibility visibility = DeckVisibility.PRIVATE;
 
     @Column(name = "commanders_json", length = 2000)
     private String commandersJson;
@@ -71,9 +77,17 @@ public class Deck {
 
     public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
 
+    public String getAuthorDisplayName() { return authorDisplayName; }
+
+    public void setAuthorDisplayName(String authorDisplayName) { this.authorDisplayName = authorDisplayName; }
+
     public String getColorIdentity() { return colorIdentity; }
 
     public void setColorIdentity(String colorIdentity) { this.colorIdentity = colorIdentity; }
+
+    public DeckVisibility getVisibility() { return visibility == null ? DeckVisibility.PRIVATE : visibility; }
+
+    public void setVisibility(DeckVisibility visibility) { this.visibility = visibility == null ? DeckVisibility.PRIVATE : visibility; }
 
     public String getCommandersJson() { return commandersJson; }
 

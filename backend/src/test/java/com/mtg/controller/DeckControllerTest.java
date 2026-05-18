@@ -4,12 +4,19 @@ import com.mtg.dto.DeckCardDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.ApplyRecommendationSwapDTO;
 import com.mtg.dto.CardResponseDTO;
+import com.mtg.model.Deck;
+import com.mtg.model.DeckCard;
+import com.mtg.model.DeckVisibility;
+import com.mtg.repository.DeckRepository;
 import com.mtg.service.CardService;
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.security.SecurityAttribute;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +29,8 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
@@ -31,6 +40,9 @@ class DeckControllerTest {
 
     @InjectMock
     CardService cardService;
+
+    @Inject
+    DeckRepository deckRepository;
 
     @BeforeEach
     void setup() {
@@ -55,6 +67,134 @@ class DeckControllerTest {
         assertThat(get.jsonPath().getString("name"), is("MyDeck"));
         assertThat(get.jsonPath().getString("colorIdentity"), is("G"));
         assertThat(get.jsonPath().getString("commanders[0].name"), is("Cmd"));
+        assertThat(get.jsonPath().getString("visibility"), is("private"));
+    }
+
+    @Test
+    @TestSecurity(user = "google-user-1", attributes = {
+            @SecurityAttribute(key = "name", value = "Public Brewer")
+    })
+    void createUpdateListAndConsultVisibility() {
+        Map<String, Object> publicRequest = Map.of(
+                "name", "Public Visibility Deck",
+                "commander", "Cmd",
+                "visibility", "public",
+                "cards", List.of(Map.of("name", "Sol Ring", "quantity", 1))
+        );
+
+        Response created = given()
+                .contentType(ContentType.JSON)
+                .body(publicRequest)
+                .when().post("/decks")
+                .then()
+                .statusCode(201)
+                .body("visibility", is("public"))
+                .extract().response();
+
+        String location = created.getHeader("Location");
+
+        given()
+                .when().get("/decks/public")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("Public Visibility Deck"))
+                .body("visibility", hasItem("public"))
+                .body("author", hasItem("Public Brewer"));
+
+        given()
+                .when().get(location + "/consult")
+                .then()
+                .statusCode(200)
+                .body("name", is("Public Visibility Deck"))
+                .body("visibility", is("public"))
+                .body("author", is("Public Brewer"))
+                .body("$", not(org.hamcrest.Matchers.hasKey("history")))
+                .body("$", not(org.hamcrest.Matchers.hasKey("ownerId")));
+
+        Map<String, Object> privateUpdate = Map.of(
+                "name", "Private Visibility Deck",
+                "commander", "Cmd",
+                "visibility", "private",
+                "cards", List.of(Map.of("name", "Sol Ring", "quantity", 1))
+        );
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(privateUpdate)
+                .when().put(location)
+                .then()
+                .statusCode(200)
+                .body("visibility", is("private"));
+
+        given()
+                .when().get("/decks/public")
+                .then()
+                .statusCode(200)
+                .body("name", not(hasItem("Private Visibility Deck")));
+    }
+
+    @Test
+    void consultPublicDeck_allowsAnonymous() {
+        Long deckId = persistDeck("Anonymous Public Consult", DeckVisibility.PUBLIC, "owner-public", "Public Author");
+
+        given()
+                .when().get("/decks/" + deckId + "/consult")
+                .then()
+                .statusCode(200)
+                .body("name", is("Anonymous Public Consult"))
+                .body("visibility", is("public"))
+                .body("author", is("Public Author"));
+    }
+
+    @Test
+    void consultPrivateDeck_rejectsAnonymous() {
+        Long deckId = persistDeck("Anonymous Private Consult", DeckVisibility.PRIVATE, "owner-private", "Private Author");
+
+        given()
+                .when().get("/decks/" + deckId + "/consult")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "private-owner")
+    void consultPrivateDeck_allowsOwner() {
+        Long deckId = persistDeck("Owner Private Consult", DeckVisibility.PRIVATE, "private-owner", "Private Author");
+
+        given()
+                .when().get("/decks/" + deckId + "/consult")
+                .then()
+                .statusCode(200)
+                .body("name", is("Owner Private Consult"))
+                .body("visibility", is("private"));
+    }
+
+    @Test
+    @TestSecurity(user = "other-user")
+    void consultPrivateDeck_rejectsOtherUsers() {
+        Long deckId = persistDeck("Other Private Consult", DeckVisibility.PRIVATE, "private-owner-2", "Private Author");
+
+        given()
+                .when().get("/decks/" + deckId + "/consult")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "google-user-1")
+    void createDeck_returnsBadRequestForInvalidVisibility() {
+        Map<String, Object> request = Map.of(
+                "name", "Invalid Visibility Deck",
+                "commander", "Cmd",
+                "visibility", "friends-only",
+                "cards", List.of(Map.of("name", "Sol Ring", "quantity", 1))
+        );
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when().post("/decks")
+                .then().statusCode(400);
     }
 
     @Test
@@ -270,5 +410,17 @@ class DeckControllerTest {
 
     private String normalize(String name) {
         return name == null ? "" : name.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private Long persistDeck(String name, DeckVisibility visibility, String ownerId, String author) {
+        return QuarkusTransaction.requiringNew().call(() -> {
+            Deck deck = new Deck(name, "Cmd", List.of(new DeckCard("Sol Ring", 1)));
+            deck.setOwnerId(ownerId);
+            deck.setAuthorDisplayName(author);
+            deck.setVisibility(visibility);
+            deck.setColorIdentity("G");
+            deckRepository.persist(deck);
+            return deck.getId();
+        });
     }
 }

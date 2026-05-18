@@ -5,11 +5,11 @@
     "title": "Versionamento e tela Sobre",
     "changes": {
       "added": [
+        "Decks podem ser marcados como publicos ou privados, com vitrine publica e consulta em modo somente leitura.",
+        "API publica para listar decks publicos e consultar detalhes sanitizados sem expor dados privados do dono.",
         "Endpoints autenticados GET /users/me/export e DELETE /users/me para exportacao LGPD e exclusao de dados do usuario.",
         "Politica de Privacidade publica com dados coletados, finalidade, base legal provavel, retencao, compartilhamento com Google, direitos do titular e contato.",
-        "Footer discreto com versao do frontend.",
-        "Tela Sobre com detalhes do produto, frontend e API.",
-        "Endpoint publico para metadados da API."
+        "Tela Sobre com detalhes do produto, frontend e API."
       ],
       "changed": [
         "Cards de recomendacao exibem preview hoveravel das cartas sugeridas para adicionar e remover.",

@@ -5,14 +5,18 @@ import com.mtg.domain.DeckRecommendations;
 import com.mtg.domain.StrategicRecommendation;
 import com.mtg.config.SensitiveLogSanitizer;
 import com.mtg.dto.ApplyRecommendationSwapDTO;
+import com.mtg.dto.AuthenticatedUserDTO;
+import com.mtg.dto.DeckConsultResponseDTO;
 import com.mtg.dto.DeckLegalityDTO;
 import com.mtg.dto.DeckImportDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
 import com.mtg.dto.ErrorResponseDTO;
+import com.mtg.dto.PublicDeckSummaryDTO;
 import com.mtg.dto.RecommendationParamsDTO;
 import com.mtg.dto.SimilarDeckComparisonDTO;
 import com.mtg.config.StructuredRestLog;
+import com.mtg.service.AuthenticatedUserService;
 import com.mtg.service.DeckAnalysisService;
 import com.mtg.service.DeckComparisonService;
 import com.mtg.service.DeckLegalityService;
@@ -31,6 +35,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
@@ -49,6 +54,9 @@ public class DeckController {
 
     @Inject
     DeckService deckService;
+
+    @Inject
+    AuthenticatedUserService authenticatedUserService;
 
     @Inject
     DeckAnalysisService deckAnalysisService;
@@ -76,7 +84,7 @@ public class DeckController {
     })
     public Response createDeck(DeckRequestDTO request) {
         try {
-            DeckResponseDTO created = deckService.createDeck(request, currentUserId());
+            DeckResponseDTO created = deckService.createDeck(request, currentUserProfile());
             URI location = URI.create("/decks/" + created.id());
             return Response.created(location).entity(created).build();
         } catch (IllegalArgumentException e) {
@@ -90,7 +98,7 @@ public class DeckController {
     @Operation(summary = "Import deck from text")
     public Response importDeck(DeckImportDTO dto) {
         try {
-            DeckResponseDTO created = deckService.importDeck(dto, currentUserId());
+            DeckResponseDTO created = deckService.importDeck(dto, currentUserProfile());
             URI location = URI.create("/decks/" + created.id());
             return Response.created(location).entity(created).build();
         } catch (IllegalArgumentException e) {
@@ -103,6 +111,17 @@ public class DeckController {
     @Operation(summary = "List decks")
     public List<DeckResponseDTO> listDecks() {
         return deckService.listDecks(currentUserId());
+    }
+
+    @GET
+    @Path("/public")
+    @Operation(summary = "List public decks")
+    public List<PublicDeckSummaryDTO> listPublicDecks(
+            @QueryParam("page") Integer page,
+            @QueryParam("size") Integer size,
+            @QueryParam("commander") String commander
+    ) {
+        return deckService.listPublicDecks(page, size, commander);
     }
 
     @GET
@@ -120,6 +139,20 @@ public class DeckController {
         return Response.ok(dto).build();
     }
 
+    @GET
+    @Path("{id}/consult")
+    @Operation(summary = "Consult a deck in read-only mode")
+    public Response consultDeck(@Parameter(description = "Deck id") @PathParam("id") String idStr) {
+        Long id = parseDeckId(idStr);
+        if (id == null) return badRequest("Invalid deck id");
+
+        DeckConsultResponseDTO dto = deckService.consultDeck(id, currentUserIdOrNull());
+        if (dto == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        return Response.ok(dto).build();
+    }
+
     @PUT
     @Path("{id}")
     @Authenticated
@@ -130,7 +163,7 @@ public class DeckController {
 
         DeckResponseDTO updated;
         try {
-            updated = deckService.updateDeck(id, request, currentUserId());
+            updated = deckService.updateDeck(id, request, currentUserProfile());
         } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
         }
@@ -326,6 +359,21 @@ public class DeckController {
     }
 
     private String currentUserId() {
-        return securityIdentity.getPrincipal().getName();
+        return currentUserProfile().googleSubject();
+    }
+
+    private String currentUserIdOrNull() {
+        if (securityIdentity == null || securityIdentity.isAnonymous()) {
+            return null;
+        }
+        try {
+            return authenticatedUserService.subject(securityIdentity);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private AuthenticatedUserDTO currentUserProfile() {
+        return authenticatedUserService.profile(securityIdentity);
     }
 }

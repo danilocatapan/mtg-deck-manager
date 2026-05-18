@@ -79,7 +79,8 @@ public class UserPrivacyService {
                 cards,
                 deck.getColorIdentity(),
                 commandersFor(deck),
-                historyFor(deck)
+                historyFor(deck),
+                deck.getVisibility()
         );
     }
 
