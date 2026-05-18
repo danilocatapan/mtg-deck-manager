@@ -33,7 +33,10 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @QuarkusTest
 class DeckControllerTest {
@@ -131,6 +134,39 @@ class DeckControllerTest {
                 .then()
                 .statusCode(200)
                 .body("name", not(hasItem("Private Visibility Deck")));
+    }
+
+    @Test
+    @TestSecurity(user = "legacy-owner", attributes = {
+            @SecurityAttribute(key = "name", value = "Legacy Brewer")
+    })
+    void updateVisibilityForLegacyDeck_doesNotRevalidateUnchangedCards() {
+        Long deckId = persistDeck("Legacy Visibility Deck", DeckVisibility.PRIVATE, "legacy-owner", null, "Missing Card");
+        clearInvocations(cardService);
+
+        Map<String, Object> publicUpdate = Map.of(
+                "name", "Legacy Visibility Deck",
+                "commander", "Cmd",
+                "visibility", "public",
+                "cards", List.of(Map.of("name", "Missing Card", "quantity", 1))
+        );
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(publicUpdate)
+                .when().put("/decks/" + deckId)
+                .then()
+                .statusCode(200)
+                .body("visibility", is("public"));
+
+        verify(cardService, never()).findByNames(any());
+
+        given()
+                .when().get("/decks/public")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("Legacy Visibility Deck"))
+                .body("author", hasItem("Legacy Brewer"));
     }
 
     @Test
@@ -413,8 +449,12 @@ class DeckControllerTest {
     }
 
     private Long persistDeck(String name, DeckVisibility visibility, String ownerId, String author) {
+        return persistDeck(name, visibility, ownerId, author, "Sol Ring");
+    }
+
+    private Long persistDeck(String name, DeckVisibility visibility, String ownerId, String author, String cardName) {
         return QuarkusTransaction.requiringNew().call(() -> {
-            Deck deck = new Deck(name, "Cmd", List.of(new DeckCard("Sol Ring", 1)));
+            Deck deck = new Deck(name, "Cmd", List.of(new DeckCard(cardName, 1)));
             deck.setOwnerId(ownerId);
             deck.setAuthorDisplayName(author);
             deck.setVisibility(visibility);

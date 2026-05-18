@@ -191,17 +191,25 @@ public class DeckService {
         }
         LOG.debugv("event=deck.update.request deckId={0}", id);
         List<CommanderDTO> commanders = normalizeCommanders(request.commander(), request.commanders());
-        Map<String, CardResponseDTO> resolved = validateCardsExist(commanders, request.cards());
+        boolean commandersChanged = !sameCommanders(commandersFor(deck), commanders);
+        boolean cardsChanged = !sameCards(deck.getCards(), request.cards());
+        Map<String, CardResponseDTO> resolved = commandersChanged || cardsChanged
+                ? validateCardsExist(commanders, request.cards())
+                : Map.of();
         deck.setName(request.name().trim());
         deck.setCommander(primaryCommander(commanders));
         deck.setCommandersJson(toCommandersJson(commanders));
-        deck.setColorIdentity(toColorIdentity(commanders, resolved));
+        if (commandersChanged || cardsChanged) {
+            deck.setColorIdentity(toColorIdentity(commanders, resolved));
+        }
         deck.setVisibility(normalizeVisibility(request.visibility()));
         String publicAuthor = toPublicAuthor(authorDisplayName);
         if (publicAuthor != null) {
             deck.setAuthorDisplayName(publicAuthor);
         }
-        deck.setCards(toEntities(request.cards()));
+        if (cardsChanged) {
+            deck.setCards(toEntities(request.cards()));
+        }
         deckRepository.persist(deck);
         LOG.infov("event=deck.updated deckId={0}", id);
         return toDto(deck);
@@ -397,6 +405,48 @@ public class DeckService {
             }
         }
         return resolved;
+    }
+
+    private boolean sameCommanders(List<CommanderDTO> currentCommanders, List<CommanderDTO> requestedCommanders) {
+        if (currentCommanders == null || requestedCommanders == null || currentCommanders.size() != requestedCommanders.size()) {
+            return false;
+        }
+        for (int index = 0; index < currentCommanders.size(); index++) {
+            CommanderDTO current = currentCommanders.get(index);
+            CommanderDTO requested = requestedCommanders.get(index);
+            if (!normalize(current.name()).equals(normalize(requested.name()))) {
+                return false;
+            }
+            if (!normalizeRole(current.role()).equals(normalizeRole(requested.role()))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean sameCards(List<DeckCard> currentCards, List<DeckCardDTO> requestedCards) {
+        if (currentCards == null || requestedCards == null || currentCards.size() != requestedCards.size()) {
+            return false;
+        }
+        Map<String, Integer> currentQuantities = currentCards.stream()
+                .collect(Collectors.toMap(
+                        card -> normalize(card.getName()),
+                        DeckCard::getQuantity,
+                        Integer::sum,
+                        java.util.LinkedHashMap::new
+                ));
+        Map<String, Integer> requestedQuantities = requestedCards.stream()
+                .collect(Collectors.toMap(
+                        card -> normalize(card.name()),
+                        DeckCardDTO::quantity,
+                        Integer::sum,
+                        java.util.LinkedHashMap::new
+                ));
+        return currentQuantities.equals(requestedQuantities);
+    }
+
+    private String normalizeRole(String role) {
+        return role == null || role.isBlank() ? "commander" : role.trim().toLowerCase(Locale.ROOT).replace("_", "-");
     }
 
     private void validateCardExists(String name, String message) {

@@ -18,7 +18,9 @@
         "Recomendacoes passaram a respeitar melhor identidade de cor, meta local, combos quase presentes e fallback high-power/cEDH.",
         "Cadastro, edicao, importacao, analise e recomendacoes ficaram mais compactos e focados nos sinais acionaveis do deck."
       ],
-      "fixed": [],
+      "fixed": [
+        "Decks antigos agora podem ser publicados sem revalidar cartas inalteradas na Scryfall."
+      ],
       "security": [
         "Fluxo Google documentado para escopos minimos openid, email e profile, sem persistencia de access_token ou refresh_token.",
         "Logs de fluxos autenticados deixam de registrar payloads de decks, nomes de cartas em validacoes e detalhes de troca de recomendacao."
