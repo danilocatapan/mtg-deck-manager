@@ -20,6 +20,16 @@ Fluxo minimo obrigatorio
 2. Escolha o guia especializado relevante.
 3. Antes de alterar comportamento observavel, execute a analise minima definida em `analysis.md`.
 
+Manutencao de regras e contexto para IA
+---------------------------------------
+- Quando uma demanda adicionar, remover ou alterar regras da aplicacao, praticas de engenharia, criterios de validacao ou contexto operacional, atualize os arquivos `.md` canonicos afetados antes da resposta final.
+- Use este arquivo para regras globais e transversais. Use os guias especializados apenas quando a regra pertencer claramente ao tema do guia (`analysis`, `backend`, `frontend`, `testing` ou `workflow-graph`).
+- Nao replique regras globais em `AGENTS.md` da raiz nem em `.github/copilot-instructions.md`; esses arquivos devem continuar como pontos de entrada/bootstrap.
+- Ao atualizar markdowns de regras, mantenha secoes curtas, titulos consistentes, linguagem objetiva e contexto suficiente para que novos pedidos via GPT/Codex entendam a pratica atual sem depender de historico de conversa.
+- Inclua exemplos somente quando reduzirem ambiguidade. Prefira placeholders explicitos como `[DADO EXEMPLO]` ou `[PLACEHOLDER]` quando o valor real depender do pedido futuro.
+- Antes da resposta final, relate em portugues as etapas executadas e a justificativa resumida da alteracao ou da decisao de nao alterar. Forneca raciocinio resumido e auditavel, sem expor cadeia interna de pensamento.
+- Ao apresentar o resultado de uma atualizacao de `.md`, comece por `Alteracoes realizadas:` e liste os pontos modificados. Quando o usuario pedir o conteudo revisado, inclua `Conteudo atualizado do arquivo .md:` seguido do conteudo completo do arquivo afetado em markdown puro.
+
 Regras globais inegociaveis
 ---------------------------
 - Sempre validar contratos observaveis (endpoints + testes) antes de alterar comportamento.
