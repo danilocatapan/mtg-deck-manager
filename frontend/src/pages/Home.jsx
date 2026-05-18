@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { consultDeck, deleteDeck, fetchDecks, fetchPublicDecks } from '../services/api'
 import DeckList from '../components/DeckList'
 import DeckEditorPage from './DeckEditorPage'
@@ -12,9 +12,15 @@ import { ApiStartingError } from '../services/api'
 import createIcon from '../assets/icons/create.png'
 import importIcon from '../assets/icons/import.png'
 
+const PUBLIC_DECK_LIMIT = 10
+const PUBLIC_COMMANDER_FILTER_DEBOUNCE_MS = 350
+
 export default function Home() {
   const [decks, setDecks] = useState([])
   const [publicDecks, setPublicDecks] = useState([])
+  const [publicDecksLoading, setPublicDecksLoading] = useState(true)
+  const [publicCommanderFilter, setPublicCommanderFilter] = useState('')
+  const [debouncedPublicCommanderFilter, setDebouncedPublicCommanderFilter] = useState('')
   const [view, setView] = useState('home')
   const [editingDeck, setEditingDeck] = useState(null)
   const [consultingDeck, setConsultingDeck] = useState(null)
@@ -22,31 +28,88 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState(null)
   const [apiStatus, setApiStatus] = useState(null)
+  const initialLoadComplete = useRef(false)
+  const debouncedPublicCommanderFilterRef = useRef('')
 
-  const load = useCallback(async function loadDecks() {
-    const token = getAuthToken()
-    setLoading(true)
-    setApiStatus(null)
+  const loadPublicDecks = useCallback(async function loadPublicDecks(commanderFilter = '') {
+    setPublicDecksLoading(true)
     try {
-      const [loadedPublicDecks, loadedDecks] = await Promise.all([
-        fetchPublicDecks({ throwOnError: true }),
-        token ? fetchDecks({ throwOnError: true }) : Promise.resolve([]),
-      ])
+      const loadedPublicDecks = await fetchPublicDecks({
+        page: 0,
+        size: PUBLIC_DECK_LIMIT,
+        commander: commanderFilter.trim(),
+        throwOnError: true,
+      })
+      setApiStatus(null)
       setPublicDecks(loadedPublicDecks)
+    } catch (error) {
+      console.error('load public decks failed')
+      setApiStatus(error instanceof ApiStartingError ? 'starting' : 'unavailable')
+      setPublicDecks([])
+    } finally {
+      setPublicDecksLoading(false)
+    }
+  }, [])
+
+  const loadUserDecks = useCallback(async function loadUserDecks() {
+    const token = getAuthToken()
+    try {
+      const loadedDecks = token ? await fetchDecks({ throwOnError: true }) : []
       setDecks(loadedDecks)
     } catch (error) {
       console.error('load decks failed')
       setApiStatus(error instanceof ApiStartingError ? 'starting' : 'unavailable')
-      setPublicDecks([])
       setDecks([])
-    } finally {
-      setLoading(false)
     }
   }, [])
 
+  const load = useCallback(async function loadDecks() {
+    setLoading(true)
+    setApiStatus(null)
+    await Promise.all([
+      loadPublicDecks(debouncedPublicCommanderFilter),
+      loadUserDecks(),
+    ])
+    initialLoadComplete.current = true
+    setLoading(false)
+  }, [debouncedPublicCommanderFilter, loadPublicDecks, loadUserDecks])
+
   useEffect(() => {
-    queueMicrotask(load)
-  }, [isAuthenticated, load])
+    let cancelled = false
+    initialLoadComplete.current = false
+    async function loadInitialDecks() {
+      setLoading(true)
+      setApiStatus(null)
+      await Promise.all([
+        loadPublicDecks(debouncedPublicCommanderFilterRef.current),
+        loadUserDecks(),
+      ])
+      if (!cancelled) {
+        initialLoadComplete.current = true
+        setLoading(false)
+      }
+    }
+    queueMicrotask(loadInitialDecks)
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated, loadPublicDecks, loadUserDecks])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedPublicCommanderFilter(publicCommanderFilter.trim())
+    }, PUBLIC_COMMANDER_FILTER_DEBOUNCE_MS)
+    return () => window.clearTimeout(timeoutId)
+  }, [publicCommanderFilter])
+
+  useEffect(() => {
+    debouncedPublicCommanderFilterRef.current = debouncedPublicCommanderFilter
+  }, [debouncedPublicCommanderFilter])
+
+  useEffect(() => {
+    if (!initialLoadComplete.current) return
+    queueMicrotask(() => loadPublicDecks(debouncedPublicCommanderFilter))
+  }, [debouncedPublicCommanderFilter, loadPublicDecks])
 
   useEffect(() => subscribeAuth(() => {
     setIsAuthenticated(Boolean(getAuthToken()))
@@ -125,6 +188,11 @@ export default function Home() {
     document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
+  function clearPublicCommanderFilter() {
+    setPublicCommanderFilter('')
+    setDebouncedPublicCommanderFilter('')
+  }
+
   if (view === 'create' || view === 'edit') {
     return <DeckEditorPage mode={view === 'create' ? 'create' : 'edit'} deck={editingDeck} onDone={handleDone} />
   }
@@ -136,6 +204,12 @@ export default function Home() {
   if (view === 'consult') {
     return <DeckConsultPage deck={consultingDeck} onBack={() => setView('home')} />
   }
+
+  const activePublicCommanderFilter = debouncedPublicCommanderFilter.trim()
+  const publicEmptyTitle = activePublicCommanderFilter ? 'Nenhum deck encontrado' : 'Nenhum deck publico'
+  const publicEmptyDescription = activePublicCommanderFilter
+    ? `Nenhum deck publico recente encontrado para "${activePublicCommanderFilter}".`
+    : 'Quando um deck for marcado como publico, ele aparecera aqui para consulta.'
 
   return (
     <main>
@@ -194,8 +268,26 @@ export default function Home() {
             <div className="section-heading">
               <div>
                 <p className="eyebrow">Vitrine</p>
-                <h2>Decks publicos</h2>
-                <p>Listas compartilhadas pela comunidade para consulta em modo somente leitura.</p>
+                <h2>Decks publicos recentes</h2>
+                <p>Top 10 decks publicos criados por ultimo, em modo somente leitura.</p>
+              </div>
+            </div>
+            <div className="public-vitrine-toolbar">
+              <label>
+                <span>Filtrar por comandante</span>
+                <input
+                  value={publicCommanderFilter}
+                  onChange={(event) => setPublicCommanderFilter(event.target.value)}
+                  placeholder="Atraxa, Xenagos, Muldrotha..."
+                />
+              </label>
+              {publicCommanderFilter.trim() && (
+                <Button type="button" variant="secondary" onClick={clearPublicCommanderFilter}>
+                  Limpar
+                </Button>
+              )}
+              <div className="public-vitrine-summary" aria-live="polite">
+                {publicDecksLoading ? 'Atualizando vitrine...' : `${publicDecks.length}/${PUBLIC_DECK_LIMIT} decks recentes`}
               </div>
             </div>
             <DeckList
@@ -203,8 +295,8 @@ export default function Home() {
               onConsult={handleConsult}
               showCreateActions={false}
               showManageActions={false}
-              emptyTitle="Nenhum deck publico"
-              emptyDescription="Quando um deck for marcado como publico, ele aparecera aqui para consulta."
+              emptyTitle={publicEmptyTitle}
+              emptyDescription={publicEmptyDescription}
             />
           </Card>
 

@@ -128,7 +128,7 @@ export async function fetchDecks({ throwOnError = false } = {}) {
   }
 }
 
-export async function fetchPublicDecks({ page = 0, size = 12, commander = '', throwOnError = false } = {}) {
+export async function fetchPublicDecks({ page = 0, size = 10, commander = '', throwOnError = false } = {}) {
   try {
     const query = new URLSearchParams()
     query.set('page', String(page))

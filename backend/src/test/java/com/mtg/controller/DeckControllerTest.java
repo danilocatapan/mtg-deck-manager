@@ -137,6 +137,33 @@ class DeckControllerTest {
     }
 
     @Test
+    void listPublicDecks_limitsToTenNewestAndFiltersCommander() {
+        String commander = "Limit Commander";
+        for (int index = 1; index <= 12; index++) {
+            persistDeck("Recent Public " + index, DeckVisibility.PUBLIC, "public-owner-" + index, "Public Author", "Sol Ring", commander);
+        }
+        persistDeck("Recent Private Hidden", DeckVisibility.PRIVATE, "private-owner-limit", "Private Author", "Sol Ring", commander);
+
+        Response response = given()
+                .queryParam("size", 10)
+                .queryParam("commander", commander)
+                .when().get("/decks/public")
+                .then()
+                .statusCode(200)
+                .extract().response();
+
+        List<String> names = response.jsonPath().getList("name");
+        List<String> commanders = response.jsonPath().getList("commander");
+
+        assertThat(names.size(), is(10));
+        assertThat(names.get(0), is("Recent Public 12"));
+        assertThat(names.get(9), is("Recent Public 3"));
+        assertThat(names.contains("Recent Public 2"), is(false));
+        assertThat(names.contains("Recent Private Hidden"), is(false));
+        assertThat(commanders.stream().allMatch(commander::equals), is(true));
+    }
+
+    @Test
     @TestSecurity(user = "legacy-owner", attributes = {
             @SecurityAttribute(key = "name", value = "Legacy Brewer")
     })
@@ -453,8 +480,12 @@ class DeckControllerTest {
     }
 
     private Long persistDeck(String name, DeckVisibility visibility, String ownerId, String author, String cardName) {
+        return persistDeck(name, visibility, ownerId, author, cardName, "Cmd");
+    }
+
+    private Long persistDeck(String name, DeckVisibility visibility, String ownerId, String author, String cardName, String commander) {
         return QuarkusTransaction.requiringNew().call(() -> {
-            Deck deck = new Deck(name, "Cmd", List.of(new DeckCard(cardName, 1)));
+            Deck deck = new Deck(name, commander, List.of(new DeckCard(cardName, 1)));
             deck.setOwnerId(ownerId);
             deck.setAuthorDisplayName(author);
             deck.setVisibility(visibility);

@@ -260,6 +260,35 @@ label small {
   margin-top: 4px;
 }
 
+.public-vitrine-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  gap: 10px;
+  align-items: end;
+  margin: 0 0 14px;
+}
+
+.public-vitrine-toolbar label {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.public-vitrine-toolbar label span,
+.public-vitrine-summary {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.public-vitrine-summary {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
 .deck-meta-row .deck-count {
   margin-top: 0;
 }
@@ -884,6 +913,20 @@ code {
   .deck-card {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .public-vitrine-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .public-vitrine-toolbar .btn,
+  .public-vitrine-toolbar button {
+    width: 100%;
+  }
+
+  .public-vitrine-summary {
+    justify-content: flex-start;
+    min-height: auto;
   }
 
   .page-heading,

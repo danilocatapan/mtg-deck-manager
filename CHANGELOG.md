@@ -16,6 +16,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Endpoint publico para metadados da API.
 
 ### Changed
+- Vitrine de decks publicos passa a listar os 10 decks mais recentes e inclui filtro por nome de comandante com busca ao digitar.
 - Lista do deck no editor recebeu filtro por nome, filtro por tipo e agrupamento por terrenos, criaturas, artefatos, encantamentos, planeswalkers e demais tipos.
 - Cards de recomendacao exibem preview hoveravel das cartas sugeridas para adicionar e remover.
 - Manual operacional de agentes documenta validacao Playwright MCP com Vite local, base path, mocks de login/API e checklist UX.
