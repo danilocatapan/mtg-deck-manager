@@ -459,7 +459,24 @@ textarea {
 }
 
 .deck-row {
-  grid-template-columns: 1fr auto minmax(150px, 210px) auto;
+  grid-template-columns: minmax(0, 1fr) 74px minmax(112px, auto);
+}
+
+.deck-row-card {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.deck-row-card strong,
+.deck-row-card span {
+  overflow-wrap: anywhere;
+}
+
+.deck-row-card span {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .result-card-meta {
@@ -556,6 +573,90 @@ textarea {
   max-height: min(520px, 60vh);
   overflow-y: auto;
   padding-right: 4px;
+}
+
+.deck-list-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(160px, 220px) auto auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.deck-list-toolbar label {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.deck-list-toolbar label span,
+.deck-list-summary {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.deck-list-checkbox {
+  align-self: stretch;
+  grid-template-columns: auto minmax(0, auto);
+  align-content: end;
+  align-items: center;
+  gap: 8px !important;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid rgba(110, 85, 40, 0.52);
+  border-radius: 8px;
+  background: rgba(251, 246, 231, 0.58);
+}
+
+.deck-list-checkbox input {
+  width: 18px;
+  height: 18px;
+}
+
+.deck-list-summary {
+  align-self: end;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.deck-type-groups {
+  display: grid;
+  gap: 12px;
+}
+
+.deck-type-group {
+  display: grid;
+  gap: 8px;
+}
+
+.deck-type-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-block: 1px solid rgba(110, 85, 40, 0.42);
+  background: rgba(6, 18, 12, 0.06);
+}
+
+.deck-type-heading h4,
+.deck-type-heading span {
+  margin: 0;
+}
+
+.deck-type-heading h4 {
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.deck-type-heading span {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .view-toggle {
@@ -3186,6 +3287,15 @@ dt {
   .deck-row,
   .result-item {
     grid-template-columns: 1fr;
+  }
+
+  .deck-list-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .deck-list-summary {
+    justify-content: flex-start;
+    min-height: auto;
   }
 
   .deck-card-list-scroll {

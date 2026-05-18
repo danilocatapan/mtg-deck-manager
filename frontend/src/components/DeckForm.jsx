@@ -5,6 +5,17 @@ import Button from './ui/Button'
 import { fetchCardsByNames } from '../services/api'
 
 const CARD_IMAGE_CACHE_KEY = 'mtg-card-image-cache-v2'
+const CARD_TYPE_GROUPS = [
+  { key: 'land', label: 'Terrenos', matcher: 'land' },
+  { key: 'creature', label: 'Criaturas', matcher: 'creature' },
+  { key: 'artifact', label: 'Artefatos', matcher: 'artifact' },
+  { key: 'enchantment', label: 'Encantamentos', matcher: 'enchantment' },
+  { key: 'planeswalker', label: 'Planeswalkers', matcher: 'planeswalker' },
+  { key: 'instant', label: 'Instantaneas', matcher: 'instant' },
+  { key: 'sorcery', label: 'Feiticos', matcher: 'sorcery' },
+  { key: 'battle', label: 'Batalhas', matcher: 'battle' },
+  { key: 'other', label: 'Outros' },
+]
 
 function readImageCache() {
   try {
@@ -35,16 +46,61 @@ function imageForName(cache, name) {
   return Object.entries(cache).find(([cardName]) => normalizeCardName(cardName) === normalizedName)?.[1] || null
 }
 
+function typeGroupFor(typeLine) {
+  const normalizedType = normalizeCardName(typeLine)
+  if (!normalizedType) return CARD_TYPE_GROUPS[CARD_TYPE_GROUPS.length - 1]
+  return CARD_TYPE_GROUPS.find((group) => group.matcher && normalizedType.includes(group.matcher)) || CARD_TYPE_GROUPS[CARD_TYPE_GROUPS.length - 1]
+}
+
+function cardTotalLabel(quantity) {
+  return `${quantity} ${quantity === 1 ? 'carta' : 'cartas'}`
+}
+
+function mergeCardDetails(prev, fetchedCards, requestedNames = []) {
+  const next = { ...prev }
+  let changed = false
+  const fetchedByName = new Map(fetchedCards
+    .filter((card) => card?.name)
+    .map((card) => [normalizeCardName(card.name), card]))
+
+  function assign(key, card) {
+    if (!key || !card) return
+    const current = next[key]
+    if (current?.name === card.name && current?.typeLine === card.typeLine && current?.imageUrl === card.imageUrl) {
+      return
+    }
+    next[key] = card
+    changed = true
+  }
+
+  fetchedCards.forEach((card) => {
+    if (card?.name) {
+      assign(normalizeCardName(card.name), card)
+    }
+  })
+  requestedNames.forEach((name) => {
+    const normalizedName = normalizeCardName(name)
+    assign(normalizedName, fetchedByName.get(normalizedName))
+  })
+
+  return changed ? next : prev
+}
+
 export default function DeckForm({ initial = null, onCancel, onSave }) {
   const [name, setName] = useState('')
   const [commander, setCommander] = useState('')
   const [visibility, setVisibility] = useState('private')
   const [cards, setCards] = useState([])
+  const [deckNameFilter, setDeckNameFilter] = useState('')
+  const [deckTypeFilter, setDeckTypeFilter] = useState('all')
+  const [groupByType, setGroupByType] = useState(true)
   const [deckView, setDeckView] = useState('list')
+  const [cardDetails, setCardDetails] = useState({})
   const [cardImages, setCardImages] = useState(() => readImageCache())
   const [unavailableImages, setUnavailableImages] = useState({})
   const [requestedImages, setRequestedImages] = useState({})
   const [loadingImages, setLoadingImages] = useState(false)
+  const [loadingCardDetails, setLoadingCardDetails] = useState(false)
   const [error, setError] = useState(null)
   const [savedMessage, setSavedMessage] = useState(null)
 
@@ -56,6 +112,30 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       setCards(initial.cards ? initial.cards.map((card) => ({ name: card.name, quantity: card.quantity })) : [])
     }
   }, [initial])
+
+  useEffect(() => {
+    const missingNames = cards
+      .map((card) => card.name)
+      .filter((cardName) => cardName && !cardDetails[normalizeCardName(cardName)])
+    if (missingNames.length === 0) return
+
+    let cancelled = false
+    async function loadCardDetails() {
+      setLoadingCardDetails(true)
+      const fetchedCards = await fetchCardsByNames(missingNames)
+      if (cancelled) return
+
+      if (fetchedCards.length > 0) {
+        setCardDetails((prev) => mergeCardDetails(prev, fetchedCards, missingNames))
+      }
+      setLoadingCardDetails(false)
+    }
+
+    loadCardDetails()
+    return () => {
+      cancelled = true
+    }
+  }, [cards, cardDetails])
 
   useEffect(() => {
     if (deckView !== 'images' || cards.length === 0) return
@@ -83,6 +163,9 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
         }
       }
       if (!cancelled) {
+        if (fetchedCards.length > 0) {
+          setCardDetails((prev) => mergeCardDetails(prev, fetchedCards, missingCards.map((card) => card.name)))
+        }
         setRequestedImages((prev) => ({
           ...prev,
           ...missingCards.reduce((acc, card) => ({ ...acc, [card.name]: true }), {}),
@@ -108,9 +191,43 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
 
   const mainDeckTotal = useMemo(() => cards
     .reduce((sum, card) => sum + Number(card.quantity || 0), 0), [cards])
-  const missingImageCount = useMemo(() => cards.filter((card) => card.name && !cardImages[card.name]).length, [cards, cardImages])
   const isOverLimit = mainDeckTotal > 99
   const isValid = Boolean(name.trim() && commander.trim() && mainDeckTotal > 0 && !isOverLimit)
+  const typedCards = useMemo(() => cards.map((card) => {
+    const details = cardDetails[normalizeCardName(card.name)]
+    const typeGroup = typeGroupFor(details?.typeLine)
+    return {
+      ...card,
+      typeLine: details?.typeLine || 'Tipo pendente',
+      typeGroupKey: typeGroup.key,
+      typeGroupLabel: typeGroup.label,
+    }
+  }), [cards, cardDetails])
+  const availableTypeGroups = useMemo(() => CARD_TYPE_GROUPS
+    .map((group) => ({
+      ...group,
+      count: typedCards
+        .filter((card) => card.typeGroupKey === group.key)
+        .reduce((sum, card) => sum + Number(card.quantity || 0), 0),
+    }))
+    .filter((group) => group.count > 0), [typedCards])
+  const filteredCards = useMemo(() => {
+    const normalizedFilter = normalizeCardName(deckNameFilter)
+    return typedCards.filter((card) => {
+      const matchesName = !normalizedFilter || normalizeCardName(card.name).includes(normalizedFilter)
+      const matchesType = deckTypeFilter === 'all' || card.typeGroupKey === deckTypeFilter
+      return matchesName && matchesType
+    })
+  }, [deckNameFilter, deckTypeFilter, typedCards])
+  const filteredTotal = useMemo(() => filteredCards
+    .reduce((sum, card) => sum + Number(card.quantity || 0), 0), [filteredCards])
+  const groupedCards = useMemo(() => CARD_TYPE_GROUPS
+    .map((group) => ({
+      ...group,
+      cards: filteredCards.filter((card) => card.typeGroupKey === group.key),
+    }))
+    .filter((group) => group.cards.length > 0), [filteredCards])
+  const missingImageCount = useMemo(() => filteredCards.filter((card) => card.name && !cardImages[card.name]).length, [filteredCards, cardImages])
   const commanderName = commander.trim()
   const commanderImageUrl = useMemo(() => imageForName(cardImages, commanderName), [cardImages, commanderName])
   const commanderInitials = commander
@@ -155,6 +272,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       if (found) return prev.map((item) => (item.name === card.name ? { ...item, quantity: item.quantity + 1 } : item))
       return [...prev, { name: card.name, quantity: 1 }]
     })
+    setCardDetails((prev) => ({ ...prev, [normalizeCardName(card.name)]: card }))
     if (card.imageUrl) {
       setCardImages((prev) => {
         const merged = { ...prev, [card.name]: card.imageUrl }
@@ -190,6 +308,27 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   function changeQuantity(cardName, qty) {
     setSavedMessage(null)
     setCards((prev) => prev.map((card) => (card.name === cardName ? { ...card, quantity: Math.max(1, qty) } : card)))
+  }
+
+  function renderDeckRow(card) {
+    return (
+      <div key={card.name} className="deck-row">
+        <div className="deck-row-card">
+          <strong>{card.name}</strong>
+          <span>{card.typeLine}</span>
+        </div>
+        <input
+          aria-label={`Quantidade de ${card.name}`}
+          type="number"
+          value={card.quantity}
+          min={1}
+          onChange={(e) => changeQuantity(card.name, parseInt(e.target.value || '1', 10))}
+        />
+        <Button type="button" variant="danger" onClick={() => removeCard(card.name)}>
+          Remover
+        </Button>
+      </div>
+    )
   }
 
   function validate() {
@@ -294,27 +433,67 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
           </div>
         </div>
 
+        {cards.length > 0 && (
+          <div className="deck-list-toolbar">
+            <label className="deck-list-search">
+              <span>Filtrar por nome</span>
+              <input
+                value={deckNameFilter}
+                onChange={(e) => setDeckNameFilter(e.target.value)}
+                placeholder="Sol Ring, Forest..."
+              />
+            </label>
+            <label>
+              <span>Tipo</span>
+              <select value={deckTypeFilter} onChange={(e) => setDeckTypeFilter(e.target.value)}>
+                <option value="all">Todos os tipos</option>
+                {availableTypeGroups.map((group) => (
+                  <option key={group.key} value={group.key}>{group.label} ({group.count})</option>
+                ))}
+              </select>
+            </label>
+            <label className="deck-list-checkbox">
+              <input
+                type="checkbox"
+                checked={groupByType}
+                onChange={(e) => setGroupByType(e.target.checked)}
+              />
+              <span>Agrupar por tipo</span>
+            </label>
+            <div className="deck-list-summary" aria-live="polite">
+              {loadingCardDetails ? 'Carregando tipos...' : `${cardTotalLabel(filteredTotal)} visiveis`}
+            </div>
+          </div>
+        )}
+
         {cards.length === 0 ? (
           <div className="empty-inline">Nenhuma carta adicionada. Busque acima para começar.</div>
+        ) : filteredCards.length === 0 ? (
+          <div className="empty-inline">Nenhuma carta corresponde aos filtros atuais.</div>
         ) : deckView === 'list' ? (
           <div className="deck-card-list-scroll">
-            <div className="deck-table">
-              {cards.map((card) => (
-                <div key={card.name} className="deck-row">
-                  <strong>{card.name}</strong>
-                  <input
-                    aria-label={`Quantidade de ${card.name}`}
-                    type="number"
-                    value={card.quantity}
-                    min={1}
-                    onChange={(e) => changeQuantity(card.name, parseInt(e.target.value || '1', 10))}
-                  />
-                  <Button type="button" variant="danger" onClick={() => removeCard(card.name)}>
-                    Remover
-                  </Button>
-                </div>
-              ))}
-            </div>
+            {groupByType ? (
+              <div className="deck-type-groups">
+                {groupedCards.map((group) => {
+                  const groupTotal = group.cards.reduce((sum, card) => sum + Number(card.quantity || 0), 0)
+                  return (
+                    <section key={group.key} className="deck-type-group">
+                      <div className="deck-type-heading">
+                        <h4>{group.label}</h4>
+                        <span>{cardTotalLabel(groupTotal)}</span>
+                      </div>
+                      <div className="deck-table">
+                        {group.cards.map(renderDeckRow)}
+                      </div>
+                    </section>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="deck-table">
+                {filteredCards.map(renderDeckRow)}
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -329,7 +508,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
               </div>
             )}
             <div className="deck-image-grid">
-              {cards.map((card) => (
+              {filteredCards.map((card) => (
                 <article key={card.name} className="deck-image-card">
                   <div className="card-art-frame">
                     {cardImages[card.name] ? (
