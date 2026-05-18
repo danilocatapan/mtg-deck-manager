@@ -26,6 +26,13 @@ Regras globais inegociaveis
 - Nao alterar regra negocial, fluxo negocial, criterio de decisao, side effects ou contratos observaveis sem pedido explicito: registre como achado e consulte stakeholders.
 - Sempre registrar mudancas relevantes no `CHANGELOG.md` e, quando houver impacto para usuarios, tambem atualizar as release notes publicas em `frontend/public/release-notes.json`.
 
+Release notes e changelog
+-------------------------
+- Sempre que alterar texto em `CHANGELOG.md` ou `frontend/public/release-notes.json`, atualizar a data da entrada afetada para a data da alteracao.
+- Manter as release notes publicas curtas e curadas: em `frontend/public/release-notes.json`, cada categoria deve priorizar apenas os itens mais impactantes para o usuario ou para suporte/rastreabilidade.
+- Como limite padrao, usar ate 5 itens por categoria nas release notes publicas. Itens internos, redundantes ou de baixo impacto devem ficar fora da tela publica, mesmo que possam existir no changelog quando forem relevantes para historico tecnico.
+- Consolidar mudancas relacionadas em uma unica frase objetiva, evitando listas longas de detalhes de implementacao.
+
 Controle de complexidade
 ------------------------
 - Implementar sempre a solucao mais simples que resolve a necessidade atual.
