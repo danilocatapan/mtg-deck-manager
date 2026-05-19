@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { consultDeck, deleteDeck, fetchDecks, fetchPublicDecks } from '../services/api'
+import { copyPublicDeck, deleteDeck, fetchDecks, fetchPublicDecks, getPublicDeck } from '../services/api'
 import DeckList from '../components/DeckList'
 import DeckEditorPage from './DeckEditorPage'
 import DeckConsultPage from './DeckConsultPage'
@@ -12,7 +12,7 @@ import { ApiStartingError } from '../services/api'
 import createIcon from '../assets/icons/create.png'
 import importIcon from '../assets/icons/import.png'
 
-const PUBLIC_DECK_LIMIT = 10
+const PUBLIC_DECK_LIMIT = 24
 const PUBLIC_COMMANDER_FILTER_DEBOUNCE_MS = 350
 
 export default function Home() {
@@ -24,6 +24,7 @@ export default function Home() {
   const [view, setView] = useState('home')
   const [editingDeck, setEditingDeck] = useState(null)
   const [consultingDeck, setConsultingDeck] = useState(null)
+  const [editorNotice, setEditorNotice] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getAuthToken()))
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState(null)
@@ -121,6 +122,7 @@ export default function Home() {
       return
     }
     setMessage(null)
+    setEditorNotice(null)
     setEditingDeck(null)
     setView('create')
   }
@@ -131,6 +133,7 @@ export default function Home() {
       return
     }
     setMessage(null)
+    setEditorNotice(null)
     setEditingDeck(null)
     setView('import')
   }
@@ -141,6 +144,7 @@ export default function Home() {
       return
     }
     setMessage(null)
+    setEditorNotice(null)
     setEditingDeck(deck)
     setView('edit')
   }
@@ -148,12 +152,32 @@ export default function Home() {
   async function handleConsult(deck) {
     try {
       setMessage(null)
-      const loadedDeck = await consultDeck(deck.id)
+      const loadedDeck = await getPublicDeck(deck.id)
       setConsultingDeck(loadedDeck)
       setView('consult')
     } catch {
       console.error('consult deck failed')
       setMessage('Nao foi possivel consultar este deck.')
+    }
+  }
+
+  async function handleCopyPublicDeck(deck) {
+    if (!isAuthenticated) {
+      focusLogin()
+      setMessage('Entre com Google para copiar este deck para sua biblioteca.')
+      return
+    }
+
+    try {
+      setMessage(null)
+      const copiedDeck = await copyPublicDeck(deck.id)
+      setEditingDeck(copiedDeck)
+      setEditorNotice('Deck copiado para sua biblioteca como privado.')
+      setView('edit')
+      await load()
+    } catch (error) {
+      console.error('copy public deck failed')
+      setMessage(error.message || 'Nao foi possivel copiar este deck.')
     }
   }
 
@@ -180,6 +204,7 @@ export default function Home() {
     } else {
       setView('home')
     }
+    setEditorNotice(null)
     setMessage(nextMessage || null)
     load()
   }
@@ -194,7 +219,7 @@ export default function Home() {
   }
 
   if (view === 'create' || view === 'edit') {
-    return <DeckEditorPage mode={view === 'create' ? 'create' : 'edit'} deck={editingDeck} onDone={handleDone} />
+    return <DeckEditorPage mode={view === 'create' ? 'create' : 'edit'} deck={editingDeck} initialMessage={editorNotice} onDone={handleDone} />
   }
 
   if (view === 'import') {
@@ -202,7 +227,18 @@ export default function Home() {
   }
 
   if (view === 'consult') {
-    return <DeckConsultPage deck={consultingDeck} onBack={() => setView('home')} />
+    return (
+      <DeckConsultPage
+        deck={consultingDeck}
+        isAuthenticated={isAuthenticated}
+        onCopy={handleCopyPublicDeck}
+        onLoginRequired={() => {
+          focusLogin()
+          setMessage('Entre com Google para copiar este deck para sua biblioteca.')
+        }}
+        onBack={() => setView('home')}
+      />
+    )
   }
 
   const activePublicCommanderFilter = debouncedPublicCommanderFilter.trim()
@@ -269,7 +305,7 @@ export default function Home() {
               <div>
                 <p className="eyebrow">Vitrine</p>
                 <h2>Decks publicos recentes</h2>
-                <p>Top 10 decks publicos criados por ultimo, em modo somente leitura.</p>
+                <p>Decks publicos recentes em modo somente leitura.</p>
               </div>
             </div>
             <div className="public-vitrine-toolbar">

@@ -13,6 +13,7 @@ import com.mtg.dto.DeckHistoryEntryDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
 import com.mtg.dto.PublicDeckSummaryDTO;
+import com.mtg.dto.PublicDeckResponseDTO;
 import com.mtg.model.DeckVisibility;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
@@ -168,6 +169,38 @@ public class DeckService {
             return null;
         }
         return toConsultDto(deck);
+    }
+
+    public PublicDeckResponseDTO getPublicDeck(Long id) {
+        Deck deck = deckRepository.findPublicById(id);
+        if (deck == null) {
+            return null;
+        }
+        return toPublicDto(deck);
+    }
+
+    @Transactional
+    public DeckResponseDTO copyPublicDeck(Long id, AuthenticatedUserDTO user) {
+        validateUser(user);
+        Deck source = deckRepository.findPublicById(id);
+        if (source == null) {
+            return null;
+        }
+
+        Deck copy = new Deck();
+        copy.setName(copyName(source.getName()));
+        copy.setCommander(source.getCommander());
+        copy.setOwnerId(user.googleSubject());
+        copy.setAuthorDisplayName(toPublicAuthor(user.name()));
+        copy.setVisibility(DeckVisibility.PRIVATE);
+        copy.setCommandersJson(source.getCommandersJson());
+        copy.setColorIdentity(source.getColorIdentity());
+        copy.setCards(source.getCards().stream()
+                .map(card -> new DeckCard(card.getName(), card.getQuantity()))
+                .collect(Collectors.toList()));
+        deckRepository.persist(copy);
+        LOG.infov("event=deck.public.copy.created sourceDeckId={0} copiedDeckId={1}", id, copy.getId());
+        return toDto(copy);
     }
 
     @Transactional
@@ -552,6 +585,12 @@ public class DeckService {
         return trimmed.length() > 120 ? trimmed.substring(0, 120) : trimmed;
     }
 
+    private String copyName(String sourceName) {
+        String baseName = sourceName == null || sourceName.isBlank() ? "Deck" : sourceName.trim();
+        String copiedName = "Copia de " + baseName;
+        return copiedName.length() > MAX_DECK_NAME_LENGTH ? copiedName.substring(0, MAX_DECK_NAME_LENGTH) : copiedName;
+    }
+
     private DeckResponseDTO toDto(Deck deck) {
         List<DeckCardDTO> cards = deck.getCards().stream()
                 .map(c -> new DeckCardDTO(c.getName(), c.getQuantity()))
@@ -571,6 +610,23 @@ public class DeckService {
                 deck.getVisibility(),
                 cards,
                 commandersFor(deck),
+                deck.getAuthorDisplayName()
+        );
+    }
+
+    private PublicDeckResponseDTO toPublicDto(Deck deck) {
+        List<DeckCardDTO> cards = deck.getCards().stream()
+                .map(c -> new DeckCardDTO(c.getName(), c.getQuantity()))
+                .collect(Collectors.toList());
+        return new PublicDeckResponseDTO(
+                deck.getId(),
+                deck.getName(),
+                deck.getCommander(),
+                commandersFor(deck),
+                deck.getColorIdentity(),
+                cards,
+                totalCards(deck),
+                deck.getVisibility(),
                 deck.getAuthorDisplayName()
         );
     }

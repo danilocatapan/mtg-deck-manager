@@ -10,7 +10,7 @@ import java.util.Locale;
 
 @ApplicationScoped
 public class DeckRepository implements PanacheRepository<Deck> {
-    private static final int DEFAULT_PUBLIC_PAGE_SIZE = 12;
+    private static final int DEFAULT_PUBLIC_PAGE_SIZE = 24;
     private static final int MAX_PUBLIC_PAGE_SIZE = 50;
 
     public Deck findByIdOrThrow(Long id) {
@@ -41,5 +41,9 @@ public class DeckRepository implements PanacheRepository<Deck> {
 
     public Deck findPublicByIdOrOwner(Long id, String ownerId) {
         return find("id = ?1 and (visibility = ?2 or ownerId = ?3)", id, DeckVisibility.PUBLIC, ownerId).firstResult();
+    }
+
+    public Deck findPublicById(Long id) {
+        return find("id = ?1 and visibility = ?2", id, DeckVisibility.PUBLIC).firstResult();
     }
 }

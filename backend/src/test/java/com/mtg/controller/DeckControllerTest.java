@@ -95,9 +95,10 @@ class DeckControllerTest {
                 .extract().response();
 
         String location = created.getHeader("Location");
+        Long deckId = created.jsonPath().getLong("id");
 
         given()
-                .when().get("/decks/public")
+                .when().get("/public/decks")
                 .then()
                 .statusCode(200)
                 .body("name", hasItem("Public Visibility Deck"))
@@ -105,7 +106,7 @@ class DeckControllerTest {
                 .body("author", hasItem("Public Brewer"));
 
         given()
-                .when().get(location + "/consult")
+                .when().get("/public/decks/" + deckId)
                 .then()
                 .statusCode(200)
                 .body("name", is("Public Visibility Deck"))
@@ -130,7 +131,7 @@ class DeckControllerTest {
                 .body("visibility", is("private"));
 
         given()
-                .when().get("/decks/public")
+                .when().get("/public/decks")
                 .then()
                 .statusCode(200)
                 .body("name", not(hasItem("Private Visibility Deck")));
@@ -147,7 +148,7 @@ class DeckControllerTest {
         Response response = given()
                 .queryParam("size", 10)
                 .queryParam("commander", commander)
-                .when().get("/decks/public")
+                .when().get("/public/decks")
                 .then()
                 .statusCode(200)
                 .extract().response();
@@ -189,7 +190,7 @@ class DeckControllerTest {
         verify(cardService, never()).findByNames(any());
 
         given()
-                .when().get("/decks/public")
+                .when().get("/public/decks")
                 .then()
                 .statusCode(200)
                 .body("name", hasItem("Legacy Visibility Deck"))
@@ -201,7 +202,7 @@ class DeckControllerTest {
         Long deckId = persistDeck("Anonymous Public Consult", DeckVisibility.PUBLIC, "owner-public", "Public Author");
 
         given()
-                .when().get("/decks/" + deckId + "/consult")
+                .when().get("/public/decks/" + deckId)
                 .then()
                 .statusCode(200)
                 .body("name", is("Anonymous Public Consult"))
@@ -214,9 +215,77 @@ class DeckControllerTest {
         Long deckId = persistDeck("Anonymous Private Consult", DeckVisibility.PRIVATE, "owner-private", "Private Author");
 
         given()
-                .when().get("/decks/" + deckId + "/consult")
+                .when().get("/public/decks/" + deckId)
                 .then()
                 .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "copy-owner", attributes = {
+            @SecurityAttribute(key = "name", value = "Copy Brewer")
+    })
+    void copyPublicDeck_createsPrivateCopyForAuthenticatedUser() {
+        Long sourceDeckId = QuarkusTransaction.requiringNew().call(() -> {
+            Deck deck = new Deck("Shared Source", "Cmd", List.of(new DeckCard("Sol Ring", 1)));
+            deck.setOwnerId("source-owner");
+            deck.setAuthorDisplayName("Source Brewer");
+            deck.setVisibility(DeckVisibility.PUBLIC);
+            deck.setColorIdentity("G");
+            deck.setHistoryJson("[{\"id\":\"swap-1\",\"add\":\"Beast Within\",\"remove\":\"Naturalize\"}]");
+            deckRepository.persist(deck);
+            return deck.getId();
+        });
+
+        Response copied = given()
+                .when().post("/public/decks/" + sourceDeckId + "/copy")
+                .then()
+                .statusCode(201)
+                .body("name", is("Copia de Shared Source"))
+                .body("visibility", is("private"))
+                .body("history.size()", is(0))
+                .extract().response();
+
+        Long copiedDeckId = copied.jsonPath().getLong("id");
+        QuarkusTransaction.requiringNew().run(() -> {
+            Deck copiedDeck = deckRepository.findById(copiedDeckId);
+            assertThat(copiedDeck.getOwnerId(), is("copy-owner"));
+            assertThat(copiedDeck.getAuthorDisplayName(), is("Copy Brewer"));
+            assertThat(copiedDeck.getVisibility(), is(DeckVisibility.PRIVATE));
+            assertThat(copiedDeck.getHistoryJson() == null || copiedDeck.getHistoryJson().isBlank(), is(true));
+            assertThat(copiedDeck.getCards().stream().anyMatch(card -> card.getName().equals("Sol Ring")), is(true));
+        });
+    }
+
+    @Test
+    void copyPublicDeck_requiresAuthentication() {
+        Long deckId = persistDeck("Public Copy Auth", DeckVisibility.PUBLIC, "owner-public-copy", "Public Author");
+
+        given()
+                .when().post("/public/decks/" + deckId + "/copy")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    @TestSecurity(user = "other-user")
+    void publicDeckCannotBeManagedThroughPrivateOwnerEndpointsByOtherUsers() {
+        Long deckId = persistDeck("Public Locked", DeckVisibility.PUBLIC, "public-owner-locked", "Public Author");
+        Map<String, Object> update = Map.of(
+                "name", "Stolen Update",
+                "commander", "Cmd",
+                "visibility", "public",
+                "cards", List.of(Map.of("name", "Sol Ring", "quantity", 1))
+        );
+
+        given().when().get("/decks/" + deckId).then().statusCode(404);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(update)
+                .when().put("/decks/" + deckId)
+                .then().statusCode(404);
+
+        given().when().get("/decks/" + deckId + "/analysis").then().statusCode(404);
     }
 
     @Test

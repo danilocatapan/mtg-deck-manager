@@ -134,7 +134,7 @@ export async function fetchPublicDecks({ page = 0, size = 10, commander = '', th
     query.set('page', String(page))
     query.set('size', String(size))
     if (commander) query.set('commander', commander)
-    return await request(`/decks/public?${query.toString()}`, { retryOnStartup: false })
+    return await request(`/public/decks?${query.toString()}`, { retryOnStartup: false })
   } catch (e) {
     logApiError('fetchPublicDecks error', e)
     if (throwOnError) {
@@ -144,14 +144,26 @@ export async function fetchPublicDecks({ page = 0, size = 10, commander = '', th
   }
 }
 
-export async function consultDeck(id) {
+export async function getPublicDeck(id) {
   try {
     if (id === undefined || id === null || isNaN(Number(id))) {
       throw new Error('Invalid deck id')
     }
-    return await request(`/decks/${id}/consult`)
+    return await request(`/public/decks/${id}`)
   } catch (e) {
-    logApiError('consultDeck error', e)
+    logApiError('getPublicDeck error', e)
+    throw e
+  }
+}
+
+export async function copyPublicDeck(id) {
+  try {
+    if (id === undefined || id === null || isNaN(Number(id))) {
+      throw new Error('Invalid deck id')
+    }
+    return await request(`/public/decks/${id}/copy`, { method: 'POST' })
+  } catch (e) {
+    logApiError('copyPublicDeck error', e)
     throw e
   }
 }
@@ -360,7 +372,8 @@ export async function deleteAccountData() {
 export default {
   fetchDecks,
   fetchPublicDecks,
-  consultDeck,
+  getPublicDeck,
+  copyPublicDeck,
   fetchCardsByNames,
   searchCards,
   createDeck,

@@ -42,7 +42,7 @@ export default function DeckList({
   return (
     <div className="deck-list">
       {decks.map((deck) => {
-        const totalCards = deck.cardCount ?? deck.cards
+        const totalCards = deck.mainDeckSize ?? deck.cardCount ?? deck.cards
           ?.reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0
 
         return (

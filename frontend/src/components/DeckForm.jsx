@@ -377,6 +377,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
           </label>
           <label>
             Visibilidade
+            <small>Decks publicos aparecem na vitrine e podem ser copiados por outros usuarios.</small>
             <select value={visibility} onChange={(e) => setVisibility(e.target.value)}>
               <option value="private">Privado</option>
               <option value="public">Publico</option>

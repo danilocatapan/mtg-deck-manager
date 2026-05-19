@@ -34,13 +34,14 @@ function imageFor(cache, name) {
   return Object.entries(cache).find(([cardName]) => normalizeCardName(cardName) === normalizedName)?.[1] || null
 }
 
-export default function DeckConsultPage({ deck, onBack }) {
+export default function DeckConsultPage({ deck, isAuthenticated = false, onBack, onCopy, onLoginRequired }) {
   const [cardImages, setCardImages] = useState(() => readImageCache())
   const [requestedImages, setRequestedImages] = useState({})
   const [loadingImages, setLoadingImages] = useState(false)
 
   const cards = useMemo(() => deck?.cards || [], [deck?.cards])
   const totalCards = useMemo(() => cards.reduce((sum, card) => sum + Number(card.quantity || 0), 0), [cards])
+  const displayTotal = deck?.mainDeckSize ?? totalCards
   const namesToLoad = useMemo(() => {
     const names = [deck?.commander, ...cards.map((card) => card.name)]
       .map((name) => String(name || '').trim())
@@ -90,11 +91,16 @@ export default function DeckConsultPage({ deck, onBack }) {
           <p className="eyebrow">Consulta</p>
           <h1>{deck?.name || 'Deck'}</h1>
           <p className="page-description">
-            {deck?.commander} - {totalCards}/99 cartas - {deck?.visibility === 'public' ? 'Publico' : 'Privado'}
+            {deck?.commander} - {displayTotal}/99 cartas - {deck?.visibility === 'public' ? 'Publico' : 'Privado'}
             {deck?.author ? ` - por ${deck.author}` : ''}
           </p>
         </div>
-        <Button variant="secondary" onClick={onBack}>Voltar aos Decks</Button>
+        <div className="actions-row">
+          <Button onClick={() => isAuthenticated ? onCopy?.(deck) : onLoginRequired?.()}>
+            {isAuthenticated ? 'Copiar para minha biblioteca' : 'Entrar para copiar'}
+          </Button>
+          <Button variant="secondary" onClick={onBack}>Voltar aos Decks</Button>
+        </div>
       </section>
 
       <Card className="zone zone-library">
@@ -102,7 +108,7 @@ export default function DeckConsultPage({ deck, onBack }) {
           <div>
             <p className="eyebrow">Somente leitura</p>
             <h2>Lista do deck</h2>
-            <p>Este modo permite consultar a lista sem editar, excluir ou aplicar recomendacoes.</p>
+            <p>Este modo permite consultar a lista sem editar, excluir ou aplicar recomendacoes. Copias entram como privadas na sua biblioteca.</p>
           </div>
         </div>
 

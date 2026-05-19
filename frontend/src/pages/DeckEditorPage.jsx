@@ -20,7 +20,7 @@ import Button from '../components/ui/Button'
 import analyzeIcon from '../assets/icons/analyze.png'
 import recommendIcon from '../assets/icons/recommend.png'
 
-export default function DeckEditorPage({ mode = 'create', deck = null, onDone }) {
+export default function DeckEditorPage({ mode = 'create', deck = null, initialMessage = null, onDone }) {
   const [analysis, setAnalysis] = useState(null)
   const [legality, setLegality] = useState(null)
   const [rec, setRec] = useState(null)
@@ -33,7 +33,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, onDone })
   const [loadingRec, setLoadingRec] = useState(false)
   const [legalityError, setLegalityError] = useState(null)
   const [recommendationError, setRecommendationError] = useState(null)
-  const [message, setMessage] = useState(null)
+  const [message, setMessage] = useState(initialMessage)
   const [error, setError] = useState(null)
   const [activePanel, setActivePanel] = useState('editor')
   const [currentDeck, setCurrentDeck] = useState(deck)

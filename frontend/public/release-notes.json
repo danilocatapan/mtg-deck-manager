@@ -5,14 +5,14 @@
     "title": "Versionamento e tela Sobre",
     "changes": {
       "added": [
-        "Decks podem ser marcados como publicos ou privados, com vitrine publica e consulta em modo somente leitura.",
-        "API publica para listar decks publicos e consultar detalhes sanitizados sem expor dados privados do dono.",
+        "Decks podem ser marcados como publicos ou privados, com vitrine publica, consulta em modo somente leitura e copia para a propria biblioteca.",
+        "API publica para listar, consultar e copiar decks publicos sem expor dados privados do dono.",
         "Endpoints autenticados GET /users/me/export e DELETE /users/me para exportacao LGPD e exclusao de dados do usuario.",
         "Politica de Privacidade publica com dados coletados, finalidade, base legal provavel, retencao, compartilhamento com Google, direitos do titular e contato.",
         "Tela Sobre com detalhes do produto, frontend e API."
       ],
       "changed": [
-        "Vitrine de decks publicos agora mostra os 10 mais recentes e permite filtrar por comandante.",
+        "Vitrine de decks publicos agora mostra ate 24 decks recentes e permite filtrar por comandante.",
         "Lista do deck no editor agora tem filtro por nome, filtro por tipo e agrupamento por categorias de cartas.",
         "Cards de recomendacao exibem preview hoveravel das cartas sugeridas para adicionar e remover.",
         "Frontend recebeu polimento de UX em pt-BR, foco de teclado, alvos de toque, header, stepper e acoes mobile.",
