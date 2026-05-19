@@ -103,7 +103,8 @@ class DeckControllerTest {
                 .statusCode(200)
                 .body("name", hasItem("Public Visibility Deck"))
                 .body("visibility", hasItem("public"))
-                .body("author", hasItem("Public Brewer"));
+                .body("author", hasItem("Public Brewer"))
+                .body("ownedByCurrentUser", hasItem(true));
 
         given()
                 .when().get("/public/decks/" + deckId)
@@ -112,6 +113,7 @@ class DeckControllerTest {
                 .body("name", is("Public Visibility Deck"))
                 .body("visibility", is("public"))
                 .body("author", is("Public Brewer"))
+                .body("ownedByCurrentUser", is(true))
                 .body("$", not(org.hamcrest.Matchers.hasKey("history")))
                 .body("$", not(org.hamcrest.Matchers.hasKey("ownerId")));
 
@@ -207,7 +209,31 @@ class DeckControllerTest {
                 .statusCode(200)
                 .body("name", is("Anonymous Public Consult"))
                 .body("visibility", is("public"))
-                .body("author", is("Public Author"));
+                .body("author", is("Public Author"))
+                .body("ownedByCurrentUser", is(false))
+                .body("$", not(org.hamcrest.Matchers.hasKey("ownerId")));
+    }
+
+    @Test
+    @TestSecurity(user = "owner-public")
+    void publicDeckMarksOwnershipOnlyForCurrentUser() {
+        Long deckId = persistDeck("Owned Public Consult", DeckVisibility.PUBLIC, "owner-public", "Public Author");
+        persistDeck("Other Public Consult", DeckVisibility.PUBLIC, "other-public-owner", "Other Author");
+
+        given()
+                .when().get("/public/decks/" + deckId)
+                .then()
+                .statusCode(200)
+                .body("ownedByCurrentUser", is(true))
+                .body("$", not(org.hamcrest.Matchers.hasKey("ownerId")));
+
+        given()
+                .when().get("/public/decks")
+                .then()
+                .statusCode(200)
+                .body("find { it.name == 'Owned Public Consult' }.ownedByCurrentUser", is(true))
+                .body("find { it.name == 'Other Public Consult' }.ownedByCurrentUser", is(false))
+                .body("[0]", not(org.hamcrest.Matchers.hasKey("ownerId")));
     }
 
     @Test

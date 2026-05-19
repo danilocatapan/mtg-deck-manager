@@ -140,6 +140,7 @@ export default function DeckList({
         const commanderImage = imageFor(cardImages, deck.commander)
         const colors = colorIdentity(deck)
         const isPublic = deck.visibility === 'public'
+        const canCopy = Boolean(onCopy) && !deck.ownedByCurrentUser
 
         return (
           <article key={deck.id} className={`deck-card deck-gallery-card ${isPublic ? 'public-deck-card' : ''}`}>
@@ -156,6 +157,7 @@ export default function DeckList({
               <div className="deck-meta-row">
                 <span className={`deck-count ${totalCards > 99 ? 'is-invalid' : ''}`}>{cardTotalLabel(totalCards)}</span>
                 {deck.visibility && <span className="status-pill">{isPublic ? 'Público' : 'Privado'}</span>}
+                {deck.ownedByCurrentUser && <span className="status-pill owned">Seu deck</span>}
                 <span className="mana-pips" aria-label={colors[0] === 'C' ? 'Incolor' : `Cores: ${colors.map((color) => COLOR_LABELS[color]).join(', ')}`}>
                   {colors.map((color) => <i key={color} data-color={color}>{color}</i>)}
                 </span>
@@ -164,7 +166,7 @@ export default function DeckList({
             </div>
             <div className="actions-row deck-card-actions">
               {onConsult && <Button variant="secondary" onClick={() => onConsult(deck)}>Ver deck</Button>}
-              {onCopy && (
+              {canCopy && (
                 <Button onClick={() => onCopy(deck)} loading={copyLoadingId === deck.id}>
                   Copiar
                 </Button>

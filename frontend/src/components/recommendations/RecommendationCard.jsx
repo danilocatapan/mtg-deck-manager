@@ -28,7 +28,9 @@ function opportunityFrom(reasoning) {
 export default function RecommendationCard({ item, index, bracket, onApply, onUndo, applying = false, applied = false }) {
   const source = item?.source || 'heuristic_fallback'
   const confidence = item?.confidence || 'medium'
-  const highlights = impactHighlights(item?.impact).slice(0, 3)
+  const highlights = impactHighlights(item?.impact).slice(0, 6)
+  const reason = item?.problem || opportunityFrom(item?.reasoning)
+  const expected = item?.reasoning || 'Troca sugerida para deixar o deck mais consistente no bracket escolhido.'
 
   return (
     <article className="recommendation-card-pro compact-recommendation-card">
@@ -44,9 +46,25 @@ export default function RecommendationCard({ item, index, bracket, onApply, onUn
         </div>
       </header>
 
+      <section className="recommendation-swap-route" aria-label="Troca recomendada">
+        <div className="swap-card remove">
+          <span>Sai</span>
+          <strong><CardNamePreview name={item.remove} /></strong>
+        </div>
+        <div className="swap-card add">
+          <span>Entra</span>
+          <strong><CardNamePreview name={item.add} /></strong>
+        </div>
+      </section>
+
       <section className="recommendation-opportunity">
         <span className="rec-label">Por que mexer</span>
-        <p>{item?.problem || opportunityFrom(item?.reasoning)}</p>
+        <p>{reason}</p>
+      </section>
+
+      <section className="recommendation-result">
+        <span className="rec-label">Resultado esperado</span>
+        <p>{expected}</p>
       </section>
 
       {highlights.length > 0 && (
@@ -60,15 +78,17 @@ export default function RecommendationCard({ item, index, bracket, onApply, onUn
         </section>
       )}
 
+      {item?.risk && (
+        <section className="recommendation-risk">
+          <span className="rec-label">Risco</span>
+          <p>{item.risk}</p>
+        </section>
+      )}
+
       <footer className="recommendation-card-footer">
         <span>Bracket: {item.bracket || bracket || 'casual'}</span>
         <span>Fonte: {sourceLabel(source)}</span>
-        <details>
-          <summary>Detalhes</summary>
-          <p>{item.reasoning}</p>
-          {item?.risk && <p>{item.risk}</p>}
-          {item?.sourceContext?.sampleSize ? <p>Amostra: {item.sourceContext.sampleSize} listas.</p> : null}
-        </details>
+        {item?.sourceContext?.sampleSize ? <span>Amostra: {item.sourceContext.sampleSize} listas</span> : null}
         <Button
           variant={applied ? 'secondary' : 'primary'}
           loading={applying}

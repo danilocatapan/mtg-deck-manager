@@ -121,7 +121,7 @@ public class DeckController {
             @QueryParam("size") Integer size,
             @QueryParam("commander") String commander
     ) {
-        return deckService.listPublicDecks(page, size, commander);
+        return deckService.listPublicDecks(page, size, commander, currentUserIdOrNull());
     }
 
     @GET

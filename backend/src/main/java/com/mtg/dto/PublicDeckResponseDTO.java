@@ -13,6 +13,7 @@ public record PublicDeckResponseDTO(
         List<DeckCardDTO> cards,
         int mainDeckSize,
         DeckVisibility visibility,
-        String author
+        String author,
+        boolean ownedByCurrentUser
 ) {
 }

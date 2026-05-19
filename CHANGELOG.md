@@ -16,6 +16,8 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Endpoint publico para metadados da API.
 
 ### Changed
+- UX de importacao, analise e recomendacoes ficou mais visual e compacta: preview progressivo, abas em status/curva/papeis/combos, graficos CSS e cards de troca 1:1 com impacto e risco visiveis.
+- Contratos publicos de decks passam a retornar `ownedByCurrentUser` para ocultar a acao de copiar quando o deck publico ja pertence ao usuario autenticado, sem expor `ownerId`.
 - Vitrine de decks publicos passa a listar ate 24 decks recentes, inclui filtro por nome de comandante e permite copiar decks publicos para a propria biblioteca como privados.
 - Vitrine e biblioteca passam a usar cards visuais com arte do comandante, identidade de cor, autor, copia direta e skeleton loading.
 - Fluxo mobile recebeu navegacao rapida fixa para criar, importar e voltar ao topo sem perder contexto em listas longas.

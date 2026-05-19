@@ -9,6 +9,7 @@ public record PublicDeckSummaryDTO(
         String colorIdentity,
         DeckVisibility visibility,
         String author,
-        int mainDeckSize
+        int mainDeckSize,
+        boolean ownedByCurrentUser
 ) {
 }

@@ -40,7 +40,7 @@ public class PublicDeckController {
             @QueryParam("size") Integer size,
             @QueryParam("commander") String commander
     ) {
-        return deckService.listPublicDecks(page, size, commander);
+        return deckService.listPublicDecks(page, size, commander, currentOwnerId());
     }
 
     @GET
@@ -52,7 +52,7 @@ public class PublicDeckController {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
 
-        PublicDeckResponseDTO deck = deckService.getPublicDeck(id);
+        PublicDeckResponseDTO deck = deckService.getPublicDeck(id, currentOwnerId());
         if (deck == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -82,6 +82,17 @@ public class PublicDeckController {
             long id = Long.parseLong(idStr);
             return id > 0 ? id : null;
         } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private String currentOwnerId() {
+        if (securityIdentity == null || securityIdentity.isAnonymous()) {
+            return null;
+        }
+        try {
+            return authenticatedUserService.subject(securityIdentity);
+        } catch (IllegalArgumentException ignored) {
             return null;
         }
     }

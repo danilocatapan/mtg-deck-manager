@@ -3913,3 +3913,219 @@ button:disabled {
     width: 100%;
   }
 }
+
+/* UX feedback pass: clearer previews, less monochrome, visual analysis. */
+.preview-commander-row {
+  border-color: rgba(214, 168, 79, 0.62);
+  background: rgba(214, 168, 79, 0.1);
+}
+
+.preview-commander-row span {
+  color: var(--color-value);
+  font-weight: 900;
+}
+
+.preview-toggle-button {
+  width: 100%;
+}
+
+.status-pill.owned {
+  border-color: rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.12);
+  color: #bae6fd;
+}
+
+.recommendation-swap-route {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.recommendation-swap-route .swap-card {
+  background: rgba(8, 17, 12, 0.58);
+}
+
+.recommendation-result,
+.recommendation-risk {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid rgba(214, 168, 79, 0.28);
+  border-radius: 8px;
+  background: rgba(214, 168, 79, 0.08);
+}
+
+.recommendation-risk {
+  border-color: rgba(184, 92, 69, 0.52);
+  background: rgba(184, 92, 69, 0.1);
+}
+
+.recommendation-result p,
+.recommendation-risk p {
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.analysis-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.analysis-tabs button {
+  min-width: 0;
+  background: rgba(8, 17, 12, 0.74);
+  border-color: rgba(214, 168, 79, 0.28);
+  color: var(--color-muted);
+  box-shadow: none;
+}
+
+.analysis-tabs button.active,
+.analysis-tabs button[aria-selected="true"] {
+  background: rgba(214, 168, 79, 0.14);
+  border-color: rgba(214, 168, 79, 0.68);
+  color: var(--color-value);
+}
+
+.analysis-tab-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.curve-chart {
+  display: grid;
+  gap: 10px;
+}
+
+.curve-chart-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  gap: 10px;
+  align-items: center;
+}
+
+.curve-chart-row span,
+.curve-chart-row strong {
+  color: var(--color-value);
+  font-weight: 900;
+}
+
+.curve-chart-row div {
+  height: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(214, 168, 79, 0.24);
+  border-radius: 999px;
+  background: rgba(8, 17, 12, 0.68);
+}
+
+.curve-chart-row i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #b85c45, #d6a84f 48%, #5aa7c8);
+}
+
+.roles-visual-grid {
+  grid-template-columns: minmax(170px, 230px) minmax(0, 1fr);
+  align-items: center;
+}
+
+.role-donut {
+  position: relative;
+  display: grid;
+  width: min(230px, 100%);
+  aspect-ratio: 1;
+  place-items: center;
+  justify-self: center;
+  border: 1px solid rgba(214, 168, 79, 0.36);
+  border-radius: 50%;
+}
+
+.role-donut::after {
+  content: "";
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1px solid rgba(214, 168, 79, 0.22);
+}
+
+.role-donut strong,
+.role-donut span {
+  position: relative;
+  z-index: 1;
+}
+
+.role-donut strong {
+  color: var(--color-value);
+  font-size: 32px;
+}
+
+.role-donut span {
+  margin-top: 36px;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.role-legend {
+  display: grid;
+  gap: 8px;
+}
+
+.role-legend div {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid rgba(156, 163, 175, 0.22);
+  border-radius: 8px;
+  background: rgba(8, 17, 12, 0.52);
+}
+
+.role-legend i {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+}
+
+.role-legend span {
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.role-legend strong {
+  color: var(--color-value);
+}
+
+.summary-tile.metric-good {
+  border-color: rgba(143, 203, 107, 0.42);
+  background: rgba(143, 203, 107, 0.07);
+}
+
+.summary-tile.metric-warning {
+  border-color: rgba(214, 168, 79, 0.58);
+  background: rgba(214, 168, 79, 0.08);
+}
+
+.summary-tile.metric-bad {
+  border-color: rgba(184, 92, 69, 0.56);
+  background: rgba(184, 92, 69, 0.1);
+}
+
+@media (max-width: 720px) {
+  .analysis-tabs {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(112px, 1fr);
+    grid-template-columns: none;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .recommendation-swap-route,
+  .roles-visual-grid {
+    grid-template-columns: 1fr;
+  }
+}

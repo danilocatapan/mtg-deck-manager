@@ -1,51 +1,196 @@
+import { useMemo, useState } from 'react'
+
+const ROLE_COLORS = ['#d6a84f', '#b85c45', '#5aa7c8', '#8fcb6b', '#c59bff', '#f0c86a', '#d98d72']
+
 export default function DeckAnalysis({ analysis }) {
+  const [activeTab, setActiveTab] = useState('status')
+  const vitals = useMemo(() => buildVitals(analysis), [analysis])
+  const roleEntries = useMemo(() => buildRoleEntries(analysis?.roles), [analysis?.roles])
+  const curveEntries = useMemo(() => buildCurveEntries(analysis?.manaCurve), [analysis?.manaCurve])
+  const comboAlert = comboSummary(analysis?.combos)
+
   if (!analysis) return null
 
-  const vitals = buildVitals(analysis)
-  const strengths = vitals.filter((item) => item.tone === 'good').slice(0, 3)
-  const fixes = vitals.filter((item) => item.tone !== 'good').slice(0, 3)
-  const comboAlert = comboSummary(analysis.combos)
+  const tabs = [
+    { key: 'status', label: 'Status' },
+    { key: 'curve', label: 'Curva' },
+    { key: 'roles', label: 'Papeis' },
+    { key: 'combos', label: 'Combos' },
+  ]
 
   return (
     <div className="analysis-panel compact-analysis">
-      <section className="deck-health-summary">
-        {vitals.slice(0, 5).map((item) => (
-          <article key={item.label} className={`summary-tile metric-${item.tone}`}>
-            <span>{item.label}</span>
-            <strong>{item.value}</strong>
-            <small>{item.summary}</small>
-          </article>
+      <div className="analysis-tabs" role="tablist" aria-label="Seções da análise">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            className={activeTab === tab.key ? 'active' : ''}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
         ))}
-      </section>
+      </div>
 
-      <section className="deck-verdict-grid">
-        <div className="verdict-block">
-          <h4>O que está bom</h4>
-          {strengths.length ? strengths.map((item) => (
-            <p key={item.label}><strong>{item.label}:</strong> {item.goodText}</p>
-          )) : <p>O deck ainda precisa de ajustes básicos antes de ter pontos fortes claros.</p>}
-        </div>
+      {activeTab === 'status' && (
+        <section className="analysis-tab-panel" role="tabpanel">
+          <div className="deck-health-summary">
+            {vitals.slice(0, 6).map((item) => (
+              <article key={item.label} className={`summary-tile metric-${item.tone}`}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+                <small>{item.summary}</small>
+              </article>
+            ))}
+          </div>
+          <div className="deck-verdict-grid">
+            <VerdictBlock title="O que esta bom" items={vitals.filter((item) => item.tone === 'good').slice(0, 3)} kind="good" />
+            <VerdictBlock title="Ajustar primeiro" items={vitals.filter((item) => item.tone !== 'good').slice(0, 3)} kind="fix" />
+          </div>
+        </section>
+      )}
 
-        <div className="verdict-block priority">
-          <h4>Ajustar primeiro</h4>
-          {fixes.length ? fixes.map((item) => (
-            <p key={item.label}><strong>{item.label}:</strong> {item.fixText}</p>
-          )) : <p>A estrutura principal parece saudável. As próximas melhorias podem focar tema, meta e preferência da mesa.</p>}
-        </div>
-      </section>
+      {activeTab === 'curve' && (
+        <section className="analysis-tab-panel" role="tabpanel">
+          <div className="curve-chart" aria-label="Curva de mana">
+            {curveEntries.map((entry) => (
+              <div key={entry.label} className="curve-chart-row">
+                <span>{entry.label}</span>
+                <div><i style={{ width: `${entry.percent}%` }} /></div>
+                <strong>{entry.value}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
-      {comboAlert && (
-        <section className={`combo-callout ${comboAlert.tone}`}>
-          <span>Combos</span>
-          <strong>{comboAlert.title}</strong>
-          <p>{comboAlert.text}</p>
+      {activeTab === 'roles' && (
+        <section className="analysis-tab-panel roles-visual-grid" role="tabpanel">
+          <div
+            className="role-donut"
+            style={{ background: roleDonutGradient(roleEntries) }}
+            aria-label="Distribuição dos papéis do deck"
+          >
+            <strong>{roleEntries.reduce((sum, entry) => sum + entry.value, 0)}</strong>
+            <span>sinais</span>
+          </div>
+          <div className="role-legend">
+            {roleEntries.length ? roleEntries.map((entry) => (
+              <div key={entry.key}>
+                <i style={{ background: entry.color }} />
+                <span>{entry.label}</span>
+                <strong>{entry.value}</strong>
+              </div>
+            )) : <div className="empty-inline">Rode a análise para ver os papéis classificados.</div>}
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'combos' && (
+        <section className="analysis-tab-panel" role="tabpanel">
+          {comboAlert ? (
+            <section className={`combo-callout ${comboAlert.tone}`}>
+              <span>Combos</span>
+              <strong>{comboAlert.title}</strong>
+              <p>{comboAlert.text}</p>
+            </section>
+          ) : (
+            <div className="empty-inline">Nenhum combo conhecido ou linha a uma carta foi detectado neste snapshot.</div>
+          )}
+          <ComboList title="Presentes" items={analysis.combos?.present || []} />
+          <ComboList title="A uma carta" items={analysis.combos?.oneCardAway || []} nearMiss />
         </section>
       )}
     </div>
   )
 }
 
+function VerdictBlock({ title, items, kind }) {
+  return (
+    <div className={`verdict-block ${kind === 'fix' ? 'priority' : ''}`}>
+      <h4>{title}</h4>
+      {items.length ? items.map((item) => (
+        <p key={item.label}><strong>{item.label}:</strong> {kind === 'fix' ? item.fixText : item.goodText}</p>
+      )) : <p>{kind === 'fix' ? 'A estrutura principal parece saudavel para a proxima rodada de ajustes.' : 'O deck ainda precisa de ajustes basicos antes de ter pontos fortes claros.'}</p>}
+    </div>
+  )
+}
+
+function ComboList({ title, items, nearMiss = false }) {
+  if (!items.length) return null
+  return (
+    <div className="combo-section">
+      <h4>{title}</h4>
+      {items.slice(0, 6).map((combo) => (
+        <article key={`${combo.name}-${combo.missingCard || ''}`}>
+          <strong>{combo.name}</strong>
+          <span>{nearMiss ? `Falta: ${combo.missingCard}` : (combo.cards || []).join(' + ')}</span>
+          {nearMiss && <small>{(combo.presentCards || []).join(' + ')}</small>}
+          {combo.result && <small>{combo.result}</small>}
+        </article>
+      ))}
+    </div>
+  )
+}
+
+function buildRoleEntries(roles = {}) {
+  return Object.entries(roles)
+    .filter(([, value]) => Number(value) > 0)
+    .sort(([, left], [, right]) => Number(right) - Number(left))
+    .map(([key, value], index) => ({
+      key,
+      label: roleLabel(key),
+      value: Number(value),
+      color: ROLE_COLORS[index % ROLE_COLORS.length],
+    }))
+}
+
+function buildCurveEntries(manaCurve = {}) {
+  const grouped = Object.entries(manaCurve).reduce((acc, [key, value]) => {
+    const numericKey = Number(key)
+    const bucket = numericKey >= 7 ? 7 : numericKey
+    acc.set(bucket, (acc.get(bucket) || 0) + (Number(value) || 0))
+    return acc
+  }, new Map())
+  const entries = [...grouped.entries()]
+    .map(([key, value]) => ({ label: key >= 7 ? '7+' : String(key), value, order: key }))
+    .sort((left, right) => left.order - right.order)
+  const max = Math.max(1, ...entries.map((entry) => entry.value))
+  return entries.map((entry) => ({ ...entry, percent: Math.max(4, Math.round((entry.value / max) * 100)) }))
+}
+
+function roleDonutGradient(entries) {
+  const total = entries.reduce((sum, entry) => sum + entry.value, 0)
+  if (!total) return 'conic-gradient(rgba(214, 168, 79, 0.18) 0 100%)'
+  let cursor = 0
+  const stops = entries.map((entry) => {
+    const start = cursor
+    cursor += (entry.value / total) * 100
+    return `${entry.color} ${start}% ${cursor}%`
+  })
+  return `conic-gradient(${stops.join(', ')})`
+}
+
+function roleLabel(role) {
+  const labels = {
+    ramp: 'Ramp',
+    draw: 'Compra',
+    interaction: 'Interacao',
+    removal: 'Remocao',
+    protection: 'Protecao',
+    boardWipe: 'Limpa-mesa',
+    wincon: 'Vitoria',
+    land: 'Terrenos',
+  }
+  return labels[role] || role
+}
+
 function buildVitals(analysis) {
+  if (!analysis) return []
+
   const landCount = Number(analysis.manaBase?.landCount ?? 0)
   const tappedLands = Number(analysis.manaBase?.tappedLandCount ?? 0)
   const averageCmc = Number(analysis.averageCmc ?? 0)
@@ -59,8 +204,8 @@ function buildVitals(analysis) {
       value: `${analysis.totalCards ?? 0}/99`,
       tone: analysis.totalCards === 99 ? 'good' : analysis.totalCards >= 90 ? 'warning' : 'bad',
       summary: analysis.totalCards === 99 ? 'lista Commander completa' : 'deck ainda incompleto',
-      goodText: 'a lista principal está no tamanho certo para Commander.',
-      fixText: 'complete a lista até 99 cartas antes de avaliar upgrades finos.',
+      goodText: 'a lista principal esta no tamanho certo para Commander.',
+      fixText: 'complete a lista ate 99 cartas antes de avaliar upgrades finos.',
     },
     {
       label: 'Mana base',
@@ -74,33 +219,33 @@ function buildVitals(analysis) {
       label: 'Curva',
       value: Number.isFinite(averageCmc) ? averageCmc.toFixed(2) : '-',
       tone: averageCmc > 0 && averageCmc <= 3.4 ? 'good' : averageCmc <= 4.0 ? 'warning' : 'bad',
-      summary: 'CMC médio',
-      goodText: 'a curva deve deixar o deck jogar antes de ficar atrás da mesa.',
+      summary: 'CMC medio',
+      goodText: 'a curva deve deixar o deck jogar antes de ficar atras da mesa.',
       fixText: 'corte cartas caras de baixo impacto e aumente jogadas de custo 1-3.',
     },
     {
       label: 'Ramp',
       value: String(ramp),
       tone: ramp >= 10 ? 'good' : ramp >= 7 ? 'warning' : 'bad',
-      summary: 'fontes de aceleração',
-      goodText: 'há aceleração suficiente para executar o plano com regularidade.',
-      fixText: 'adicione ramp barato, rocks ou buscas de terreno alinhadas às cores.',
+      summary: 'fontes de aceleracao',
+      goodText: 'ha aceleracao suficiente para executar o plano com regularidade.',
+      fixText: 'adicione ramp barato, rocks ou buscas de terreno alinhadas as cores.',
     },
     {
       label: 'Compra',
       value: String(draw),
       tone: draw >= 8 ? 'good' : draw >= 5 ? 'warning' : 'bad',
       summary: 'fontes de card advantage',
-      goodText: 'o deck tem meios razoáveis de recuperar recursos.',
-      fixText: 'inclua compra, seleção ou motores de valor para não ficar sem cartas.',
+      goodText: 'o deck tem meios razoaveis de recuperar recursos.',
+      fixText: 'inclua compra, selecao ou motores de valor para nao ficar sem cartas.',
     },
     {
-      label: 'Interação',
+      label: 'Interacao',
       value: String(interaction),
       tone: interaction >= 8 ? 'good' : interaction >= 5 ? 'warning' : 'bad',
-      summary: 'respostas/remoções',
-      goodText: 'o deck tem respostas para impedir planos adversários.',
-      fixText: 'adicione remoções flexíveis, proteção ou interação de pilha conforme o bracket.',
+      summary: 'respostas/remocoes',
+      goodText: 'o deck tem respostas para impedir planos adversarios.',
+      fixText: 'adicione remocoes flexiveis, protecao ou interacao de pilha conforme o bracket.',
     },
   ]
 }
@@ -112,14 +257,14 @@ function comboSummary(combos) {
     return {
       tone: 'good',
       title: `${present} combo${present > 1 ? 's' : ''} detectado${present > 1 ? 's' : ''}`,
-      text: 'O deck já tem linhas conhecidas de fechamento. Confirme se elas combinam com a proposta da mesa.',
+      text: 'O deck ja tem linhas conhecidas de fechamento. Confirme se elas combinam com a proposta da mesa.',
     }
   }
   if (near > 0) {
     return {
       tone: 'warning',
       title: `${near} linha${near > 1 ? 's' : ''} a uma carta`,
-      text: 'Pode valer buscar a peça faltante se o objetivo for aumentar consistência de vitória.',
+      text: 'Pode valer buscar a peca faltante se o objetivo for aumentar consistencia de vitoria.',
     }
   }
   return null

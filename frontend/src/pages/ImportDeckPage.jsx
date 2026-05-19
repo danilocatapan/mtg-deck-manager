@@ -8,6 +8,7 @@ const SAMPLE_DECK = `1 Sol Ring
 1 Arcane Signet
 12 Mountain
 12 Forest`
+const PREVIEW_COLLAPSED_LIMIT = 8
 
 function parsePreview(content) {
   if (!content.trim()) return { cards: [], errors: [], total: 0, duplicates: [] }
@@ -53,9 +54,12 @@ export default function ImportDeckPage({ onDone }) {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
+  const [previewExpanded, setPreviewExpanded] = useState(false)
 
   const preview = useMemo(() => parsePreview(content), [content])
   const isOverLimit = preview.total > 99
+  const visiblePreviewCards = previewExpanded ? preview.cards : preview.cards.slice(0, PREVIEW_COLLAPSED_LIMIT)
+  const hiddenPreviewCount = Math.max(0, preview.cards.length - visiblePreviewCards.length)
   const validationItems = [
     { label: 'Total', value: `${preview.total}/99`, tone: isOverLimit ? 'bad' : preview.total === 99 ? 'good' : 'warning' },
     { label: 'Linhas invalidas', value: preview.errors.length, tone: preview.errors.length ? 'bad' : 'good' },
@@ -184,12 +188,27 @@ export default function ImportDeckPage({ onDone }) {
             <div className="empty-inline">Cole uma lista para visualizar quantidades antes de salvar.</div>
           ) : (
             <div className="deck-table compact">
-              {preview.cards.map((card, index) => (
+              {commander.trim() && (
+                <div className="deck-row preview-commander-row">
+                  <strong>{commander.trim()}</strong>
+                  <span>Comandante</span>
+                </div>
+              )}
+              {visiblePreviewCards.map((card, index) => (
                 <div key={`${card.name}-${index}`} className="deck-row">
                   <strong>{card.name}</strong>
                   <span>{card.quantity}x</span>
                 </div>
               ))}
+              {preview.cards.length > PREVIEW_COLLAPSED_LIMIT && (
+                <Button
+                  variant="secondary"
+                  className="preview-toggle-button"
+                  onClick={() => setPreviewExpanded((expanded) => !expanded)}
+                >
+                  {previewExpanded ? 'Mostrar menos' : `Mostrar mais ${hiddenPreviewCount} linhas`}
+                </Button>
+              )}
             </div>
           )}
         </Card>

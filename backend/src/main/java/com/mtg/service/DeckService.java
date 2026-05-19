@@ -157,9 +157,9 @@ public class DeckService {
         return toDto(deck);
     }
 
-    public List<PublicDeckSummaryDTO> listPublicDecks(Integer page, Integer size, String commander) {
+    public List<PublicDeckSummaryDTO> listPublicDecks(Integer page, Integer size, String commander, String currentOwnerId) {
         return deckRepository.listPublic(page, size, commander).stream()
-                .map(this::toPublicSummary)
+                .map(deck -> toPublicSummary(deck, currentOwnerId))
                 .collect(Collectors.toList());
     }
 
@@ -171,12 +171,12 @@ public class DeckService {
         return toConsultDto(deck);
     }
 
-    public PublicDeckResponseDTO getPublicDeck(Long id) {
+    public PublicDeckResponseDTO getPublicDeck(Long id, String currentOwnerId) {
         Deck deck = deckRepository.findPublicById(id);
         if (deck == null) {
             return null;
         }
-        return toPublicDto(deck);
+        return toPublicDto(deck, currentOwnerId);
     }
 
     @Transactional
@@ -614,7 +614,7 @@ public class DeckService {
         );
     }
 
-    private PublicDeckResponseDTO toPublicDto(Deck deck) {
+    private PublicDeckResponseDTO toPublicDto(Deck deck, String currentOwnerId) {
         List<DeckCardDTO> cards = deck.getCards().stream()
                 .map(c -> new DeckCardDTO(c.getName(), c.getQuantity()))
                 .collect(Collectors.toList());
@@ -627,11 +627,12 @@ public class DeckService {
                 cards,
                 totalCards(deck),
                 deck.getVisibility(),
-                deck.getAuthorDisplayName()
+                deck.getAuthorDisplayName(),
+                isOwnedBy(deck, currentOwnerId)
         );
     }
 
-    private PublicDeckSummaryDTO toPublicSummary(Deck deck) {
+    private PublicDeckSummaryDTO toPublicSummary(Deck deck, String currentOwnerId) {
         return new PublicDeckSummaryDTO(
                 deck.getId(),
                 deck.getName(),
@@ -639,8 +640,15 @@ public class DeckService {
                 deck.getColorIdentity(),
                 deck.getVisibility(),
                 deck.getAuthorDisplayName(),
-                totalCards(deck)
+                totalCards(deck),
+                isOwnedBy(deck, currentOwnerId)
         );
+    }
+
+    private boolean isOwnedBy(Deck deck, String currentOwnerId) {
+        return currentOwnerId != null
+                && !currentOwnerId.isBlank()
+                && currentOwnerId.equals(deck.getOwnerId());
     }
 
     private List<DeckCard> mainDeckCards(Deck deck) {

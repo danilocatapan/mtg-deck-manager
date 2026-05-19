@@ -42,6 +42,7 @@ export default function DeckConsultPage({ deck, isAuthenticated = false, onBack,
   const cards = useMemo(() => deck?.cards || [], [deck?.cards])
   const totalCards = useMemo(() => cards.reduce((sum, card) => sum + Number(card.quantity || 0), 0), [cards])
   const displayTotal = deck?.mainDeckSize ?? totalCards
+  const canCopyDeck = !deck?.ownedByCurrentUser
   const namesToLoad = useMemo(() => {
     const names = [deck?.commander, ...cards.map((card) => card.name)]
       .map((name) => String(name || '').trim())
@@ -96,9 +97,11 @@ export default function DeckConsultPage({ deck, isAuthenticated = false, onBack,
           </p>
         </div>
         <div className="actions-row">
-          <Button onClick={() => isAuthenticated ? onCopy?.(deck) : onLoginRequired?.()}>
-            {isAuthenticated ? 'Copiar para minha biblioteca' : 'Entrar para copiar'}
-          </Button>
+          {canCopyDeck && (
+            <Button onClick={() => isAuthenticated ? onCopy?.(deck) : onLoginRequired?.()}>
+              {isAuthenticated ? 'Copiar para minha biblioteca' : 'Entrar para copiar'}
+            </Button>
+          )}
           <Button variant="secondary" onClick={onBack}>Voltar aos Decks</Button>
         </div>
       </section>
