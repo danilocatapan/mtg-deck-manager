@@ -7,6 +7,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 ## [0.0.0-local] - 2026-05-19
 
 ### Added
+- Pagina publica de contato para enviar sugestoes, bugs, duvidas de privacidade e feedback aos mantenedores sem exigir login Google.
 - API publica `GET /public/decks`, `GET /public/decks/{id}` e `POST /public/decks/{id}/copy` para listar, consultar e copiar decks publicos.
 - Campo `visibility` (`private`/`public`) em criacao, importacao, atualizacao e resposta de decks, mantendo `private` como padrao compativel.
 - Endpoints autenticados `GET /users/me/export` e `DELETE /users/me` para exportacao LGPD e exclusao de dados do usuario.
@@ -40,5 +41,6 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Auditorias de recomendacao passam a mapear JSONs persistidos como `TEXT` comum no Hibernate, evitando erro de Large Object nos testes PostgreSQL do CI.
 
 ### Security
+- Formulario de contato usa endpoint externo configuravel sem persistir mensagens no banco da aplicacao, sem anexos e sem envio automatico de tokens ou dados da sessao.
 - Fluxo Google documentado para escopos minimos `openid`, `email` e `profile`, sem persistencia de `access_token` ou `refresh_token`.
 - Logs de fluxos autenticados deixam de registrar payloads de decks, nomes de cartas em validacoes e detalhes de troca de recomendacao.

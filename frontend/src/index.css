@@ -938,6 +938,7 @@ code {
   }
 
   .workflow-steps,
+  .contact-grid,
   .form-grid,
   .split-layout,
   .metric-grid {
@@ -1070,6 +1071,14 @@ body::before {
   justify-content: space-between;
   gap: 12px;
   padding-block: 12px;
+}
+
+.app-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .about-link {
@@ -2578,6 +2587,11 @@ dt {
   background: rgba(184, 92, 69, 0.12);
 }
 
+.state-message.success {
+  border-color: rgba(143, 203, 107, 0.52);
+  background: rgba(143, 203, 107, 0.1);
+}
+
 .recommendation-card-list {
   display: grid;
   gap: 14px;
@@ -3210,6 +3224,7 @@ dt {
   .split-layout,
   .workflow-stepper,
   .workflow-steps,
+  .contact-grid,
   .form-grid,
   .recommendation-form,
   .recommendation-settings,
@@ -3252,6 +3267,11 @@ dt {
     background: rgba(6, 18, 12, 0.94);
     border: 1px solid var(--color-border);
     border-radius: 8px;
+  }
+
+  .contact-actions {
+    position: static;
+    margin-inline: 0;
   }
 
   .deck-editor-heading {
@@ -3377,6 +3397,78 @@ dt {
   margin-top: 6px;
   color: #fecaca;
   font-weight: 700;
+}
+
+.contact-card {
+  overflow: visible;
+}
+
+.contact-form {
+  display: grid;
+  gap: 16px;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.contact-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 9px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(6, 18, 12, 0.48);
+  color: var(--color-text);
+}
+
+.contact-checkbox input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.contact-privacy-note {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(8, 17, 12, 0.58);
+  color: var(--color-muted);
+}
+
+.contact-privacy-note strong,
+.contact-privacy-note a {
+  color: var(--color-value);
+}
+
+.contact-privacy-note a {
+  width: fit-content;
+  font-weight: 800;
+}
+
+.contact-honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.contact-actions {
+  justify-content: flex-start;
+}
+
+@media (max-width: 900px) {
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .btn,
@@ -3569,6 +3661,10 @@ button:disabled {
 
   .app-footer-inner {
     align-items: center;
+  }
+
+  .app-footer-actions {
+    justify-content: center;
   }
 }
 

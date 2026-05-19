@@ -22,6 +22,7 @@ Nunca commitar valores reais em `.env`, workflows ou documentacao publica.
 
 - `GOOGLE_CLIENT_ID`: client ID OIDC do Google usado pelo backend para validar ID tokens.
 - `VITE_GOOGLE_CLIENT_ID`: client ID exposto ao frontend para iniciar o login Google.
+- `VITE_CONTACT_FORM_ENDPOINT`: endpoint publico do formulario de contato, por exemplo Formspree; nao coloque dados pessoais no valor.
 - `QUARKUS_DATASOURCE_PASSWORD`: senha do banco.
 - `SPICERACK_API_KEY` e `TOPDECK_API_KEY`: chaves de integracoes externas.
 - `STAGING_BEARER_TOKEN`: ID token temporario para smoke tests; trate como segredo e rotacione.

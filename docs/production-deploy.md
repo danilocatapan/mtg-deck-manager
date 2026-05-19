@@ -81,12 +81,15 @@ Repository variables:
 ```text
 VITE_API_URL=https://<backend-runtime-url>
 VITE_GOOGLE_CLIENT_ID=<google-oauth-client-id>
+VITE_CONTACT_FORM_ENDPOINT=https://formspree.io/f/<form-id>
 CORS_ORIGINS=https://danilocatapan.github.io,http://localhost:5173
 SWAGGER_UI_ENABLED=false
 APP_LOG_LEVEL=INFO
 GOOGLE_CLIENT_ID=<google-oauth-client-id>
 STAGING_API_URL=https://<staging-backend-runtime-url>
 ```
+
+For the public Contact page, create a Formspree form for `MTG Deck Manager - Contato`, restrict submissions to `danilocatapan.github.io`, keep the `_gotcha` honeypot enabled, and configure `VITE_CONTACT_FORM_ENDPOINT` with the form endpoint.
 
 Repository secrets:
 

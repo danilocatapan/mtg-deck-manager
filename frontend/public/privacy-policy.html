@@ -41,10 +41,10 @@
   <body>
     <main>
       <h1>Politica de Privacidade</h1>
-      <p>Ultima atualizacao: 15 de maio de 2026.</p>
+      <p>Ultima atualizacao: 19 de maio de 2026.</p>
 
       <h2>Dados coletados</h2>
-      <p>Quando voce entra com Google, tratamos o Google subject/id, nome, e-mail e avatar retornados pelo login. Tambem tratamos os decks cadastrados, incluindo nome do deck, comandante, cartas, quantidades, identidade de cor, historico de trocas e auditorias de recomendacao.</p>
+      <p>Quando voce entra com Google, tratamos o Google subject/id, nome, e-mail e avatar retornados pelo login. Tambem tratamos os decks cadastrados, incluindo nome do deck, comandante, cartas, quantidades, identidade de cor, historico de trocas e auditorias de recomendacao. Quando voce usa o formulario de contato, tratamos os dados que voce preencher voluntariamente, como nome, e-mail, categoria, assunto, mensagem e deck ou comandante relacionado.</p>
 
       <h2>Finalidade</h2>
       <p>Usamos esses dados para autenticar o usuario, vincular decks a conta correta, permitir criacao, edicao, analise, recomendacoes, exportacao e exclusao dos dados do proprio usuario.</p>
@@ -58,6 +58,9 @@
       <h2>Compartilhamento com Google</h2>
       <p>O Google e usado como provedor de autenticacao OIDC. O app deve usar somente os escopos <code>openid</code>, <code>email</code> e <code>profile</code>. O backend valida o ID token e nao persiste access token nem refresh token do Google.</p>
 
+      <h2>Formulario de contato</h2>
+      <p>O formulario de contato pode ser processado por provedor externo de form-to-email, como Formspree, para encaminhar mensagens aos mantenedores. O app nao salva essas mensagens no banco da aplicacao, nao envia tokens Google, nao aceita anexos e recomenda que voce nao inclua senhas, tokens, exports privados completos ou outros dados sensiveis.</p>
+
       <h2>Cookies, sessao e tokens</h2>
       <p>O backend nao usa cookies de sessao para autenticacao. O frontend mantem o ID token do Google somente na sessao do navegador e respeita a expiracao do token antes de enviar chamadas autenticadas via header <code>Authorization</code>.</p>
 
@@ -68,7 +71,7 @@
       <p>Voce pode solicitar confirmacao de tratamento, acesso, correcao, portabilidade, exclusao, informacoes sobre compartilhamento e revisao de decisoes automatizadas quando aplicavel.</p>
 
       <h2>Contato</h2>
-      <p>Para exercer direitos ou tirar duvidas sobre privacidade, entre em contato pelo mantenedor do projeto: <a href="https://github.com/danilocatapan">github.com/danilocatapan</a>.</p>
+      <p>Para exercer direitos, enviar sugestoes ou tirar duvidas sobre privacidade, use a pagina de contato do app ou entre em contato pelo mantenedor do projeto: <a href="https://github.com/danilocatapan">github.com/danilocatapan</a>.</p>
     </main>
   </body>
 </html>

@@ -9,7 +9,7 @@
         "API publica para listar, consultar e copiar decks publicos sem expor dados privados do dono.",
         "Endpoints autenticados GET /users/me/export e DELETE /users/me para exportacao LGPD e exclusao de dados do usuario.",
         "Politica de Privacidade publica com dados coletados, finalidade, base legal provavel, retencao, compartilhamento com Google, direitos do titular e contato.",
-        "Tela Sobre com detalhes do produto, frontend e API."
+        "Tela Sobre e canal de contato para enviar sugestoes, bugs e duvidas aos mantenedores."
       ],
       "changed": [
         "Importacao, analise e recomendacoes ficaram mais visuais no mobile, com preview recolhido, abas, graficos simples e trocas 1:1 mais concretas.",
