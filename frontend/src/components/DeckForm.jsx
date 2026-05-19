@@ -103,6 +103,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   const [loadingCardDetails, setLoadingCardDetails] = useState(false)
   const [error, setError] = useState(null)
   const [savedMessage, setSavedMessage] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (initial) {
@@ -348,7 +349,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
     return true
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     if (!validate()) return
 
@@ -359,7 +360,16 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       cards: cards.map((card) => ({ name: card.name, quantity: card.quantity })),
     }
     setSavedMessage('Salvando deck...')
-    onSave && onSave(payload)
+    setSaving(true)
+    try {
+      await onSave?.(payload)
+      setSavedMessage(null)
+    } catch (saveError) {
+      setError(saveError.message || 'Falha ao salvar deck.')
+      setSavedMessage(null)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -377,10 +387,10 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
           </label>
           <label>
             Visibilidade
-            <small>Decks publicos aparecem na vitrine e podem ser copiados por outros usuarios.</small>
+            <small>Decks públicos aparecem na vitrine e podem ser copiados por outros usuários.</small>
             <select value={visibility} onChange={(e) => setVisibility(e.target.value)}>
               <option value="private">Privado</option>
-              <option value="public">Publico</option>
+              <option value="public">Público</option>
             </select>
           </label>
         </div>
@@ -462,7 +472,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
               <span>Agrupar por tipo</span>
             </label>
             <div className="deck-list-summary" aria-live="polite">
-              {loadingCardDetails ? 'Carregando tipos...' : `${cardTotalLabel(filteredTotal)} visiveis`}
+              {loadingCardDetails ? 'Carregando tipos...' : `${cardTotalLabel(filteredTotal)} ${filteredTotal === 1 ? 'visível' : 'visíveis'}`}
             </div>
           </div>
         )}
@@ -551,7 +561,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       {savedMessage && <div className="status">{savedMessage}</div>}
 
       <div className="form-actions">
-        <Button type="submit" disabled={!isValid}>Salvar Deck</Button>
+        <Button type="submit" disabled={!isValid || saving}>{saving ? 'Salvando...' : 'Salvar Deck'}</Button>
         <Button type="button" variant="secondary" onClick={onCancel}>Voltar</Button>
       </div>
     </form>

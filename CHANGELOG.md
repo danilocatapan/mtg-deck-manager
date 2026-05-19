@@ -4,7 +4,7 @@ Todas as mudancas notaveis deste projeto serao documentadas aqui.
 
 O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e atualizado a partir das tags Git e mensagens de commit da release.
 
-## [0.0.0-local] - 2026-05-18
+## [0.0.0-local] - 2026-05-19
 
 ### Added
 - API publica `GET /public/decks`, `GET /public/decks/{id}` e `POST /public/decks/{id}/copy` para listar, consultar e copiar decks publicos.
@@ -25,8 +25,11 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Recomendacoes estrategicas usam diagnostico por arquetipo/bracket e protegem finishers, combos e payoffs contra trocas incoerentes.
 - Recomendacoes passaram a respeitar melhor identidade de cor, meta local, combos quase presentes e fallback high-power/cEDH.
 - Cadastro, edicao, importacao, analise e recomendacoes ficaram mais compactos e focados nos sinais acionaveis do deck.
+- Exclusao de decks no frontend passa a usar um dialogo proprio, mantendo a experiencia visual consistente.
 
 ### Fixed
+- Feedback de salvamento no editor deixa de manter "Salvando deck..." depois que a atualizacao termina.
+- Header mobile ajustado para evitar clipping do logo em telas estreitas.
 - Atualizacao de visibilidade de decks legados deixa de revalidar cartas inalteradas na Scryfall, evitando timeout transacional e falha ao publicar decks antigos.
 - Atualizacao de deck passa a reaproveitar linhas de cartas existentes, evitando violacao do indice unico de `deck_cards` no PostgreSQL.
 - Auditorias de recomendacao passam a mapear JSONs persistidos como `TEXT` comum no Hibernate, evitando erro de Large Object nos testes PostgreSQL do CI.

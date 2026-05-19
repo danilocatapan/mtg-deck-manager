@@ -29,6 +29,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState(null)
   const [apiStatus, setApiStatus] = useState(null)
+  const [pendingDeleteDeck, setPendingDeleteDeck] = useState(null)
+  const [deletingDeck, setDeletingDeck] = useState(false)
   const initialLoadComplete = useRef(false)
   const debouncedPublicCommanderFilterRef = useRef('')
 
@@ -157,7 +159,7 @@ export default function Home() {
       setView('consult')
     } catch {
       console.error('consult deck failed')
-      setMessage('Nao foi possivel consultar este deck.')
+      setMessage('Não foi possível consultar este deck.')
     }
   }
 
@@ -177,23 +179,31 @@ export default function Home() {
       await load()
     } catch (error) {
       console.error('copy public deck failed')
-      setMessage(error.message || 'Nao foi possivel copiar este deck.')
+      setMessage(error.message || 'Não foi possível copiar este deck.')
     }
   }
 
-  async function handleDelete(deck) {
+  function handleDelete(deck) {
     if (!isAuthenticated) {
       setMessage('Entre com Google antes de excluir decks.')
       return
     }
-    if (!confirm(`Excluir o deck ${deck.name}?`)) return
+    setPendingDeleteDeck(deck)
+  }
+
+  async function confirmDeleteDeck() {
+    if (!pendingDeleteDeck) return
     try {
-      await deleteDeck(deck.id)
-      setMessage(`${deck.name} excluido.`)
+      setDeletingDeck(true)
+      await deleteDeck(pendingDeleteDeck.id)
+      setMessage(`${pendingDeleteDeck.name} excluído.`)
+      setPendingDeleteDeck(null)
       await load()
     } catch {
       console.error('delete failed')
-      setMessage('Nao foi possivel excluir. Tente novamente.')
+      setMessage('Não foi possível excluir. Tente novamente.')
+    } finally {
+      setDeletingDeck(false)
     }
   }
 
@@ -242,10 +252,10 @@ export default function Home() {
   }
 
   const activePublicCommanderFilter = debouncedPublicCommanderFilter.trim()
-  const publicEmptyTitle = activePublicCommanderFilter ? 'Nenhum deck encontrado' : 'Nenhum deck publico'
+  const publicEmptyTitle = activePublicCommanderFilter ? 'Nenhum deck encontrado' : 'Nenhum deck público'
   const publicEmptyDescription = activePublicCommanderFilter
-    ? `Nenhum deck publico recente encontrado para "${activePublicCommanderFilter}".`
-    : 'Quando um deck for marcado como publico, ele aparecera aqui para consulta.'
+    ? `Nenhum deck público recente encontrado para "${activePublicCommanderFilter}".`
+    : 'Quando um deck for marcado como público, ele aparecerá aqui para consulta.'
 
   return (
     <main>
@@ -253,7 +263,7 @@ export default function Home() {
         <div>
           <p className="eyebrow">Command Zone</p>
           <h1>Biblioteca de Decks</h1>
-          <p className="page-description">Consulte decks publicos, crie ou importe sua lista, valide a legalidade, analise a estrutura e gere recomendacoes explicaveis.</p>
+          <p className="page-description">Consulte decks públicos, crie ou importe sua lista, valide a legalidade, analise a estrutura e gere recomendações explicáveis.</p>
         </div>
         <div className="actions-row" aria-describedby={!isAuthenticated ? 'auth-required-message' : undefined}>
           <Button className="cta-primary" onClick={handleCreate} disabled={!isAuthenticated}>
@@ -269,7 +279,7 @@ export default function Home() {
 
       <Card className="zone zone-battlefield">
         <div className="workflow-steps" aria-label="Main workflow">
-          <div data-state="active"><strong>1</strong><span>Consultar publicos</span></div>
+          <div data-state="active"><strong>1</strong><span>Consultar públicos</span></div>
           <div><strong>2</strong><span>Criar ou importar</span></div>
           <div><strong>3</strong><span>Validar e analisar</span></div>
           <div><strong>4</strong><span>Evoluir o deck</span></div>
@@ -288,12 +298,12 @@ export default function Home() {
       )}
       {apiStatus === 'starting' && (
         <StateMessage tone="neutral" title="API iniciando">
-          O servidor gratuito pode levar cerca de 50 segundos para acordar apos inatividade. Mantivemos a tela estavel; tente novamente em alguns instantes.
+          O servidor gratuito pode levar cerca de 50 segundos para acordar após inatividade. Mantivemos a tela estável; tente novamente em alguns instantes.
         </StateMessage>
       )}
       {apiStatus === 'unavailable' && (
-        <StateMessage tone="error" title="API indisponivel">
-          Nao foi possivel conectar com o backend agora. Aguarde alguns segundos e tente recarregar a biblioteca.
+        <StateMessage tone="error" title="API indisponível">
+          Não foi possível conectar com o backend agora. Aguarde alguns segundos e tente recarregar a biblioteca.
         </StateMessage>
       )}
       {loading ? (
@@ -304,8 +314,8 @@ export default function Home() {
             <div className="section-heading">
               <div>
                 <p className="eyebrow">Vitrine</p>
-                <h2>Decks publicos recentes</h2>
-                <p>Decks publicos recentes em modo somente leitura.</p>
+                <h2>Decks públicos recentes</h2>
+                <p>Decks públicos recentes em modo somente leitura.</p>
               </div>
             </div>
             <div className="public-vitrine-toolbar">
@@ -342,7 +352,7 @@ export default function Home() {
                 <div>
                   <p className="eyebrow">Minha biblioteca</p>
                   <h2>Meus decks</h2>
-                  <p>Seus decks continuam privados por padrao e podem ser editados ou excluidos por aqui.</p>
+                  <p>Seus decks continuam privados por padrão e podem ser editados ou excluídos por aqui.</p>
                 </div>
               </div>
               <DeckList
@@ -357,6 +367,32 @@ export default function Home() {
             </Card>
           )}
         </>
+      )}
+      {pendingDeleteDeck && (
+        <div className="about-backdrop" role="presentation" onMouseDown={() => !deletingDeck && setPendingDeleteDeck(null)}>
+          <section
+            className="confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-deck-title"
+            aria-describedby="delete-deck-description"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div>
+              <p className="eyebrow">Exclusão</p>
+              <h2 id="delete-deck-title">Excluir deck?</h2>
+            </div>
+            <p id="delete-deck-description">
+              Esta ação remove <strong>{pendingDeleteDeck.name}</strong> da sua biblioteca. A lista não poderá ser recuperada por aqui.
+            </p>
+            <div className="confirm-dialog-actions">
+              <Button variant="secondary" onClick={() => setPendingDeleteDeck(null)} disabled={deletingDeck}>Cancelar</Button>
+              <Button variant="danger" onClick={confirmDeleteDeck} disabled={deletingDeck}>
+                {deletingDeck ? 'Excluindo...' : 'Excluir deck'}
+              </Button>
+            </div>
+          </section>
+        </div>
       )}
     </main>
   )

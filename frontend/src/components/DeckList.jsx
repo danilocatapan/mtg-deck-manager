@@ -12,7 +12,7 @@ export default function DeckList({
   actionsDisabled = false,
   actionHint = '',
   emptyTitle = 'Nenhum deck ainda',
-  emptyDescription = 'Crie um deck Commander do zero ou importe uma lista de texto quando ja tiver as 99 cartas separadas.',
+  emptyDescription = 'Crie um deck Commander do zero ou importe uma lista de texto quando já tiver as 99 cartas separadas.',
   showCreateActions = true,
   showManageActions = true,
 }) {
@@ -52,7 +52,7 @@ export default function DeckList({
               <div className="deck-subtitle">{deck.commander}</div>
               <div className="deck-meta-row">
                 <span className={`deck-count ${totalCards > 99 ? 'is-invalid' : ''}`}>{totalCards}/99 cartas</span>
-                {deck.visibility && <span className="status-pill">{deck.visibility === 'public' ? 'Publico' : 'Privado'}</span>}
+                {deck.visibility && <span className="status-pill">{deck.visibility === 'public' ? 'Público' : 'Privado'}</span>}
               </div>
               {deck.author && <div className="deck-subtitle">por {deck.author}</div>}
             </div>

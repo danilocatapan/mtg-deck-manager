@@ -91,7 +91,7 @@ export default function DeckConsultPage({ deck, isAuthenticated = false, onBack,
           <p className="eyebrow">Consulta</p>
           <h1>{deck?.name || 'Deck'}</h1>
           <p className="page-description">
-            {deck?.commander} - {displayTotal}/99 cartas - {deck?.visibility === 'public' ? 'Publico' : 'Privado'}
+            {deck?.commander} - {displayTotal}/99 cartas - {deck?.visibility === 'public' ? 'Público' : 'Privado'}
             {deck?.author ? ` - por ${deck.author}` : ''}
           </p>
         </div>
@@ -108,7 +108,7 @@ export default function DeckConsultPage({ deck, isAuthenticated = false, onBack,
           <div>
             <p className="eyebrow">Somente leitura</p>
             <h2>Lista do deck</h2>
-            <p>Este modo permite consultar a lista sem editar, excluir ou aplicar recomendacoes. Copias entram como privadas na sua biblioteca.</p>
+            <p>Este modo permite consultar a lista sem editar, excluir ou aplicar recomendações. Cópias entram como privadas na sua biblioteca.</p>
           </div>
         </div>
 
@@ -125,7 +125,7 @@ export default function DeckConsultPage({ deck, isAuthenticated = false, onBack,
                   ) : (
                     <div className="card-art-placeholder">
                       <strong>{card.name}</strong>
-                      <span>Imagem indisponivel</span>
+                      <span>Imagem indisponível</span>
                     </div>
                   )}
                   <span className="card-quantity-badge">{card.quantity}x</span>
