@@ -3572,6 +3572,272 @@ button:disabled {
   }
 }
 
+/* 2026 UX polish: visual gallery, progressive loading and mobile quick actions. */
+.deck-list {
+  display: grid;
+  gap: 12px;
+}
+
+.deck-gallery-card {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 0;
+  padding: 12px;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.deck-gallery-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(214, 168, 79, 0.68);
+  background: rgba(24, 42, 30, 0.94);
+}
+
+.deck-card-art {
+  position: relative;
+  display: grid;
+  width: 82px;
+  aspect-ratio: 488 / 680;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(214, 168, 79, 0.38);
+  border-radius: 8px;
+  background: linear-gradient(160deg, rgba(214, 168, 79, 0.16), rgba(20, 36, 25, 0.92));
+  color: var(--color-value);
+  font-weight: 900;
+}
+
+.deck-card-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.deck-card-body {
+  min-width: 0;
+}
+
+.deck-card-actions {
+  justify-content: flex-end;
+}
+
+.mana-pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mana-pips i {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  color: #0a100b;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.mana-pips i[data-color="W"] {
+  background: #f4ead1;
+}
+
+.mana-pips i[data-color="U"] {
+  background: #9cc9e8;
+}
+
+.mana-pips i[data-color="B"] {
+  background: #c4b5a5;
+}
+
+.mana-pips i[data-color="R"] {
+  background: #e28a62;
+}
+
+.mana-pips i[data-color="G"] {
+  background: #9bd08b;
+}
+
+.mana-pips i[data-color="C"] {
+  background: #d5d1c6;
+}
+
+.deck-list-skeleton {
+  display: grid;
+  gap: 12px;
+}
+
+.deck-skeleton-card {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  gap: 14px;
+  align-items: center;
+  min-height: 112px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(20, 36, 25, 0.78);
+}
+
+.skeleton-art,
+.skeleton-lines i {
+  display: block;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), rgba(214, 168, 79, 0.16), rgba(255, 255, 255, 0.06));
+  background-size: 220% 100%;
+  animation: skeleton-sheen 1.3s ease-in-out infinite;
+}
+
+.skeleton-art {
+  width: 82px;
+  aspect-ratio: 488 / 680;
+}
+
+.skeleton-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton-lines i {
+  height: 14px;
+}
+
+.skeleton-lines i:nth-child(1) {
+  width: min(280px, 82%);
+}
+
+.skeleton-lines i:nth-child(2) {
+  width: min(210px, 64%);
+}
+
+.skeleton-lines i:nth-child(3) {
+  width: min(150px, 46%);
+}
+
+@keyframes skeleton-sheen {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+.mobile-quick-nav {
+  display: none;
+}
+
+.swap-confirm-dialog {
+  width: min(540px, 100%);
+}
+
+.swap-confirm-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-gallery-card,
+  .skeleton-art,
+  .skeleton-lines i {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .deck-gallery-card {
+    grid-template-columns: 68px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .deck-card-art {
+    width: 68px;
+  }
+
+  .deck-card-actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    width: 100%;
+  }
+
+  .deck-card-actions .btn,
+  .deck-card-actions button {
+    width: 100%;
+  }
+
+  .deck-skeleton-card {
+    grid-template-columns: 68px 1fr;
+  }
+
+  .skeleton-art {
+    width: 68px;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-header {
+    min-height: 128px;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .app-header .container {
+    min-height: 128px;
+    padding-block: 14px;
+  }
+
+  .brand-logo {
+    display: block;
+    width: min(240px, 76vw);
+    max-width: 100%;
+    max-height: 64px;
+  }
+
+  .app-main:has(.mobile-quick-nav) {
+    padding-bottom: 84px;
+  }
+
+  .mobile-quick-nav {
+    position: sticky;
+    z-index: 12;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 14px 0 4px;
+    padding: 8px;
+    border: 1px solid rgba(214, 168, 79, 0.36);
+    border-radius: 8px;
+    background: rgba(6, 18, 12, 0.94);
+    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(12px);
+  }
+
+  .mobile-quick-nav button {
+    min-height: 40px;
+    padding-inline: 8px;
+  }
+
+  .swap-confirm-route {
+    grid-template-columns: 1fr;
+  }
+
+  .swap-confirm-route .swap-arrow {
+    transform: rotate(90deg);
+  }
+}
+
 /* Focused UX fixes from the authenticated flow validation. */
 .app-header {
   min-height: 88px;

@@ -31,6 +31,7 @@ export default function Home() {
   const [apiStatus, setApiStatus] = useState(null)
   const [pendingDeleteDeck, setPendingDeleteDeck] = useState(null)
   const [deletingDeck, setDeletingDeck] = useState(false)
+  const [copyingDeckId, setCopyingDeckId] = useState(null)
   const initialLoadComplete = useRef(false)
   const debouncedPublicCommanderFilterRef = useRef('')
 
@@ -172,6 +173,7 @@ export default function Home() {
 
     try {
       setMessage(null)
+      setCopyingDeckId(deck.id)
       const copiedDeck = await copyPublicDeck(deck.id)
       setEditingDeck(copiedDeck)
       setEditorNotice('Deck copiado para sua biblioteca como privado.')
@@ -180,6 +182,8 @@ export default function Home() {
     } catch (error) {
       console.error('copy public deck failed')
       setMessage(error.message || 'Não foi possível copiar este deck.')
+    } finally {
+      setCopyingDeckId(null)
     }
   }
 
@@ -306,55 +310,61 @@ export default function Home() {
           Não foi possível conectar com o backend agora. Aguarde alguns segundos e tente recarregar a biblioteca.
         </StateMessage>
       )}
-      {loading ? (
-        <Card><div className="loading">Carregando decks e aguardando a API responder...</div></Card>
-      ) : (
-        <>
-          <Card className="zone zone-library">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Vitrine</p>
-                <h2>Decks públicos recentes</h2>
-                <p>Decks públicos recentes em modo somente leitura.</p>
-              </div>
+      <>
+        <Card className="zone zone-library">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Vitrine</p>
+              <h2>Decks públicos recentes</h2>
+              <p>Decks públicos recentes em modo somente leitura.</p>
             </div>
-            <div className="public-vitrine-toolbar">
-              <label>
-                <span>Filtrar por comandante</span>
-                <input
-                  value={publicCommanderFilter}
-                  onChange={(event) => setPublicCommanderFilter(event.target.value)}
-                  placeholder="Atraxa, Xenagos, Muldrotha..."
-                />
-              </label>
-              {publicCommanderFilter.trim() && (
-                <Button type="button" variant="secondary" onClick={clearPublicCommanderFilter}>
-                  Limpar
-                </Button>
-              )}
-              <div className="public-vitrine-summary" aria-live="polite">
-                {publicDecksLoading ? 'Atualizando vitrine...' : `${publicDecks.length}/${PUBLIC_DECK_LIMIT} decks recentes`}
-              </div>
+          </div>
+          <div className="public-vitrine-toolbar">
+            <label>
+              <span>Filtrar por comandante</span>
+              <input
+                value={publicCommanderFilter}
+                onChange={(event) => setPublicCommanderFilter(event.target.value)}
+                placeholder="Atraxa, Xenagos, Muldrotha..."
+              />
+            </label>
+            {publicCommanderFilter.trim() && (
+              <Button type="button" variant="secondary" onClick={clearPublicCommanderFilter}>
+                Limpar
+              </Button>
+            )}
+            <div className="public-vitrine-summary" aria-live="polite">
+              {publicDecksLoading ? 'Atualizando vitrine...' : `${publicDecks.length}/${PUBLIC_DECK_LIMIT} decks recentes`}
             </div>
+          </div>
+          {loading || publicDecksLoading ? (
+            <DeckListSkeleton label="Carregando decks públicos" />
+          ) : (
             <DeckList
               decks={publicDecks}
               onConsult={handleConsult}
+              onCopy={handleCopyPublicDeck}
+              copyLoadingId={copyingDeckId}
               showCreateActions={false}
               showManageActions={false}
               emptyTitle={publicEmptyTitle}
               emptyDescription={publicEmptyDescription}
             />
-          </Card>
+          )}
+        </Card>
 
-          {isAuthenticated && (
-            <Card className="zone zone-library">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Minha biblioteca</p>
-                  <h2>Meus decks</h2>
-                  <p>Seus decks continuam privados por padrão e podem ser editados ou excluídos por aqui.</p>
-                </div>
+        {isAuthenticated && (
+          <Card className="zone zone-library">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Minha biblioteca</p>
+                <h2>Meus decks</h2>
+                <p>Seus decks continuam privados por padrão e podem ser editados ou excluídos por aqui.</p>
               </div>
+            </div>
+            {loading ? (
+              <DeckListSkeleton label="Carregando sua biblioteca" />
+            ) : (
               <DeckList
                 decks={decks}
                 onEdit={handleEdit}
@@ -364,9 +374,16 @@ export default function Home() {
                 actionsDisabled={!isAuthenticated}
                 actionHint="Entre com Google antes de criar ou importar decks."
               />
-            </Card>
-          )}
-        </>
+            )}
+          </Card>
+        )}
+      </>
+      {isAuthenticated && (
+        <nav className="mobile-quick-nav" aria-label="Ações rápidas">
+          <button type="button" onClick={handleCreate}>Criar</button>
+          <button type="button" onClick={handleImport}>Importar</button>
+          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Topo</button>
+        </nav>
       )}
       {pendingDeleteDeck && (
         <div className="about-backdrop" role="presentation" onMouseDown={() => !deletingDeck && setPendingDeleteDeck(null)}>
@@ -395,5 +412,22 @@ export default function Home() {
         </div>
       )}
     </main>
+  )
+}
+
+function DeckListSkeleton({ label }) {
+  return (
+    <div className="deck-list-skeleton" aria-label={label} aria-busy="true">
+      {[0, 1, 2].map((item) => (
+        <div key={item} className="deck-skeleton-card">
+          <span className="skeleton-art" />
+          <span className="skeleton-lines">
+            <i />
+            <i />
+            <i />
+          </span>
+        </div>
+      ))}
+    </div>
   )
 }

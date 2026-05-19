@@ -13,8 +13,11 @@
       ],
       "changed": [
         "Vitrine de decks publicos agora mostra ate 24 decks recentes e permite filtrar por comandante.",
+        "Vitrine e biblioteca agora usam cards visuais com arte do comandante, identidade de cor, autor, copia direta e skeleton loading.",
+        "Mobile ganhou acoes rapidas para criar, importar e voltar ao topo durante a navegacao por listas longas.",
         "Lista do deck no editor agora tem filtro por nome, filtro por tipo e agrupamento por categorias de cartas.",
         "Cards de recomendacao exibem preview hoveravel das cartas sugeridas para adicionar e remover.",
+        "Aplicacao de troca recomendada agora usa dialogo proprio com resumo do entra/sai.",
         "Frontend recebeu polimento de UX em pt-BR, foco de teclado, alvos de toque, header, stepper, dialogo de exclusao e acoes mobile.",
         "Recomendacoes estrategicas usam diagnostico por arquetipo/bracket e protegem finishers, combos e payoffs contra trocas incoerentes."
       ],

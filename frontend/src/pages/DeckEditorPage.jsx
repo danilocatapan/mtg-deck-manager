@@ -39,6 +39,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
   const [currentDeck, setCurrentDeck] = useState(deck)
   const [applyingSwapKey, setApplyingSwapKey] = useState(null)
   const [appliedSwapKeys, setAppliedSwapKeys] = useState(() => new Set())
+  const [pendingRecommendation, setPendingRecommendation] = useState(null)
 
   const initial = mode === 'edit' ? currentDeck : null
   const savedCardCount = useMemo(() => currentDeck?.cards
@@ -97,6 +98,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
     } catch (e) {
       console.error('save error')
       setError(e.message || 'Falha ao salvar deck.')
+      throw e
     }
   }
 
@@ -152,13 +154,17 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
 
   async function handleApplyRecommendation(item) {
     if (!canAnalyze || !item?.add || !item?.remove) return
-    const confirmed = window.confirm(`Aplicar troca: adicionar ${item.add} e remover ${item.remove}?`)
-    if (!confirmed) return
+    setPendingRecommendation(item)
+  }
 
+  async function confirmApplyRecommendation() {
+    const item = pendingRecommendation
+    if (!canAnalyze || !item?.add || !item?.remove) return
     const key = recommendationKey(item)
     try {
       setError(null)
       setRecommendationError(null)
+      setPendingRecommendation(null)
       setApplyingSwapKey(key)
       const updatedDeck = await applyRecommendationSwap(currentDeck.id, {
         add: item.add,
@@ -325,6 +331,36 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
           </Button>
         </div>
       </div>
+      {pendingRecommendation && (
+        <div className="about-backdrop" role="presentation" onMouseDown={() => setPendingRecommendation(null)}>
+          <section
+            className="confirm-dialog swap-confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="swap-confirm-title"
+            aria-describedby="swap-confirm-description"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div>
+              <p className="eyebrow">Recomendação</p>
+              <h2 id="swap-confirm-title">Aplicar troca?</h2>
+            </div>
+            <p id="swap-confirm-description">
+              Vamos adicionar <strong>{pendingRecommendation.add}</strong> e remover <strong>{pendingRecommendation.remove}</strong>.
+              A troca ficará no histórico do deck e poderá ser desfeita depois.
+            </p>
+            <div className="swap-confirm-route" aria-hidden="true">
+              <span className="swap-card remove"><small>Sai</small><strong>{pendingRecommendation.remove}</strong></span>
+              <span className="swap-arrow">→</span>
+              <span className="swap-card add"><small>Entra</small><strong>{pendingRecommendation.add}</strong></span>
+            </div>
+            <div className="confirm-dialog-actions">
+              <Button variant="secondary" onClick={() => setPendingRecommendation(null)}>Cancelar</Button>
+              <Button onClick={confirmApplyRecommendation}>Aplicar troca</Button>
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   )
 }
