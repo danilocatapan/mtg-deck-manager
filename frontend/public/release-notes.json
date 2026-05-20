@@ -19,6 +19,9 @@
         "Vitrine e biblioteca usam cards visuais com arte do comandante, identidade de cor, autor, copia direta e skeleton loading."
       ],
       "fixed": [
+        "Nomes de cartas em combos agora tambem abrem preview de imagem.",
+        "Preview de imagem das cartas deixa de ficar cortado em telas mobile.",
+        "Tela mobile de edicao deixa de duplicar as acoes de analise e recomendacoes.",
         "Editor deixa de manter o aviso de salvamento depois que o deck termina de salvar.",
         "Header mobile evita clipping do logo em telas estreitas.",
         "Decks antigos agora podem ser publicados sem revalidar cartas inalteradas na Scryfall."

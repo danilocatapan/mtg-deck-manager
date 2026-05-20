@@ -144,14 +144,44 @@ function ComboList({ title, items, nearMiss = false }) {
       <h4>{title}</h4>
       {items.slice(0, 6).map((combo) => (
         <article key={`${combo.name}-${combo.missingCard || ''}`}>
-          <strong>{combo.name}</strong>
-          <span>{nearMiss ? `Falta: ${combo.missingCard}` : (combo.cards || []).join(' + ')}</span>
-          {nearMiss && <small>{(combo.presentCards || []).join(' + ')}</small>}
+          <strong><ComboCardNames names={cardNamesForComboTitle(combo)} /></strong>
+          <span>
+            {nearMiss ? (
+              <>
+                Falta: <CardNamePreview name={combo.missingCard} />
+              </>
+            ) : (
+              <ComboCardNames names={combo.cards || []} />
+            )}
+          </span>
+          {nearMiss && <small><ComboCardNames names={combo.presentCards || []} /></small>}
           {combo.result && <small>{combo.result}</small>}
         </article>
       ))}
     </div>
   )
+}
+
+function ComboCardNames({ names = [] }) {
+  const cardNames = names.filter(Boolean)
+  if (!cardNames.length) return null
+  return cardNames.map((name, index) => (
+    <span key={`${name}-${index}`} className="combo-card-name">
+      {index > 0 && <span className="combo-card-separator"> + </span>}
+      <CardNamePreview name={name} />
+    </span>
+  ))
+}
+
+function cardNamesForComboTitle(combo) {
+  const knownCards = combo.cards?.length ? combo.cards : combo.presentCards
+  if (knownCards?.length) {
+    return combo.missingCard ? [combo.missingCard, ...knownCards] : knownCards
+  }
+  return String(combo.name || '')
+    .split(/\s+\+\s+/)
+    .map((name) => name.trim())
+    .filter(Boolean)
 }
 
 function buildRoleEntries(roles = {}, roleCards = {}) {

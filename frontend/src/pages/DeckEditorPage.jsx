@@ -316,7 +316,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
         </div>
       )}
 
-      <div className="card action-card">
+      <div className="card action-card editor-next-step-card">
         <div>
           <h3>Próximo passo</h3>
           <p>{canAnalyze ? 'Este deck salvo pode ser analisado e otimizado.' : 'Salve um deck válido com até 99 cartas antes da análise.'}</p>

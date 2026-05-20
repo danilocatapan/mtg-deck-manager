@@ -2688,6 +2688,28 @@ dt {
   border-radius: 6px;
 }
 
+@media (max-width: 720px) {
+  .card-name-popover {
+    position: fixed;
+    z-index: 80;
+    top: max(12px, env(safe-area-inset-top));
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    width: min(320px, calc(100vw - 40px));
+    max-height: calc(100dvh - 112px);
+    transform: translateX(-50%);
+    overflow: hidden;
+  }
+
+  .card-name-popover img {
+    width: auto;
+    max-width: 100%;
+    max-height: calc(100dvh - 136px);
+    object-fit: contain;
+  }
+}
+
 .card-name-popover-empty {
   display: grid;
   min-height: 112px;
@@ -3180,6 +3202,16 @@ dt {
   border: 1px solid rgba(214, 168, 79, 0.25);
   border-radius: 8px;
   background: rgba(20, 36, 25, 0.62);
+}
+
+.combo-card-name {
+  display: inline;
+  overflow-wrap: anywhere;
+}
+
+.combo-card-separator {
+  color: var(--color-muted);
+  font-weight: 800;
 }
 
 .curve-type-grid {
@@ -4417,6 +4449,10 @@ button:disabled {
 
   .floating-action-bar button {
     min-height: 42px;
+  }
+
+  .editor-next-step-card .actions-row {
+    display: none;
   }
 
   .floating-action-bar button span {

@@ -42,6 +42,9 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Exclusao de decks no frontend passa a usar um dialogo proprio, mantendo a experiencia visual consistente.
 
 ### Fixed
+- Nomes de cartas na aba Combos da analise agora usam preview de imagem como nas demais listas.
+- Preview de imagem ao tocar/passar sobre nomes de cartas deixa de ficar cortado em telas mobile.
+- Tela mobile de edicao deixa de duplicar as acoes Analisar/Recomendacoes no card "Proximo passo" e na barra flutuante.
 - Feedback de salvamento no editor deixa de manter "Salvando deck..." depois que a atualizacao termina.
 - Header mobile ajustado para evitar clipping do logo em telas estreitas.
 - Atualizacao de visibilidade de decks legados deixa de revalidar cartas inalteradas na Scryfall, evitando timeout transacional e falha ao publicar decks antigos.
