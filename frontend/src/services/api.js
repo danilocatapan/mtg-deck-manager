@@ -173,6 +173,45 @@ export async function copyPublicDeck(id) {
   }
 }
 
+export async function likePublicDeck(id) {
+  try {
+    if (id === undefined || id === null || isNaN(Number(id))) {
+      throw new Error('Invalid deck id')
+    }
+    return await request(`/public/decks/${id}/like`, { method: 'POST' })
+  } catch (e) {
+    logApiError('likePublicDeck error', e)
+    throw e
+  }
+}
+
+export async function unlikePublicDeck(id) {
+  try {
+    if (id === undefined || id === null || isNaN(Number(id))) {
+      throw new Error('Invalid deck id')
+    }
+    await request(`/public/decks/${id}/like`, { method: 'DELETE' })
+  } catch (e) {
+    logApiError('unlikePublicDeck error', e)
+    throw e
+  }
+}
+
+export async function fetchTopPublicDecks({ period = 'WEEKLY', size = 24, throwOnError = false } = {}) {
+  try {
+    const query = new URLSearchParams()
+    query.set('period', period)
+    query.set('size', String(size))
+    return await request(`/public/decks/top?${query.toString()}`, { retryOnStartup: false })
+  } catch (e) {
+    logApiError('fetchTopPublicDecks error', e)
+    if (throwOnError) {
+      throw e
+    }
+    return []
+  }
+}
+
 export async function getAppInfo() {
   return await request('/app/info', { retryOnStartup: false })
 }
@@ -394,6 +433,9 @@ export default {
   fetchPublicDecks,
   getPublicDeck,
   copyPublicDeck,
+  likePublicDeck,
+  unlikePublicDeck,
+  fetchTopPublicDecks,
   fetchCardsByNames,
   searchCards,
   createDeck,

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "decks")
@@ -34,6 +35,24 @@ public class Deck {
 
     @Column(name = "history_json", columnDefinition = "TEXT")
     private String historyJson;
+
+    @Column(name = "source_type", length = 32)
+    private String sourceType;
+
+    @Column(name = "external_source")
+    private String externalSource;
+
+    @Column(name = "external_source_url", length = 1000)
+    private String externalSourceUrl;
+
+    @Column(name = "external_deck_url", length = 1000)
+    private String externalDeckUrl;
+
+    @Column(name = "external_rank")
+    private Integer externalRank;
+
+    @Column(name = "imported_at")
+    private OffsetDateTime importedAt;
 
     @OneToMany(mappedBy = "deck", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<DeckCard> cards = new ArrayList<>();
@@ -97,6 +116,30 @@ public class Deck {
     public String getHistoryJson() { return historyJson; }
 
     public void setHistoryJson(String historyJson) { this.historyJson = historyJson; }
+
+    public String getSourceType() { return sourceType; }
+
+    public void setSourceType(String sourceType) { this.sourceType = sourceType; }
+
+    public String getExternalSource() { return externalSource; }
+
+    public void setExternalSource(String externalSource) { this.externalSource = externalSource; }
+
+    public String getExternalSourceUrl() { return externalSourceUrl; }
+
+    public void setExternalSourceUrl(String externalSourceUrl) { this.externalSourceUrl = externalSourceUrl; }
+
+    public String getExternalDeckUrl() { return externalDeckUrl; }
+
+    public void setExternalDeckUrl(String externalDeckUrl) { this.externalDeckUrl = externalDeckUrl; }
+
+    public Integer getExternalRank() { return externalRank; }
+
+    public void setExternalRank(Integer externalRank) { this.externalRank = externalRank; }
+
+    public OffsetDateTime getImportedAt() { return importedAt; }
+
+    public void setImportedAt(OffsetDateTime importedAt) { this.importedAt = importedAt; }
 
     public List<DeckCard> getCards() {
         return cards;

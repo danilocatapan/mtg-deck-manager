@@ -14,6 +14,12 @@ public record PublicDeckResponseDTO(
         int mainDeckSize,
         DeckVisibility visibility,
         String author,
-        boolean ownedByCurrentUser
+        boolean ownedByCurrentUser,
+        long likeCount,
+        boolean likedByCurrentUser,
+        String sourceType,
+        String externalSource,
+        String externalSourceUrl,
+        String externalDeckUrl
 ) {
 }

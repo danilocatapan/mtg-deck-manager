@@ -2,25 +2,20 @@
   {
     "version": "0.0.0-local",
     "date": "2026-05-20",
-    "title": "Versionamento e tela Sobre",
+    "title": "Decks publicos e curadoria da comunidade",
     "changes": {
       "added": [
+        "Decks publicos agora podem receber likes de usuarios autenticados, com ranking interno por periodo.",
+        "Decks externos podem ser importados como publicos com origem marcada, sem tratar ranking externo como ranking do app.",
         "Decks podem ser marcados como publicos ou privados, com vitrine publica, consulta em modo somente leitura e copia para a propria biblioteca.",
-        "API publica para listar, consultar e copiar decks publicos sem expor dados privados do dono.",
         "Endpoints autenticados GET /users/me/export e DELETE /users/me para exportacao LGPD e exclusao de dados do usuario.",
-        "Politica de Privacidade publica com dados coletados, finalidade, base legal provavel, retencao, compartilhamento com Google, direitos do titular e contato.",
-        "Tela Sobre e canal de contato para enviar sugestoes, bugs e duvidas aos mantenedores."
+        "Tela Sobre, Politica de Privacidade e canal de contato para suporte, sugestoes e duvidas."
       ],
       "changed": [
-        "Importacao, analise e recomendacoes ficaram mais visuais no mobile, com preview recolhido, abas, graficos simples e trocas 1:1 mais concretas.",
-        "Decks publicos que ja pertencem ao usuario autenticado deixam de exibir a acao Copiar.",
-        "Vitrine de decks publicos agora mostra ate 24 decks recentes e permite filtrar por comandante.",
-        "Vitrine e biblioteca agora usam cards visuais com arte do comandante, identidade de cor, autor, copia direta e skeleton loading.",
-        "Mobile ganhou acoes rapidas para criar, importar e voltar ao topo durante a navegacao por listas longas.",
-        "Lista do deck no editor agora tem filtro por nome, filtro por tipo e agrupamento por categorias de cartas.",
-        "Cards de recomendacao exibem preview hoveravel das cartas sugeridas para adicionar e remover.",
-        "Aplicacao de troca recomendada agora usa dialogo proprio com resumo do entra/sai.",
-        "Frontend recebeu polimento de UX em pt-BR, foco de teclado, alvos de toque, header, stepper, dialogo de exclusao e acoes mobile.",
+        "Ver deck agora tem filtro por nome, filtro por tipo, agrupamento por tipo e alternancia entre lista e imagens.",
+        "Vitrine publica exibe likes e permite curtir ou remover o proprio like em qualquer deck publico.",
+        "Importacao, analise e recomendacoes ficaram mais visuais no mobile, com preview recolhido, abas e trocas 1:1 mais concretas.",
+        "Vitrine e biblioteca usam cards visuais com arte do comandante, identidade de cor, autor, copia direta e skeleton loading.",
         "Recomendacoes estrategicas usam diagnostico por arquetipo/bracket e protegem finishers, combos e payoffs contra trocas incoerentes."
       ],
       "fixed": [

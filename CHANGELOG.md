@@ -7,6 +7,8 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 ## [0.0.0-local] - 2026-05-20
 
 ### Added
+- Likes em todos os decks publicos, com voto unico por usuario autenticado e ranking interno por periodo em `GET /public/decks/top`.
+- Endpoint administrativo `POST /meta/external-decks/import` para importar decks externos como publicos, com origem marcada e suporte inicial a payload estruturado, MTG Arena, LigaMagic e formato generico.
 - Pagina publica de contato para enviar sugestoes, bugs, duvidas de privacidade e feedback aos mantenedores sem exigir login Google.
 - API publica `GET /public/decks`, `GET /public/decks/{id}` e `POST /public/decks/{id}/copy` para listar, consultar e copiar decks publicos.
 - Campo `visibility` (`private`/`public`) em criacao, importacao, atualizacao e resposta de decks, mantendo `private` como padrao compativel.
@@ -19,6 +21,8 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Tela de consulta "Ver deck" passa a reutilizar a lista do editor, com filtro por nome, filtro por tipo, agrupamento por tipo e alternancia entre lista e imagens em modo somente leitura.
+- Vitrine publica exibe contagem/estado de likes e permite curtir ou remover o proprio like em decks publicos.
 - UX de importacao, analise e recomendacoes ficou mais visual e compacta: preview progressivo, abas em status/curva/papeis/combos, graficos CSS e cards de troca 1:1 com impacto e risco visiveis.
 - Contratos publicos de decks passam a retornar `ownedByCurrentUser` para ocultar a acao de copiar quando o deck publico ja pertence ao usuario autenticado, sem expor `ownerId`.
 - Vitrine de decks publicos passa a listar ate 24 decks recentes, inclui filtro por nome de comandante e permite copiar decks publicos para a propria biblioteca como privados.

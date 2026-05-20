@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { copyPublicDeck, deleteDeck, fetchDecks, fetchPublicDecks, getPublicDeck } from '../services/api'
+import { copyPublicDeck, deleteDeck, fetchDecks, fetchPublicDecks, getPublicDeck, likePublicDeck, unlikePublicDeck } from '../services/api'
 import DeckList from '../components/DeckList'
 import DeckEditorPage from './DeckEditorPage'
 import DeckConsultPage from './DeckConsultPage'
@@ -187,6 +187,44 @@ export default function Home() {
     }
   }
 
+  async function handleLikePublicDeck(deck) {
+    if (!isAuthenticated) {
+      focusLogin()
+      setMessage('Entre com Google para curtir decks publicos.')
+      return
+    }
+
+    try {
+      setMessage(null)
+      if (deck.likedByCurrentUser) {
+        await unlikePublicDeck(deck.id)
+        updatePublicDeckLike(deck.id, {
+          likedByCurrentUser: false,
+          likeCount: Math.max(0, Number(deck.likeCount || 0) - 1),
+        })
+        return
+      }
+
+      const liked = await likePublicDeck(deck.id)
+      updatePublicDeckLike(deck.id, {
+        likedByCurrentUser: true,
+        likeCount: liked.likeCount,
+      })
+    } catch (error) {
+      console.error('like public deck failed')
+      setMessage(error.message || 'Nao foi possivel atualizar o like.')
+    }
+  }
+
+  function updatePublicDeckLike(deckId, likeState) {
+    setPublicDecks((previous) => previous.map((item) => (
+      item.id === deckId ? { ...item, ...likeState } : item
+    )))
+    setConsultingDeck((previous) => (
+      previous?.id === deckId ? { ...previous, ...likeState } : previous
+    ))
+  }
+
   function handleDelete(deck) {
     if (!isAuthenticated) {
       setMessage('Entre com Google antes de excluir decks.')
@@ -246,9 +284,10 @@ export default function Home() {
         deck={consultingDeck}
         isAuthenticated={isAuthenticated}
         onCopy={handleCopyPublicDeck}
+        onLike={handleLikePublicDeck}
         onLoginRequired={() => {
           focusLogin()
-          setMessage('Entre com Google para copiar este deck para sua biblioteca.')
+          setMessage('Entre com Google para copiar ou curtir este deck.')
         }}
         onBack={() => setView('home')}
       />
@@ -344,6 +383,7 @@ export default function Home() {
               decks={publicDecks}
               onConsult={handleConsult}
               onCopy={handleCopyPublicDeck}
+              onLike={handleLikePublicDeck}
               copyLoadingId={copyingDeckId}
               showCreateActions={false}
               showManageActions={false}

@@ -10,6 +10,12 @@ public record PublicDeckSummaryDTO(
         DeckVisibility visibility,
         String author,
         int mainDeckSize,
-        boolean ownedByCurrentUser
+        boolean ownedByCurrentUser,
+        long likeCount,
+        boolean likedByCurrentUser,
+        String sourceType,
+        String externalSource,
+        String externalSourceUrl,
+        String externalDeckUrl
 ) {
 }

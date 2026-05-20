@@ -1,5 +1,8 @@
 package com.mtg.controller;
 
+import com.mtg.dto.ExternalDeckImportRequestDTO;
+import com.mtg.dto.ExternalDeckImportResponseDTO;
+import com.mtg.service.ExternalDeckImportService;
 import com.mtg.service.meta.CommanderMetaProfile;
 import com.mtg.service.meta.CommanderMetaProfileService;
 import com.mtg.service.meta.ExternalMetaIngestionJob;
@@ -12,6 +15,7 @@ import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
@@ -39,6 +43,9 @@ public class MetaController {
 
     @Inject
     CommanderMetaProfileService profileService;
+
+    @Inject
+    ExternalDeckImportService externalDeckImportService;
 
     @ConfigProperty(name = "meta.sync.api-key")
     Optional<String> syncApiKey;
@@ -74,6 +81,20 @@ public class MetaController {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         return Response.ok(Map.of("profilesBuilt", profileService.rebuild())).build();
+    }
+
+    @POST
+    @Path("/external-decks/import")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response importExternalDecks(
+            @HeaderParam("X-Admin-Key") String adminKey,
+            ExternalDeckImportRequestDTO request
+    ) {
+        if (!isAdminAuthorized(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        ExternalDeckImportResponseDTO response = externalDeckImportService.importDecks(request);
+        return Response.ok(response).build();
     }
 
     @GET

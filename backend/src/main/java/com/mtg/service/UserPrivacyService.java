@@ -12,6 +12,7 @@ import com.mtg.dto.RecommendationAuditExportDTO;
 import com.mtg.dto.UserDataExportDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.RecommendationAuditRun;
+import com.mtg.repository.DeckLikeRepository;
 import com.mtg.repository.DeckRepository;
 import com.mtg.repository.RecommendationAuditRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -38,11 +39,17 @@ public class UserPrivacyService {
 
     private final DeckRepository deckRepository;
     private final RecommendationAuditRepository auditRepository;
+    private final DeckLikeRepository deckLikeRepository;
 
     @Inject
-    public UserPrivacyService(DeckRepository deckRepository, RecommendationAuditRepository auditRepository) {
+    public UserPrivacyService(
+            DeckRepository deckRepository,
+            RecommendationAuditRepository auditRepository,
+            DeckLikeRepository deckLikeRepository
+    ) {
         this.deckRepository = deckRepository;
         this.auditRepository = auditRepository;
+        this.deckLikeRepository = deckLikeRepository;
     }
 
     public UserDataExportDTO exportData(AuthenticatedUserDTO user) {
@@ -65,6 +72,7 @@ public class UserPrivacyService {
     public void deleteAccountData(String ownerId) {
         validateOwner(ownerId);
         auditRepository.delete("ownerId", ownerId);
+        deckLikeRepository.deleteByOwner(ownerId);
         deckRepository.listByOwner(ownerId).forEach(deckRepository::delete);
     }
 

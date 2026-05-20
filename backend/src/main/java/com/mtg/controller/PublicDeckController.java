@@ -9,6 +9,7 @@ import com.mtg.service.DeckService;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -44,6 +45,20 @@ public class PublicDeckController {
     }
 
     @GET
+    @Path("top")
+    @Operation(summary = "List top public decks by internal likes")
+    public Response listTopPublicDecks(
+            @QueryParam("period") String period,
+            @QueryParam("size") Integer size
+    ) {
+        try {
+            return Response.ok(deckService.listTopPublicDecks(period, size, currentOwnerId())).build();
+        } catch (IllegalArgumentException exception) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
+    }
+
+    @GET
     @Path("{id}")
     @Operation(summary = "Get public deck details")
     public Response getPublicDeck(@PathParam("id") String idStr) {
@@ -75,6 +90,40 @@ public class PublicDeckController {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
         return Response.status(Response.Status.CREATED).entity(copied).build();
+    }
+
+    @POST
+    @Path("{id}/like")
+    @Authenticated
+    @Operation(summary = "Like a public deck")
+    public Response likePublicDeck(@PathParam("id") String idStr) {
+        Long id = parseDeckId(idStr);
+        if (id == null) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
+
+        PublicDeckResponseDTO liked = deckService.likePublicDeck(id, authenticatedUserService.subject(securityIdentity));
+        if (liked == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        return Response.ok(liked).build();
+    }
+
+    @DELETE
+    @Path("{id}/like")
+    @Authenticated
+    @Operation(summary = "Remove the authenticated user's like from a public deck")
+    public Response unlikePublicDeck(@PathParam("id") String idStr) {
+        Long id = parseDeckId(idStr);
+        if (id == null) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
+
+        boolean removed = deckService.unlikePublicDeck(id, authenticatedUserService.subject(securityIdentity));
+        if (!removed) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        return Response.noContent().build();
     }
 
     private Long parseDeckId(String idStr) {

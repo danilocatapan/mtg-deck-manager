@@ -17,6 +17,8 @@ import com.mtg.dto.PublicDeckResponseDTO;
 import com.mtg.model.DeckVisibility;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
+import com.mtg.model.DeckLike;
+import com.mtg.repository.DeckLikeRepository;
 import com.mtg.repository.DeckRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -34,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 
 @ApplicationScoped
 public class DeckService {
@@ -55,6 +58,9 @@ public class DeckService {
     );
 
     private final DeckRepository deckRepository;
+
+    @Inject
+    DeckLikeRepository deckLikeRepository;
 
     @Inject
     DeckImportService importService;
@@ -163,6 +169,14 @@ public class DeckService {
                 .collect(Collectors.toList());
     }
 
+    public List<PublicDeckSummaryDTO> listTopPublicDecks(String period, Integer size, String currentOwnerId) {
+        OffsetDateTime since = sinceForPeriod(period);
+        int safeSize = size == null ? 24 : Math.max(1, Math.min(size, 50));
+        return deckLikeRepository.listTopPublicDecks(since, safeSize).stream()
+                .map(deck -> toPublicSummary(deck, currentOwnerId))
+                .collect(Collectors.toList());
+    }
+
     public DeckConsultResponseDTO consultDeck(Long id, String ownerId) {
         Deck deck = deckRepository.findPublicByIdOrOwner(id, ownerId);
         if (deck == null) {
@@ -201,6 +215,34 @@ public class DeckService {
         deckRepository.persist(copy);
         LOG.infov("event=deck.public.copy.created sourceDeckId={0} copiedDeckId={1}", id, copy.getId());
         return toDto(copy);
+    }
+
+    @Transactional
+    public PublicDeckResponseDTO likePublicDeck(Long id, String ownerId) {
+        validateOwner(ownerId);
+        Deck deck = deckRepository.findPublicById(id);
+        if (deck == null) {
+            return null;
+        }
+        if (deckLikeRepository.findByDeckAndOwner(id, ownerId) == null) {
+            DeckLike like = new DeckLike();
+            like.setDeck(deck);
+            like.setOwnerId(ownerId);
+            like.setCreatedAt(OffsetDateTime.now());
+            deckLikeRepository.persist(like);
+        }
+        return toPublicDto(deck, ownerId);
+    }
+
+    @Transactional
+    public boolean unlikePublicDeck(Long id, String ownerId) {
+        validateOwner(ownerId);
+        Deck deck = deckRepository.findPublicById(id);
+        if (deck == null) {
+            return false;
+        }
+        deckLikeRepository.deleteByDeckAndOwner(id, ownerId);
+        return true;
     }
 
     @Transactional
@@ -252,6 +294,7 @@ public class DeckService {
     public boolean deleteDeck(Long id, String ownerId) {
         validateOwner(ownerId);
         LOG.infov("event=deck.delete.request deckId={0}", id);
+        deckLikeRepository.deleteByDeck(id);
         return deckRepository.delete("id = ?1 and ownerId = ?2", id, ownerId) > 0;
     }
 
@@ -628,7 +671,13 @@ public class DeckService {
                 totalCards(deck),
                 deck.getVisibility(),
                 deck.getAuthorDisplayName(),
-                isOwnedBy(deck, currentOwnerId)
+                isOwnedBy(deck, currentOwnerId),
+                deckLikeRepository.countByDeck(deck.getId()),
+                deckLikeRepository.existsByDeckAndOwner(deck.getId(), currentOwnerId),
+                deck.getSourceType(),
+                deck.getExternalSource(),
+                deck.getExternalSourceUrl(),
+                deck.getExternalDeckUrl()
         );
     }
 
@@ -641,8 +690,26 @@ public class DeckService {
                 deck.getVisibility(),
                 deck.getAuthorDisplayName(),
                 totalCards(deck),
-                isOwnedBy(deck, currentOwnerId)
+                isOwnedBy(deck, currentOwnerId),
+                deckLikeRepository.countByDeck(deck.getId()),
+                deckLikeRepository.existsByDeckAndOwner(deck.getId(), currentOwnerId),
+                deck.getSourceType(),
+                deck.getExternalSource(),
+                deck.getExternalSourceUrl(),
+                deck.getExternalDeckUrl()
         );
+    }
+
+    private OffsetDateTime sinceForPeriod(String period) {
+        String normalized = period == null || period.isBlank()
+                ? "WEEKLY"
+                : period.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "DAILY" -> OffsetDateTime.now().minus(1, ChronoUnit.DAYS);
+            case "WEEKLY" -> OffsetDateTime.now().minus(7, ChronoUnit.DAYS);
+            case "MONTHLY" -> OffsetDateTime.now().minus(30, ChronoUnit.DAYS);
+            default -> throw new IllegalArgumentException("period must be DAILY, WEEKLY, or MONTHLY");
+        };
     }
 
     private boolean isOwnedBy(Deck deck, String currentOwnerId) {

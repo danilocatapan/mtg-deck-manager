@@ -65,6 +65,7 @@ export default function DeckList({
   onDelete,
   onConsult,
   onCopy,
+  onLike,
   onCreate,
   onImport,
   actionsDisabled = false,
@@ -141,6 +142,8 @@ export default function DeckList({
         const colors = colorIdentity(deck)
         const isPublic = deck.visibility === 'public'
         const canCopy = Boolean(onCopy) && !deck.ownedByCurrentUser
+        const canLike = isPublic && Boolean(onLike)
+        const likeLabel = deck.likedByCurrentUser ? 'Remover like' : 'Curtir'
 
         return (
           <article key={deck.id} className={`deck-card deck-gallery-card ${isPublic ? 'public-deck-card' : ''}`}>
@@ -163,9 +166,20 @@ export default function DeckList({
                 </span>
               </div>
               {deck.author && <div className="deck-subtitle">por {deck.author}</div>}
+              {isPublic && (
+                <div className="deck-subtitle">
+                  {Number(deck.likeCount || 0)} like{Number(deck.likeCount || 0) === 1 ? '' : 's'}
+                  {deck.sourceType === 'external' && deck.externalSource ? ` - ${deck.externalSource}` : ''}
+                </div>
+              )}
             </div>
             <div className="actions-row deck-card-actions">
               {onConsult && <Button variant="secondary" onClick={() => onConsult(deck)}>Ver deck</Button>}
+              {canLike && (
+                <Button variant={deck.likedByCurrentUser ? 'secondary' : 'primary'} onClick={() => onLike(deck)}>
+                  {likeLabel}
+                </Button>
+              )}
               {canCopy && (
                 <Button onClick={() => onCopy(deck)} loading={copyLoadingId === deck.id}>
                   Copiar
