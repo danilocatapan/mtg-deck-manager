@@ -6,6 +6,7 @@ import DeckConsultPage from './DeckConsultPage'
 import ImportDeckPage from './ImportDeckPage'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
+import FloatingActionBar from '../components/FloatingActionBar'
 import StateMessage from '../components/ui/StateMessage'
 import { getAuthToken, subscribeAuth } from '../services/auth'
 import { ApiStartingError } from '../services/api'
@@ -419,11 +420,13 @@ export default function Home() {
         )}
       </>
       {isAuthenticated && (
-        <nav className="mobile-quick-nav" aria-label="Ações rápidas">
-          <button type="button" onClick={handleCreate}>Criar</button>
-          <button type="button" onClick={handleImport}>Importar</button>
-          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Topo</button>
-        </nav>
+        <FloatingActionBar
+          actions={[
+            { label: 'Criar', onClick: handleCreate, icon: createIcon },
+            { label: 'Importar', onClick: handleImport, icon: importIcon },
+            { label: 'Topo', onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+          ]}
+        />
       )}
       {pendingDeleteDeck && (
         <div className="about-backdrop" role="presentation" onMouseDown={() => !deletingDeck && setPendingDeleteDeck(null)}>

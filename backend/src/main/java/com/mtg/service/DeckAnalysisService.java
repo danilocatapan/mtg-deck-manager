@@ -5,6 +5,7 @@ import com.mtg.domain.DeckAnalysis;
 import com.mtg.domain.ExplainableScore;
 import com.mtg.domain.ManaBaseAnalysis;
 import com.mtg.domain.ProbabilityAnalysis;
+import com.mtg.domain.RoleCard;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
@@ -15,6 +16,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import org.jboss.logging.Logger;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.HashSet;
@@ -105,6 +107,7 @@ public class DeckAnalysisService {
         int earlyGameCount = 0;
         Map<Integer, Integer> manaCurve = new HashMap<>();
         Map<String, Integer> roles = new LinkedHashMap<>();
+        Map<String, List<RoleCard>> roleCards = new LinkedHashMap<>();
         Map<String, Map<Integer, Integer>> manaCurveByType = new LinkedHashMap<>();
         Map<String, Integer> colorCosts = emptyColorMap();
         Map<String, Integer> colorSources = emptyColorMap();
@@ -164,21 +167,36 @@ public class DeckAnalysisService {
                 case RAMP -> {
                     rampCount += qty;
                     roles.merge("ramp", qty, Integer::sum);
+                    addRoleCard(roleCards, "ramp", name, qty, card);
                 }
                 case DRAW -> {
                     drawCount += qty;
                     roles.merge("draw", qty, Integer::sum);
+                    addRoleCard(roleCards, "draw", name, qty, card);
                 }
                 case REMOVAL -> {
                     removalCount += qty;
                     roles.merge("interaction", qty, Integer::sum);
+                    addRoleCard(roleCards, "interaction", name, qty, card);
                 }
                 default -> {}
             }
-            if (isProtection(oracle)) roles.merge("protection", qty, Integer::sum);
-            if (isBoardWipe(oracle)) roles.merge("boardWipe", qty, Integer::sum);
-            if (isWincon(type, oracle, cmc)) roles.merge("wincon", qty, Integer::sum);
-            if (type.contains("land")) roles.merge("land", qty, Integer::sum);
+            if (isProtection(oracle)) {
+                roles.merge("protection", qty, Integer::sum);
+                addRoleCard(roleCards, "protection", name, qty, card);
+            }
+            if (isBoardWipe(oracle)) {
+                roles.merge("boardWipe", qty, Integer::sum);
+                addRoleCard(roleCards, "boardWipe", name, qty, card);
+            }
+            if (isWincon(type, oracle, cmc)) {
+                roles.merge("wincon", qty, Integer::sum);
+                addRoleCard(roleCards, "wincon", name, qty, card);
+            }
+            if (type.contains("land")) {
+                roles.merge("land", qty, Integer::sum);
+                addRoleCard(roleCards, "land", name, qty, card);
+            }
         }
 
         double averageCmc = totalCards > 0 ? cmcSum / (double) totalCards : 0.0;
@@ -232,7 +250,8 @@ public class DeckAnalysisService {
                 combos,
                 probabilities,
                 score,
-                cardTags
+                cardTags,
+                roleCards
         );
         LOG.debugv("analysis.result deckId={0} {1}", id, analysis);
         return analysis;
@@ -259,6 +278,12 @@ public class DeckAnalysisService {
                 demand.merge(symbol, quantity, Integer::sum);
             }
         }
+    }
+
+    private void addRoleCard(Map<String, List<RoleCard>> roleCards, String role, String name, int quantity, CardResponseDTO card) {
+        if (name == null || name.isBlank() || quantity <= 0) return;
+        roleCards.computeIfAbsent(role, ignored -> new ArrayList<>())
+                .add(new RoleCard(name, quantity, card == null ? null : card.imageUrl()));
     }
 
     private void addColorSources(Map<String, Integer> sources, CardResponseDTO card, int quantity) {

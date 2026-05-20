@@ -41,8 +41,8 @@ class DeckAnalysisServiceTest {
         when(deckRepository.findById(1L)).thenReturn(deck);
 
         when(cardService.findByNames(List.of("Sol Ring", "Opt"))).thenReturn(Map.of(
-                "sol ring", new CardResponseDTO("Sol Ring","{1}","Artifact","{T}: Add {C}{C}.",1.0, java.util.List.of(), java.util.List.of()),
-                "opt", new CardResponseDTO("Opt","{U}","Instant","Draw a card.",1.0, java.util.List.of(), java.util.List.of())
+                "sol ring", new CardResponseDTO("Sol Ring","{1}","Artifact","{T}: Add {C}{C}.",1.0, java.util.List.of(), java.util.List.of(), "https://img.test/sol-ring.jpg"),
+                "opt", new CardResponseDTO("Opt","{U}","Instant","Draw a card.",1.0, java.util.List.of(), java.util.List.of(), "https://img.test/opt.jpg")
         ));
         when(cardService.normalizeLookupName("Sol Ring")).thenReturn("sol ring");
         when(cardService.normalizeLookupName("Opt")).thenReturn("opt");
@@ -54,6 +54,11 @@ class DeckAnalysisServiceTest {
         assertEquals(1.0, analysis.averageCmc(), 0.0001);
         assertEquals(1, analysis.rampCount());
         assertEquals(2, analysis.drawCount());
+        assertEquals("Sol Ring", analysis.roleCards().get("ramp").getFirst().name());
+        assertEquals(1, analysis.roleCards().get("ramp").getFirst().quantity());
+        assertEquals("https://img.test/sol-ring.jpg", analysis.roleCards().get("ramp").getFirst().imageUrl());
+        assertEquals("Opt", analysis.roleCards().get("draw").getFirst().name());
+        assertEquals(2, analysis.roleCards().get("draw").getFirst().quantity());
         verify(cardService).findByNames(List.of("Sol Ring", "Opt"));
         verify(cardService, never()).searchByName("Sol Ring");
         verify(cardService, never()).searchByName("Opt");
@@ -92,6 +97,10 @@ class DeckAnalysisServiceTest {
         assertEquals(2, analysis.manaBase().pipDemand().get("G"));
         assertEquals(1, analysis.boardWipeCount());
         assertEquals(1, analysis.protectionCount());
+        assertEquals("Forest", analysis.roleCards().get("land").getFirst().name());
+        assertEquals(35, analysis.roleCards().get("land").getFirst().quantity());
+        assertEquals("Beast Within", analysis.roleCards().get("interaction").getFirst().name());
+        assertEquals("Heroic Intervention", analysis.roleCards().get("protection").getFirst().name());
         assertEquals(1, analysis.combos().present().size());
         assertEquals("Basalt Monolith + Rings of Brighthearth", analysis.combos().present().getFirst().name());
         assertTrue(analysis.combos().version().startsWith("2026-05-08"));

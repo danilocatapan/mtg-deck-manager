@@ -1,5 +1,6 @@
 package com.mtg.domain;
 
+import java.util.List;
 import java.util.Map;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
@@ -22,13 +23,15 @@ public record DeckAnalysis(
         ComboAnalysis combos,
         ProbabilityAnalysis probabilities,
         ExplainableScore score,
-        Map<String, Integer> cardTags
+        Map<String, Integer> cardTags,
+        Map<String, List<RoleCard>> roleCards
 ) {
     public DeckAnalysis {
         manaCurve = manaCurve == null ? Map.of() : Map.copyOf(manaCurve);
         roles = roles == null ? Map.of() : Map.copyOf(roles);
         manaCurveByType = manaCurveByType == null ? Map.of() : Map.copyOf(manaCurveByType);
         cardTags = cardTags == null ? Map.of() : Map.copyOf(cardTags);
+        roleCards = roleCards == null ? Map.of() : Map.copyOf(roleCards);
     }
 
     public DeckAnalysis(
@@ -68,6 +71,7 @@ public record DeckAnalysis(
                 combos,
                 probabilities,
                 score,
+                Map.of(),
                 Map.of()
         );
     }

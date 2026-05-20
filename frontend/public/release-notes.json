@@ -5,18 +5,18 @@
     "title": "Decks publicos e curadoria da comunidade",
     "changes": {
       "added": [
+        "Analise de decks agora permite abrir papeis como Ramp, Compra e Remocao para ver as cartas classificadas.",
         "Decks publicos agora podem receber likes de usuarios autenticados, com ranking interno por periodo.",
         "Decks externos podem ser importados como publicos com origem marcada, sem tratar ranking externo como ranking do app.",
         "Decks podem ser marcados como publicos ou privados, com vitrine publica, consulta em modo somente leitura e copia para a propria biblioteca.",
-        "Endpoints autenticados GET /users/me/export e DELETE /users/me para exportacao LGPD e exclusao de dados do usuario.",
-        "Tela Sobre, Politica de Privacidade e canal de contato para suporte, sugestoes e duvidas."
+        "Endpoints autenticados GET /users/me/export e DELETE /users/me para exportacao LGPD e exclusao de dados do usuario."
       ],
       "changed": [
+        "Listagem, edicao e analise de decks receberam previews de cartas, acoes flutuantes padronizadas e melhorias mobile para imagens, comandante e footer.",
         "Ver deck agora tem filtro por nome, filtro por tipo, agrupamento por tipo e alternancia entre lista e imagens.",
         "Vitrine publica exibe likes e permite curtir ou remover o proprio like em qualquer deck publico.",
         "Importacao, analise e recomendacoes ficaram mais visuais no mobile, com preview recolhido, abas e trocas 1:1 mais concretas.",
-        "Vitrine e biblioteca usam cards visuais com arte do comandante, identidade de cor, autor, copia direta e skeleton loading.",
-        "Recomendacoes estrategicas usam diagnostico por arquetipo/bracket e protegem finishers, combos e payoffs contra trocas incoerentes."
+        "Vitrine e biblioteca usam cards visuais com arte do comandante, identidade de cor, autor, copia direta e skeleton loading."
       ],
       "fixed": [
         "Editor deixa de manter o aviso de salvamento depois que o deck termina de salvar.",

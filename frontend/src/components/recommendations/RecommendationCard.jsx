@@ -1,5 +1,5 @@
 import Button from '../ui/Button'
-import CardNamePreview from './CardNamePreview'
+import CardNamePreview from '../CardNamePreview'
 
 function sourceLabel(source) {
   return source === 'meta_profile' ? 'meta local' : 'heurística'

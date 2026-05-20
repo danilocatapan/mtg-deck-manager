@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
+import CardNamePreview from './CardNamePreview'
 
 const ROLE_COLORS = ['#d6a84f', '#b85c45', '#5aa7c8', '#8fcb6b', '#c59bff', '#f0c86a', '#d98d72']
 
 export default function DeckAnalysis({ analysis }) {
   const [activeTab, setActiveTab] = useState('status')
   const vitals = useMemo(() => buildVitals(analysis), [analysis])
-  const roleEntries = useMemo(() => buildRoleEntries(analysis?.roles), [analysis?.roles])
+  const roleEntries = useMemo(() => buildRoleEntries(analysis?.roles, analysis?.roleCards), [analysis?.roles, analysis?.roleCards])
   const curveEntries = useMemo(() => buildCurveEntries(analysis?.manaCurve), [analysis?.manaCurve])
   const comboAlert = comboSummary(analysis?.combos)
 
@@ -78,12 +79,29 @@ export default function DeckAnalysis({ analysis }) {
             <span>sinais</span>
           </div>
           <div className="role-legend">
-            {roleEntries.length ? roleEntries.map((entry) => (
-              <div key={entry.key}>
-                <i style={{ background: entry.color }} />
-                <span>{entry.label}</span>
-                <strong>{entry.value}</strong>
-              </div>
+            {roleEntries.length ? roleEntries.map((entry, index) => (
+              <details key={entry.key} className="role-detail-card" open={index === 0}>
+                <summary>
+                  <i style={{ background: entry.color }} />
+                  <span>{entry.label}</span>
+                  <strong>{entry.value}</strong>
+                  <span className="role-help">
+                    <span className="role-help-trigger" tabIndex="0" aria-label={`Ajuda sobre ${entry.label}`}>i</span>
+                    <span className="role-help-popover" role="tooltip">{entry.help}</span>
+                  </span>
+                </summary>
+                {entry.cards.length ? (
+                  <div className="role-card-list">
+                    {entry.cards.map((card) => (
+                      <div key={`${entry.key}-${card.name}`} className="role-card-row">
+                        <CardNamePreview name={card.name} prefix={`${card.quantity || 1}x `} imageUrl={card.imageUrl} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-inline">A analise atual nao trouxe cartas detalhadas para este papel.</div>
+                )}
+              </details>
             )) : <div className="empty-inline">Rode a análise para ver os papéis classificados.</div>}
           </div>
         </section>
@@ -136,7 +154,7 @@ function ComboList({ title, items, nearMiss = false }) {
   )
 }
 
-function buildRoleEntries(roles = {}) {
+function buildRoleEntries(roles = {}, roleCards = {}) {
   return Object.entries(roles)
     .filter(([, value]) => Number(value) > 0)
     .sort(([, left], [, right]) => Number(right) - Number(left))
@@ -145,6 +163,8 @@ function buildRoleEntries(roles = {}) {
       label: roleLabel(key),
       value: Number(value),
       color: ROLE_COLORS[index % ROLE_COLORS.length],
+      help: roleHelp(key),
+      cards: [...(roleCards?.[key] || [])].sort((left, right) => String(left.name).localeCompare(String(right.name))),
     }))
 }
 
@@ -178,7 +198,7 @@ function roleLabel(role) {
   const labels = {
     ramp: 'Ramp',
     draw: 'Compra',
-    interaction: 'Interacao',
+    interaction: 'Remocao / Interacao',
     removal: 'Remocao',
     protection: 'Protecao',
     boardWipe: 'Limpa-mesa',
@@ -186,6 +206,20 @@ function roleLabel(role) {
     land: 'Terrenos',
   }
   return labels[role] || role
+}
+
+function roleHelp(role) {
+  const help = {
+    ramp: 'Cartas que aceleram mana, geram mana adicional, buscam terrenos ou reduzem custos.',
+    draw: 'Cartas que compram cartas, geram vantagem de cartas ou permitem selecao relevante.',
+    interaction: 'Cartas que removem criaturas, permanentes ou ameacas relevantes.',
+    removal: 'Cartas que removem criaturas, permanentes ou ameacas relevantes.',
+    protection: 'Cartas que protegem o comandante, criaturas importantes ou o campo contra remocoes.',
+    boardWipe: 'Cartas que limpam varias criaturas ou permanentes de uma vez.',
+    wincon: 'Cartas que ajudam a fechar o jogo ou transformar vantagem em vitoria.',
+    land: 'Terrenos usados para montar a base de mana do deck.',
+  }
+  return help[role] || 'Cartas classificadas por sinais de texto, tipo e papel estrutural na analise.'
 }
 
 function buildVitals(analysis) {

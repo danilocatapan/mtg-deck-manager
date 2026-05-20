@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Button from './ui/Button'
+import CardNamePreview from './CardNamePreview'
 import { fetchCardsByNames } from '../services/api'
 
 const CARD_IMAGE_CACHE_KEY = 'mtg-card-image-cache-v2'
@@ -36,6 +37,12 @@ function writeImageCache(cache) {
 
 function normalizeCardName(name) {
   return String(name || '').trim().toLowerCase()
+}
+
+function imageForName(cache, name) {
+  const normalizedName = normalizeCardName(name)
+  if (!normalizedName) return null
+  return Object.entries(cache).find(([cardName]) => normalizeCardName(cardName) === normalizedName)?.[1] || null
 }
 
 function typeGroupFor(typeLine) {
@@ -229,11 +236,16 @@ export default function DeckCardListView({
     setRequestedImages({})
   }
 
+  function imageForCard(card) {
+    const details = cardDetails[normalizeCardName(card.name)]
+    return details?.imageUrl || imageForName(cardImages, card.name)
+  }
+
   function renderDeckRow(card) {
     return (
       <div key={card.name} className={editable ? 'deck-row' : 'deck-row deck-row-readonly'}>
         <div className="deck-row-card">
-          <strong>{card.name}</strong>
+          <strong><CardNamePreview name={card.name} imageUrl={imageForCard(card)} /></strong>
           <span>{card.typeLine}</span>
         </div>
         {editable ? (
@@ -347,42 +359,44 @@ export default function DeckCardListView({
               )}
             </div>
           )}
-          <div className="deck-image-grid">
-            {filteredCards.map((card) => (
-              <article key={card.name} className="deck-image-card">
-                <div className="card-art-frame">
-                  {cardImages[card.name] ? (
-                    <img
-                      src={cardImages[card.name]}
-                      alt={card.name}
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                      onError={() => markImageUnavailable(card.name)}
-                    />
-                  ) : (
-                    <div className="card-art-placeholder">
-                      <strong>{card.name}</strong>
-                      <span>Imagem indisponivel</span>
+          <div className="deck-image-grid-scroll">
+            <div className="deck-image-grid">
+              {filteredCards.map((card) => (
+                <article key={card.name} className="deck-image-card">
+                  <div className="card-art-frame">
+                    {imageForCard(card) ? (
+                      <img
+                        src={imageForCard(card)}
+                        alt={card.name}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        onError={() => markImageUnavailable(card.name)}
+                      />
+                    ) : (
+                      <div className="card-art-placeholder">
+                        <strong>{card.name}</strong>
+                        <span>Imagem indisponivel</span>
+                      </div>
+                    )}
+                    <span className="card-quantity-badge">{card.quantity}x</span>
+                  </div>
+                  {editable && (
+                    <div className="image-card-actions">
+                      <input
+                        aria-label={`Quantidade de ${card.name}`}
+                        type="number"
+                        value={card.quantity}
+                        min={1}
+                        onChange={(event) => onQuantityChange?.(card.name, parseInt(event.target.value || '1', 10))}
+                      />
+                      <Button type="button" variant="secondary" className="image-remove-button" aria-label={`Remover ${card.name}`} onClick={() => onRemove?.(card.name)}>
+                        Remover
+                      </Button>
                     </div>
                   )}
-                  <span className="card-quantity-badge">{card.quantity}x</span>
-                </div>
-                {editable && (
-                  <div className="image-card-actions">
-                    <input
-                      aria-label={`Quantidade de ${card.name}`}
-                      type="number"
-                      value={card.quantity}
-                      min={1}
-                      onChange={(event) => onQuantityChange?.(card.name, parseInt(event.target.value || '1', 10))}
-                    />
-                    <Button type="button" variant="secondary" className="image-remove-button" aria-label={`Remover ${card.name}`} onClick={() => onRemove?.(card.name)}>
-                      Remover
-                    </Button>
-                  </div>
-                )}
-              </article>
-            ))}
+                </article>
+              ))}
+            </div>
           </div>
         </>
       )}

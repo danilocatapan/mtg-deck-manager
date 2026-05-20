@@ -4,6 +4,7 @@ import DeckAnalysis from '../components/DeckAnalysis'
 import DeckLegalityPanel from '../components/DeckLegalityPanel'
 import RecommendationPanel from '../components/recommendations/RecommendationPanel'
 import RecommendationSettings from '../components/recommendations/RecommendationSettings'
+import FloatingActionBar from '../components/FloatingActionBar'
 import {
   applyRecommendationSwap,
   createDeck,
@@ -331,6 +332,16 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
           </Button>
         </div>
       </div>
+      {mode === 'edit' && (
+        <FloatingActionBar
+          label="Acoes do deck"
+          actions={[
+            { label: 'Analisar', onClick: handleAnalyze, disabled: !canAnalyze || loadingAnalysis, icon: analyzeIcon },
+            { label: 'Recomendacoes', onClick: () => setActivePanel('recommendations'), disabled: !canAnalyze, icon: recommendIcon },
+            { label: 'Topo', onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+          ]}
+        />
+      )}
       {pendingRecommendation && (
         <div className="about-backdrop" role="presentation" onMouseDown={() => setPendingRecommendation(null)}>
           <section

@@ -7,6 +7,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 ## [0.0.0-local] - 2026-05-20
 
 ### Added
+- Analise de decks passa a expor as cartas por papel em `roleCards`, permitindo detalhar Ramp, Compra, Interacao, Protecao, Limpa-mesa, Vitoria e Terrenos na UI.
 - Likes em todos os decks publicos, com voto unico por usuario autenticado e ranking interno por periodo em `GET /public/decks/top`.
 - Endpoint administrativo `POST /meta/external-decks/import` para importar decks externos como publicos, com origem marcada e suporte inicial a payload estruturado, MTG Arena, LigaMagic e formato generico.
 - Pagina publica de contato para enviar sugestoes, bugs, duvidas de privacidade e feedback aos mantenedores sem exigir login Google.
@@ -21,6 +22,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Telas de listagem, edicao e analise de decks receberam preview de carta reutilizavel, acoes flutuantes padronizadas, galeria com rolagem interna e ajustes mobile para comandante, imagens e footer.
 - Tela de consulta "Ver deck" passa a reutilizar a lista do editor, com filtro por nome, filtro por tipo, agrupamento por tipo e alternancia entre lista e imagens em modo somente leitura.
 - Vitrine publica exibe contagem/estado de likes e permite curtir ou remover o proprio like em decks publicos.
 - UX de importacao, analise e recomendacoes ficou mais visual e compacta: preview progressivo, abas em status/curva/papeis/combos, graficos CSS e cards de troca 1:1 com impacto e risco visiveis.
