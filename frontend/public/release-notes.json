@@ -1,7 +1,7 @@
 [
   {
     "version": "0.0.0-local",
-    "date": "2026-05-19",
+    "date": "2026-05-20",
     "title": "Versionamento e tela Sobre",
     "changes": {
       "added": [
@@ -30,7 +30,8 @@
       ],
       "security": [
         "Fluxo Google documentado para escopos minimos openid, email e profile, sem persistencia de access_token ou refresh_token.",
-        "Logs de fluxos autenticados deixam de registrar payloads de decks, nomes de cartas em validacoes e detalhes de troca de recomendacao."
+        "Logs de fluxos autenticados deixam de registrar payloads de decks, nomes de cartas em validacoes e detalhes de troca de recomendacao.",
+        "Endpoint administrativo de diagnostico de seguranca e sessao frontend reforcada com validacao de token e limpeza automatica em acesso nao autorizado."
       ]
     }
   }

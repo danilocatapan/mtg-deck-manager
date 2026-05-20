@@ -4,7 +4,7 @@ Todas as mudancas notaveis deste projeto serao documentadas aqui.
 
 O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e atualizado a partir das tags Git e mensagens de commit da release.
 
-## [0.0.0-local] - 2026-05-19
+## [0.0.0-local] - 2026-05-20
 
 ### Added
 - Pagina publica de contato para enviar sugestoes, bugs, duvidas de privacidade e feedback aos mantenedores sem exigir login Google.
@@ -15,6 +15,8 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Footer discreto com versao do frontend.
 - Tela Sobre com detalhes do produto, frontend e API.
 - Endpoint publico para metadados da API.
+- Endpoint administrativo `POST /security/status/check` para diagnostico read-only de postura de seguranca, com autorizacao por role/subject admin e respostas redigidas.
+- Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
 - UX de importacao, analise e recomendacoes ficou mais visual e compacta: preview progressivo, abas em status/curva/papeis/combos, graficos CSS e cards de troca 1:1 com impacto e risco visiveis.
@@ -44,3 +46,5 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Formulario de contato usa endpoint externo configuravel sem persistir mensagens no banco da aplicacao, sem anexos e sem envio automatico de tokens ou dados da sessao.
 - Fluxo Google documentado para escopos minimos `openid`, `email` e `profile`, sem persistencia de `access_token` ou `refresh_token`.
 - Logs de fluxos autenticados deixam de registrar payloads de decks, nomes de cartas em validacoes e detalhes de troca de recomendacao.
+- Diagnostico de seguranca passa a registrar logs operacionais sem tokens, secrets, payloads completos, dados pessoais ou detalhes sensiveis de infraestrutura.
+- Sessao no frontend passa a validar issuer/audience/exp do ID token, limpar credenciais em 401 e evitar persistencia legada em `localStorage`.

@@ -116,7 +116,7 @@ Invoke-WebRequest -UseBasicParsing http://localhost:5173/mtg-deck-manager/
 Estrategia de validacao com login/API:
 - Primeiro valide o estado real anonimo sem mocks: carregamento, chamada de login, tela publica, mensagens de API indisponivel/iniciando e layout.
 - Nao tente completar login Google real no Playwright sem token/credencial fornecida explicitamente. O login depende de Google Identity Services e normalmente bloqueia automacao/local sem configuracao real.
-- Para validar fluxos autenticados, use mocks de rede no Playwright MCP (`browser_run_code_unsafe` + `page.route`) com respostas equivalentes aos contratos REST. Simule `sessionStorage` com `mtg_google_id_token` e `mtg_google_profile` apenas quando o teste precisar liberar UI autenticada; o token fake precisa ter payload JWT com `sub` e `exp` futuro para passar por `getAuthToken()`.
+- Para validar fluxos autenticados, use mocks de rede no Playwright MCP (`browser_run_code_unsafe` + `page.route`) com respostas equivalentes aos contratos REST. Simule `sessionStorage` com `mtg_google_id_token` e `mtg_google_profile` apenas quando o teste precisar liberar UI autenticada; o token fake precisa ter payload JWT com `sub`, `exp` futuro e, quando `VITE_GOOGLE_CLIENT_ID` estiver configurado, `aud` correspondente para passar por `getAuthToken()`.
 - Use mocks para `GET /decks/public`, `GET /decks`, `GET /decks/{id}/consult`, create/update/import/delete e `POST /cards/collection`. Nao use chamadas reais a Scryfall para validar UX.
 - Contratos REST e autorizacao real devem ser validados por testes backend (`./mvnw.cmd test`), nao por login manual no browser.
 
@@ -152,3 +152,4 @@ Endpoints principais atuais
 - `GET /decks`, `GET /decks/public`, `POST /decks`, `POST /decks/import`, `GET /decks/{id}`, `GET /decks/{id}/consult`, `PUT /decks/{id}`, `DELETE /decks/{id}`.
 - `GET /decks/{id}/export`, `GET /decks/{id}/analysis`, `POST /decks/{id}/recommendations`, `POST /decks/{id}/recommendations/strategic`.
 - `GET /meta/sources`, `POST /meta/sync`, `GET /meta/commanders/{commander}`.
+- `POST /security/status/check` para diagnostico read-only de seguranca; exige usuario autenticado com role `admin` ou subject configurado em `SECURITY_ADMIN_SUBJECTS`, nao deve expor secrets/dados pessoais e deve manter logs sem valores sensiveis.

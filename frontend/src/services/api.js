@@ -1,4 +1,4 @@
-import { getAuthToken } from './auth'
+import { clearAuthToken, getAuthToken } from './auth'
 
 const API_ORIGIN = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8080'
 const BASE_URL = normalizeApiOrigin(API_ORIGIN)
@@ -61,6 +61,7 @@ async function requestOnce(path, options = {}) {
         Accept: 'application/json',
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         'X-Request-Id': createRequestId(),
+        'X-Requested-With': 'XMLHttpRequest',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
@@ -69,6 +70,10 @@ async function requestOnce(path, options = {}) {
 
     if (!res.ok) {
       const message = await readErrorMessage(res)
+      if (res.status === 401) {
+        console.info('event=api.auth.unauthorized action=clear_session')
+        clearAuthToken()
+      }
       throw new Error(res.status === 401 ? 'Login com Google é obrigatório.' : message || 'Falha na requisição')
     }
 
@@ -369,6 +374,21 @@ export async function deleteAccountData() {
   await request('/users/me', { method: 'DELETE' })
 }
 
+export async function checkSecurityStatus({ includeDetails = false, scanExternalDependencies = false } = {}) {
+  console.info('event=api.security_status.request', {
+    includeDetails: Boolean(includeDetails),
+    scanExternalDependencies: Boolean(scanExternalDependencies),
+  })
+  return await request('/security/status/check', {
+    method: 'POST',
+    retryOnStartup: false,
+    body: JSON.stringify({
+      includeDetails: Boolean(includeDetails),
+      scanExternalDependencies: Boolean(scanExternalDependencies),
+    }),
+  })
+}
+
 export default {
   fetchDecks,
   fetchPublicDecks,
@@ -391,4 +411,5 @@ export default {
   getAppInfo,
   exportUserData,
   deleteAccountData,
+  checkSecurityStatus,
 }
