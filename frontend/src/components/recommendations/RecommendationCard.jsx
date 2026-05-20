@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Button from '../ui/Button'
 import CardNamePreview from '../CardNamePreview'
 
@@ -26,88 +27,120 @@ function opportunityFrom(reasoning) {
 }
 
 export default function RecommendationCard({ item, index, bracket, onApply, onUndo, applying = false, applied = false }) {
+  const [collapsed, setCollapsed] = useState(false)
   const source = item?.source || 'heuristic_fallback'
   const confidence = item?.confidence || 'medium'
   const highlights = impactHighlights(item?.impact).slice(0, 6)
   const reason = item?.problem || opportunityFrom(item?.reasoning)
   const expected = item?.reasoning || 'Troca sugerida para deixar o deck mais consistente no bracket escolhido.'
 
+  function toggleCollapsed() {
+    setCollapsed((previous) => !previous)
+  }
+
+  function handleCardClick(event) {
+    if (event.target.closest('button, a, input, select, textarea, summary, details')) return
+    toggleCollapsed()
+  }
+
+  function handleCardKeyDown(event) {
+    if (event.target !== event.currentTarget) return
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      toggleCollapsed()
+    }
+  }
+
   return (
-    <article className="recommendation-card-pro compact-recommendation-card">
+    <article
+      className={`recommendation-card-pro compact-recommendation-card ${collapsed ? 'is-collapsed' : ''}`}
+      tabIndex={0}
+      aria-expanded={!collapsed}
+      aria-label={`${collapsed ? 'Expandir' : 'Recolher'} troca ${index + 1}`}
+      title={collapsed ? 'Clique para expandir' : 'Clique para recolher'}
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
+    >
       <header className="recommendation-card-header">
         <div>
           <span className="rec-label">Troca #{index + 1}</span>
           <h4><CardNamePreview prefix="+ " name={item.add} /></h4>
           <p>Remover: <CardNamePreview name={item.remove} /></p>
         </div>
-        <div className="compact-rec-meta">
-          <span>{roleLabel(item?.impact?.role)}</span>
-          <span>confiança {confidenceLabel(confidence)}</span>
-        </div>
+        {!collapsed && (
+          <div className="compact-rec-meta">
+            <span>{roleLabel(item?.impact?.role)}</span>
+            <span>confiança {confidenceLabel(confidence)}</span>
+          </div>
+        )}
       </header>
 
-      <section className="recommendation-swap-route" aria-label="Troca recomendada">
-        <div className="swap-card remove">
-          <span>Sai</span>
-          <strong><CardNamePreview name={item.remove} /></strong>
-        </div>
-        <div className="swap-card add">
-          <span>Entra</span>
-          <strong><CardNamePreview name={item.add} /></strong>
-        </div>
-      </section>
+      {!collapsed && (
+        <>
+          <section className="recommendation-swap-route" aria-label="Troca recomendada">
+            <div className="swap-card remove">
+              <span>Sai</span>
+              <strong><CardNamePreview name={item.remove} /></strong>
+            </div>
+            <div className="swap-card add">
+              <span>Entra</span>
+              <strong><CardNamePreview name={item.add} /></strong>
+            </div>
+          </section>
 
-      <section className="recommendation-opportunity">
-        <span className="rec-label">Por que mexer</span>
-        <p>{reason}</p>
-      </section>
+          <section className="recommendation-opportunity">
+            <span className="rec-label">Por que mexer</span>
+            <p>{reason}</p>
+          </section>
 
-      <section className="recommendation-result">
-        <span className="rec-label">Resultado esperado</span>
-        <p>{expected}</p>
-      </section>
+          <section className="recommendation-result">
+            <span className="rec-label">Resultado esperado</span>
+            <p>{expected}</p>
+          </section>
 
-      {highlights.length > 0 && (
-        <section className="compact-impact-list" aria-label="Principais impactos da troca">
-          {highlights.map((highlight) => (
-            <span key={highlight.label} className={`impact-pill ${highlight.tone}`}>
-              <strong>{highlight.label}</strong>
-              {highlight.text}
-            </span>
-          ))}
-        </section>
+          {highlights.length > 0 && (
+            <section className="compact-impact-list" aria-label="Principais impactos da troca">
+              {highlights.map((highlight) => (
+                <span key={highlight.label} className={`impact-pill ${highlight.tone}`}>
+                  <strong>{highlight.label}</strong>
+                  {highlight.text}
+                </span>
+              ))}
+            </section>
+          )}
+
+          {item?.risk && (
+            <section className="recommendation-risk">
+              <span className="rec-label">Risco</span>
+              <p>{item.risk}</p>
+            </section>
+          )}
+
+          <footer className="recommendation-card-footer">
+            <span>Bracket: {item.bracket || bracket || 'casual'}</span>
+            <span>Fonte: {sourceLabel(source)}</span>
+            {item?.sourceContext?.sampleSize ? <span>Amostra: {item.sourceContext.sampleSize} listas</span> : null}
+            <Button
+              variant={applied ? 'secondary' : 'primary'}
+              loading={applying}
+              disabled={applied || (!item?.add || !item?.remove) || applying}
+              onClick={() => onApply && onApply(item)}
+            >
+              {applied ? 'Aplicado' : 'Aplicar troca'}
+            </Button>
+            {applied && (
+              <Button
+                variant="secondary"
+                loading={applying}
+                disabled={applying}
+                onClick={() => onUndo && onUndo(item)}
+              >
+                Desfazer
+              </Button>
+            )}
+          </footer>
+        </>
       )}
-
-      {item?.risk && (
-        <section className="recommendation-risk">
-          <span className="rec-label">Risco</span>
-          <p>{item.risk}</p>
-        </section>
-      )}
-
-      <footer className="recommendation-card-footer">
-        <span>Bracket: {item.bracket || bracket || 'casual'}</span>
-        <span>Fonte: {sourceLabel(source)}</span>
-        {item?.sourceContext?.sampleSize ? <span>Amostra: {item.sourceContext.sampleSize} listas</span> : null}
-        <Button
-          variant={applied ? 'secondary' : 'primary'}
-          loading={applying}
-          disabled={applied || (!item?.add || !item?.remove) || applying}
-          onClick={() => onApply && onApply(item)}
-        >
-          {applied ? 'Aplicado' : 'Aplicar troca'}
-        </Button>
-        {applied && (
-          <Button
-            variant="secondary"
-            loading={applying}
-            disabled={applying}
-            onClick={() => onUndo && onUndo(item)}
-          >
-            Desfazer
-          </Button>
-        )}
-      </footer>
     </article>
   )
 }

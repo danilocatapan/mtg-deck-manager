@@ -24,9 +24,18 @@ export default function CardNamePreview({ name, prefix = '', imageUrl = null }) 
     setLoading(true)
     const [card] = await fetchCardsByNames([name])
     const nextPreview = card?.imageUrl ? { name: card.name || name, imageUrl: card.imageUrl } : { name, imageUrl: null }
-    imageCache.set(key, nextPreview)
+    if (nextPreview.imageUrl) {
+      imageCache.set(key, nextPreview)
+    } else {
+      imageCache.delete(key)
+    }
     setLoadedPreview({ key, preview: nextPreview })
     setLoading(false)
+  }
+
+  function handleImageError() {
+    if (key) imageCache.delete(key)
+    setLoadedPreview({ key, preview: { name, imageUrl: null } })
   }
 
   return (
@@ -36,7 +45,7 @@ export default function CardNamePreview({ name, prefix = '', imageUrl = null }) 
       </button>
       <span className="card-name-popover" role="tooltip">
         {preview?.imageUrl ? (
-          <img src={preview.imageUrl} alt={preview.name} loading="lazy" referrerPolicy="no-referrer" />
+          <img src={preview.imageUrl} alt={preview.name} loading="lazy" referrerPolicy="no-referrer" onError={handleImageError} />
         ) : (
           <span className="card-name-popover-empty">{loading ? 'Carregando imagem...' : 'Imagem indisponivel'}</span>
         )}

@@ -22,6 +22,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Cards de troca nas recomendacoes podem ser recolhidos ao clicar no card, deixando apenas o resumo com carta que entra e carta removida.
 - Telas de listagem, edicao e analise de decks receberam preview de carta reutilizavel, acoes flutuantes padronizadas, galeria com rolagem interna e ajustes mobile para comandante, imagens e footer.
 - Tela de consulta "Ver deck" passa a reutilizar a lista do editor, com filtro por nome, filtro por tipo, agrupamento por tipo e alternancia entre lista e imagens em modo somente leitura.
 - Vitrine publica exibe contagem/estado de likes e permite curtir ou remover o proprio like em decks publicos.
@@ -42,6 +43,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Exclusao de decks no frontend passa a usar um dialogo proprio, mantendo a experiencia visual consistente.
 
 ### Fixed
+- Preview de carta deixa de manter falhas temporarias de imagem no cache da sessao e centraliza melhor o estado "Imagem indisponivel" no mobile.
 - Nomes de cartas na aba Combos da analise agora usam preview de imagem como nas demais listas.
 - Preview de imagem ao tocar/passar sobre nomes de cartas deixa de ficar cortado em telas mobile.
 - Tela mobile de edicao deixa de duplicar as acoes Analisar/Recomendacoes no card "Proximo passo" e na barra flutuante.

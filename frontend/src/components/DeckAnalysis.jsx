@@ -145,15 +145,11 @@ function ComboList({ title, items, nearMiss = false }) {
       {items.slice(0, 6).map((combo) => (
         <article key={`${combo.name}-${combo.missingCard || ''}`}>
           <strong><ComboCardNames names={cardNamesForComboTitle(combo)} /></strong>
-          <span>
-            {nearMiss ? (
-              <>
-                Falta: <CardNamePreview name={combo.missingCard} />
-              </>
-            ) : (
-              <ComboCardNames names={combo.cards || []} />
-            )}
-          </span>
+          {nearMiss && (
+            <span>
+              Falta: <CardNamePreview name={combo.missingCard} />
+            </span>
+          )}
           {nearMiss && <small><ComboCardNames names={combo.presentCards || []} /></small>}
           {combo.result && <small>{combo.result}</small>}
         </article>

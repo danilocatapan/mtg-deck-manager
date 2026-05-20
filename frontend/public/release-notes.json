@@ -15,16 +15,15 @@
         "Listagem, edicao e analise de decks receberam previews de cartas, acoes flutuantes padronizadas e melhorias mobile para imagens, comandante e footer.",
         "Ver deck agora tem filtro por nome, filtro por tipo, agrupamento por tipo e alternancia entre lista e imagens.",
         "Vitrine publica exibe likes e permite curtir ou remover o proprio like em qualquer deck publico.",
-        "Importacao, analise e recomendacoes ficaram mais visuais no mobile, com preview recolhido, abas e trocas 1:1 mais concretas.",
+        "Importacao, analise e recomendacoes ficaram mais visuais no mobile, com abas e cards de troca recolhiveis para reduzir excesso de informacao.",
         "Vitrine e biblioteca usam cards visuais com arte do comandante, identidade de cor, autor, copia direta e skeleton loading."
       ],
       "fixed": [
         "Nomes de cartas em combos agora tambem abrem preview de imagem.",
-        "Preview de imagem das cartas deixa de ficar cortado em telas mobile.",
+        "Preview de imagem das cartas deixa de ficar cortado em telas mobile e nao prende falhas temporarias como imagem indisponivel.",
         "Tela mobile de edicao deixa de duplicar as acoes de analise e recomendacoes.",
         "Editor deixa de manter o aviso de salvamento depois que o deck termina de salvar.",
-        "Header mobile evita clipping do logo em telas estreitas.",
-        "Decks antigos agora podem ser publicados sem revalidar cartas inalteradas na Scryfall."
+        "Header mobile evita clipping do logo em telas estreitas."
       ],
       "security": [
         "Fluxo Google documentado para escopos minimos openid, email e profile, sem persistencia de access_token ou refresh_token.",
