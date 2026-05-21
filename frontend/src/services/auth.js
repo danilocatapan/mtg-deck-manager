@@ -63,11 +63,14 @@ export function setAuthToken(token) {
 }
 
 export function clearAuthToken() {
+  const hadSession = Boolean(storage().getItem(TOKEN_KEY) || storage().getItem(PROFILE_KEY))
   storage().removeItem(TOKEN_KEY)
   storage().removeItem(PROFILE_KEY)
   clearLegacyPersistentAuth()
-  console.info('event=auth.session.cleared')
-  window.dispatchEvent(new Event(AUTH_EVENT))
+  if (hadSession) {
+    console.info('event=auth.session.cleared')
+    window.dispatchEvent(new Event(AUTH_EVENT))
+  }
 }
 
 function clearLegacyPersistentAuth() {

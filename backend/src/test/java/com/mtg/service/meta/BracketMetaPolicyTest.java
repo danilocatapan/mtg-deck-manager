@@ -9,7 +9,7 @@ class BracketMetaPolicyTest {
     private final BracketMetaPolicy policy = new BracketMetaPolicy();
 
     @Test
-    void normalizesRecommendationBracketAliasesToSimpleFourLevelModel() {
+    void normalizesRecommendationBracketAliasesToFiveLevelCommanderModel() {
         assertEquals("casual", policy.normalizeBracket("1"));
         assertEquals("casual", policy.normalizeBracket("bracket 1"));
         assertEquals("casual", policy.normalizeBracket("precon"));
@@ -17,8 +17,11 @@ class BracketMetaPolicyTest {
         assertEquals("mid", policy.normalizeBracket("bracket 2"));
         assertEquals("high-power", policy.normalizeBracket("3"));
         assertEquals("high-power", policy.normalizeBracket("bracket 3"));
-        assertEquals("cedh", policy.normalizeBracket("4"));
-        assertEquals("cedh", policy.normalizeBracket("bracket 4"));
+        assertEquals("high-power", policy.normalizeBracket("4"));
+        assertEquals("high-power", policy.normalizeBracket("bracket 4"));
+        assertEquals("cedh", policy.normalizeBracket("5"));
+        assertEquals("cedh", policy.normalizeBracket("bracket 5"));
+        assertEquals("cedh", policy.normalizeBracket("BRACKET_5"));
     }
 
     @Test

@@ -1,22 +1,22 @@
 [
   {
     "version": "0.0.0-local",
-    "date": "2026-05-20",
+    "date": "2026-05-21",
     "title": "Decks publicos e curadoria da comunidade",
     "changes": {
       "added": [
-        "Analise de decks agora permite abrir papeis como Ramp, Compra e Remocao para ver as cartas classificadas.",
+        "Top decks externos rankeados agora podem alimentar perfis de meta e melhorar recomendacoes quando houver amostra suficiente.",
         "Decks publicos agora podem receber likes de usuarios autenticados, com ranking interno por periodo.",
-        "Decks externos podem ser importados como publicos com origem marcada, sem tratar ranking externo como ranking do app.",
+        "Decks externos importados como top meta tambem aparecem como decks publicos consultaveis e copiaveis.",
         "Decks podem ser marcados como publicos ou privados, com vitrine publica, consulta em modo somente leitura e copia para a propria biblioteca.",
         "Endpoints autenticados GET /users/me/export e DELETE /users/me para exportacao LGPD e exclusao de dados do usuario."
       ],
       "changed": [
+        "Recomendacoes passam a rastrear quando uma sugestao veio de recorrencia em top decks externos.",
         "Listagem, edicao e analise de decks receberam previews de cartas, acoes flutuantes padronizadas e melhorias mobile para imagens, comandante e footer.",
         "Ver deck agora tem filtro por nome, filtro por tipo, agrupamento por tipo e alternancia entre lista e imagens.",
         "Vitrine publica exibe likes e permite curtir ou remover o proprio like em qualquer deck publico.",
-        "Importacao, analise e recomendacoes ficaram mais visuais no mobile, com abas e cards de troca recolhiveis para reduzir excesso de informacao.",
-        "Vitrine e biblioteca usam cards visuais com arte do comandante, identidade de cor, autor, copia direta e skeleton loading."
+        "Importacao, analise e recomendacoes ficaram mais visuais no mobile, com abas e cards de troca recolhiveis para reduzir excesso de informacao."
       ],
       "fixed": [
         "Nomes de cartas em combos agora tambem abrem preview de imagem.",

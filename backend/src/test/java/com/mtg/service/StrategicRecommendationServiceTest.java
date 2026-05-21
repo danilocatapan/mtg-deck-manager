@@ -163,6 +163,29 @@ class StrategicRecommendationServiceTest {
     }
 
     @Test
+    void shouldPreserveTopDeckMetaSourceInRecommendations() {
+        Deck deck = xenagosDeck();
+        CommanderMetaProfile profile = profile("Xenagos, God of Revels", "mid", 3, List.of(
+                new MetaCard("Greater Good", 1.0, null, 4.0, 3, 1.2, 0.2, List.of(), "meta_top_decks"),
+                new MetaCard("Nature's Lore", 0.67, null, 2.0, 2, 1.1, 0.1, List.of(), "meta_top_decks")
+        ), List.of("meta_top_decks"));
+
+        when(deckRepository.findById(1L)).thenReturn(deck);
+        when(commanderMetaProfileService.findByCommanderAndBracket("Xenagos, God of Revels", "mid")).thenReturn(profile);
+        when(cardService.findByNames(Mockito.anyList())).thenReturn(xenagosCards());
+
+        List<StrategicRecommendation> recommendations = sut.recommend(1L, new RecommendationParamsDTO(null, "mid", null, null));
+
+        assertFalse(recommendations.isEmpty());
+        StrategicRecommendation first = recommendations.getFirst();
+        assertEquals("Greater Good", first.add());
+        assertEquals("meta_top_decks", first.source());
+        assertEquals("meta_top_decks", first.sourceContext().kind());
+        assertEquals(List.of("meta_top_decks"), first.sourceContext().sources());
+        assertEquals(3, first.sourceContext().sampleSize());
+    }
+
+    @Test
     void shouldIgnoreStrategyIntentButKeepBudgetInResponse() {
         Deck deck = xenagosDeck();
         CommanderMetaProfile profile = profile("Xenagos, God of Revels", "mid", 4, List.of(
@@ -280,7 +303,7 @@ class StrategicRecommendationServiceTest {
     }
 
     @Test
-    void shouldUseFourLevelBracketAliasesForStrategicRecommendations() {
+    void shouldUseFiveLevelBracketAliasesForStrategicRecommendations() {
         Deck deck = xenagosDeck();
         CommanderMetaProfile profile = profile("Xenagos, God of Revels", "high-power", 4, List.of(
                 new MetaCard("Nature's Lore", 0.90, "ramp", 2.0),
@@ -301,7 +324,7 @@ class StrategicRecommendationServiceTest {
     }
 
     @Test
-    void shouldTreatBracketFourAsCedhAndPreferEfficientFallbacksOverSlowCards() {
+    void shouldTreatBracketFiveAsCedhAndPreferEfficientFallbacksOverSlowCards() {
         Deck deck = dimirCedhDeckWithSlowCards();
 
         when(deckRepository.findById(2L)).thenReturn(deck);
@@ -309,7 +332,7 @@ class StrategicRecommendationServiceTest {
         when(metaProvider.getTopCards("Talion, the Kindly Lord")).thenReturn(List.of());
         when(cardService.findByNames(Mockito.anyList())).thenReturn(dimirCards());
 
-        List<StrategicRecommendation> recommendations = sut.recommend(2L, new RecommendationParamsDTO(null, "bracket 4", null, null));
+        List<StrategicRecommendation> recommendations = sut.recommend(2L, new RecommendationParamsDTO(null, "bracket 5", null, null));
 
         assertFalse(recommendations.isEmpty());
         assertTrue(recommendations.stream().allMatch(recommendation -> recommendation.bracket().equals("cedh")));
@@ -422,6 +445,10 @@ class StrategicRecommendationServiceTest {
     }
 
     private static CommanderMetaProfile profile(String commander, String bracket, int sampleSize, List<MetaCard> cards) {
+        return profile(commander, bracket, sampleSize, cards, List.of("LOCAL"));
+    }
+
+    private static CommanderMetaProfile profile(String commander, String bracket, int sampleSize, List<MetaCard> cards, List<String> sources) {
         return new CommanderMetaProfile(
                 commander,
                 bracket,
@@ -430,7 +457,7 @@ class StrategicRecommendationServiceTest {
                 cards,
                 Map.of(),
                 List.of(),
-                List.of("LOCAL"),
+                sources,
                 java.time.OffsetDateTime.now()
         );
     }

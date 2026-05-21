@@ -120,7 +120,7 @@ public class RecommendationPairer {
                     round(cut.score()),
                     compatibilityReason(add, cut)
             );
-            String source = add.metaDriven() ? "meta_profile" : sourceFor(add, "heuristic_fallback");
+            String source = add.metaDriven() ? recommendationSourceFor(add) : sourceFor(add, "heuristic_fallback");
             RecommendationImpact impact = impactFor(add, cut, roles, currentGameChangers);
             recommendations.add(new StrategicRecommendation(
                     recommendationId(add, cut),
@@ -254,6 +254,11 @@ public class RecommendationPairer {
             return candidate.source();
         }
         return fallback;
+    }
+
+    private String recommendationSourceFor(StrategicCandidate candidate) {
+        String source = sourceFor(candidate, "meta_profile");
+        return "meta_top_decks".equalsIgnoreCase(source) ? "meta_top_decks" : "meta_profile";
     }
 
     private RecommendationImpact impactFor(StrategicCandidate add, StrategicCandidate cut, DeckRoleSummary roles, int currentGameChangers) {

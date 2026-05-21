@@ -2,7 +2,11 @@ package com.mtg.controller;
 
 import com.mtg.dto.ExternalDeckImportRequestDTO;
 import com.mtg.dto.ExternalDeckImportResponseDTO;
+import com.mtg.dto.MetaTopDeckImportRequestDTO;
+import com.mtg.dto.MetaTopDeckImportResponseDTO;
+import com.mtg.dto.MetaTopDeckSyncRequestDTO;
 import com.mtg.service.ExternalDeckImportService;
+import com.mtg.service.MetaTopDeckService;
 import com.mtg.service.meta.CommanderMetaProfile;
 import com.mtg.service.meta.CommanderMetaProfileService;
 import com.mtg.service.meta.ExternalMetaIngestionJob;
@@ -46,6 +50,9 @@ public class MetaController {
 
     @Inject
     ExternalDeckImportService externalDeckImportService;
+
+    @Inject
+    MetaTopDeckService metaTopDeckService;
 
     @ConfigProperty(name = "meta.sync.api-key")
     Optional<String> syncApiKey;
@@ -95,6 +102,66 @@ public class MetaController {
         }
         ExternalDeckImportResponseDTO response = externalDeckImportService.importDecks(request);
         return Response.ok(response).build();
+    }
+
+    @POST
+    @Path("/top-decks/import")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response importTopDecks(
+            @HeaderParam("X-Admin-Key") String adminKey,
+            MetaTopDeckImportRequestDTO request
+    ) {
+        if (!isAdminAuthorized(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        MetaTopDeckImportResponseDTO response = metaTopDeckService.importTopDecks(request);
+        return Response.ok(response).build();
+    }
+
+    @GET
+    @Path("/top-decks")
+    public Response topDecks(
+            @HeaderParam("X-Admin-Key") String adminKey,
+            @QueryParam("source") String source,
+            @QueryParam("rankingPeriod") String rankingPeriod,
+            @QueryParam("rankingDate") java.time.LocalDate rankingDate,
+            @QueryParam("format") String format,
+            @QueryParam("commander") String commander,
+            @QueryParam("archetype") String archetype,
+            @QueryParam("bracket") String bracket,
+            @QueryParam("colorIdentity") String colorIdentity,
+            @QueryParam("limit") Integer limit
+    ) {
+        if (!isAdminAuthorized(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        return Response.ok(metaTopDeckService.list(source, rankingPeriod, rankingDate, format, commander, archetype, bracket, colorIdentity, limit)).build();
+    }
+
+    @GET
+    @Path("/top-decks/{id}")
+    public Response topDeck(@HeaderParam("X-Admin-Key") String adminKey, @PathParam("id") Long id) {
+        if (!isAdminAuthorized(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        var deck = metaTopDeckService.get(id);
+        if (deck == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        return Response.ok(deck).build();
+    }
+
+    @POST
+    @Path("/top-decks/sync")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response syncTopDecks(
+            @HeaderParam("X-Admin-Key") String adminKey,
+            MetaTopDeckSyncRequestDTO request
+    ) {
+        if (!isAdminAuthorized(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        return Response.ok(metaTopDeckService.sync(request)).build();
     }
 
     @GET

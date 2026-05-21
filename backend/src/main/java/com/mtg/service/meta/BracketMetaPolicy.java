@@ -37,7 +37,8 @@ public class BracketMetaPolicy {
             case "1", "precon", "exhibition" -> "casual";
             case "2", "mid", "upgraded" -> "mid";
             case "3", "high-power", "highpower", "optimized" -> "high-power";
-            case "4", "cedh", "cedh/max" -> "cedh";
+            case "4", "bracket-4", "bracket_4" -> "high-power";
+            case "5", "bracket-5", "bracket_5", "cedh", "cedh/max" -> "cedh";
             default -> null;
         };
     }

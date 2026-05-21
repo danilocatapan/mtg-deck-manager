@@ -29,6 +29,7 @@ public class CommanderMetaProfileService {
 
     private final ObjectMapper mapper = JsonMapper.builder().findAndAddModules().build();
     private final Map<String, CommanderMetaProfile> profiles = new ConcurrentHashMap<>();
+    private final Map<String, CommanderMetaProfile> topDeckProfiles = new ConcurrentHashMap<>();
 
     @Inject
     MetaDatasetService datasetService;
@@ -89,6 +90,10 @@ public class CommanderMetaProfileService {
 
     public CommanderMetaProfile find(String commander, String bracket) {
         String normalizedBracket = normalizeBracket(bracket);
+        CommanderMetaProfile topDeckProfile = topDeckProfiles.get(key(commander, normalizedBracket));
+        if (topDeckProfile != null && topDeckProfile.sampleSize() >= 3) {
+            return topDeckProfile;
+        }
         CommanderMetaProfile profile = profiles.get(key(commander, normalizedBracket));
         if (profile == null) {
             LOG.infov("event=meta.profile.not_found commander={0} bracket={1}", commander, normalizedBracket);
@@ -98,6 +103,20 @@ public class CommanderMetaProfileService {
 
     public CommanderMetaProfile findByCommanderAndBracket(String commander, String bracket) {
         return find(commander, bracket);
+    }
+
+    public void replaceTopDeckProfiles(List<CommanderMetaProfile> importedProfiles) {
+        topDeckProfiles.clear();
+        if (importedProfiles == null || importedProfiles.isEmpty()) {
+            LOG.infov("event=meta.top_deck_profiles.replaced profiles=0");
+            return;
+        }
+        for (CommanderMetaProfile profile : importedProfiles) {
+            if (profile != null && profile.commander() != null && profile.bracket() != null) {
+                topDeckProfiles.put(key(profile.commander(), profile.bracket()), profile);
+            }
+        }
+        LOG.infov("event=meta.top_deck_profiles.replaced profiles={0}", topDeckProfiles.size());
     }
 
     private CommanderMetaProfile buildProfile(List<MetaDeck> group) {

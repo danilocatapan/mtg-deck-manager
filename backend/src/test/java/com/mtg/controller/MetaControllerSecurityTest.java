@@ -3,6 +3,7 @@ package com.mtg.controller;
 import com.mtg.service.meta.CommanderMetaProfileService;
 import com.mtg.service.meta.ExternalMetaIngestionJob;
 import com.mtg.service.meta.MetaProvider;
+import com.mtg.service.MetaTopDeckService;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,9 @@ class MetaControllerSecurityTest {
     @InjectMock
     CommanderMetaProfileService profileService;
 
+    @InjectMock
+    MetaTopDeckService metaTopDeckService;
+
     @Test
     void syncIsForbiddenWhenAdminKeyIsNotConfigured() {
         given().when().post("/meta/sync").then().statusCode(403);
@@ -34,5 +38,13 @@ class MetaControllerSecurityTest {
     @Test
     void cachedMetaDecksAreForbiddenWhenAdminKeyIsNotConfigured() {
         given().when().get("/meta/decks").then().statusCode(403);
+    }
+
+    @Test
+    void topDeckAdminEndpointsAreForbiddenWhenAdminKeyIsNotConfigured() {
+        given().contentType("application/json").body("{}").when().post("/meta/top-decks/import").then().statusCode(403);
+        given().when().get("/meta/top-decks").then().statusCode(403);
+        given().when().get("/meta/top-decks/1").then().statusCode(403);
+        given().contentType("application/json").body("{}").when().post("/meta/top-decks/sync").then().statusCode(403);
     }
 }

@@ -393,6 +393,70 @@ export async function getCommanderMeta(commander, { bracket = 'casual', sourceMo
   }
 }
 
+// TODO: ligar estes helpers a uma tela admin de controle dos top decks externos.
+// Reimportar o mesmo ranking atualiza o snapshot; novo mes cria historico; os dados alimentam recomendacoes.
+export async function fetchMetaTopDecks(filters = {}, adminKey = '') {
+  try {
+    const query = new URLSearchParams()
+    Object.entries(filters || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && String(value).trim()) {
+        query.set(key, String(value))
+      }
+    })
+    const suffix = query.toString() ? `?${query}` : ''
+    return await request(`/meta/top-decks${suffix}`, {
+      retryOnStartup: false,
+      headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+    })
+  } catch (e) {
+    logApiError('fetchMetaTopDecks error', e)
+    throw e
+  }
+}
+
+export async function getMetaTopDeck(id, adminKey = '') {
+  try {
+    if (id === undefined || id === null || isNaN(Number(id))) {
+      throw new Error('Invalid top deck id')
+    }
+    return await request(`/meta/top-decks/${id}`, {
+      retryOnStartup: false,
+      headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+    })
+  } catch (e) {
+    logApiError('getMetaTopDeck error', e)
+    throw e
+  }
+}
+
+export async function importMetaTopDecks(payload, adminKey = '') {
+  try {
+    return await request('/meta/top-decks/import', {
+      method: 'POST',
+      retryOnStartup: false,
+      headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+      body: JSON.stringify(payload || {}),
+    })
+  } catch (e) {
+    logApiError('importMetaTopDecks error', e)
+    throw e
+  }
+}
+
+export async function syncMetaTopDecks(payload, adminKey = '') {
+  try {
+    return await request('/meta/top-decks/sync', {
+      method: 'POST',
+      retryOnStartup: false,
+      headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+      body: JSON.stringify(payload || {}),
+    })
+  } catch (e) {
+    logApiError('syncMetaTopDecks error', e)
+    throw e
+  }
+}
+
 export async function importDeck(data) {
   try {
     return await request('/decks/import', {
@@ -450,6 +514,10 @@ export default {
   getSimilarDeckComparison,
   getMetaSources,
   getCommanderMeta,
+  fetchMetaTopDecks,
+  getMetaTopDeck,
+  importMetaTopDecks,
+  syncMetaTopDecks,
   getAppInfo,
   exportUserData,
   deleteAccountData,
