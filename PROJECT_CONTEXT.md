@@ -1,188 +1,206 @@
 # MTG Deck Manager - Contexto do Projeto
 
-## Resumo
+Versao: context-2026-05-21
+Ultima atualizacao: 2026-05-21
 
-MTG Deck Manager e uma aplicacao para gerenciar, importar, analisar e melhorar decks de Magic: The Gathering, com foco em Commander. O sistema permite buscar cartas via Scryfall, criar e editar decks, importar decklists, exportar listas em texto, analisar a composicao do deck e gerar recomendacoes de adds/cuts com heuristicas deterministicas, sinergia e dados de meta.
+## Objetivo
 
-O projeto e dividido em dois apps:
+MTG Deck Manager e uma aplicacao para gerenciar, importar, consultar, analisar e melhorar decks de Magic: The Gathering, com foco em Commander. O produto combina CRUD de decks, vitrine publica, privacidade/LGPD, analise deterministica e recomendacoes explicaveis de adds/cuts baseadas em regras, sinergia, meta local e top decks importados.
+
+## Apps
 
 - `backend/`: API REST em Java/Quarkus.
-- `frontend/`: SPA em React/Vite.
+- `frontend/`: SPA em React/Vite publicada com base path `/mtg-deck-manager/`.
+- `tools/meta-importer/`: scripts offline para gerar/importar dados de meta; scraping/coleta externa nao deve acontecer em runtime de API quando puder ser feito offline.
 
-## Stack
+## Stack Atual
 
-- Backend: Java 25, Quarkus 3.35.x.
-- Persistencia: Hibernate ORM + Panache, H2 para dev/test.
-- API externa: Scryfall via MicroProfile REST Client.
-- Frontend: React 19 + Vite 8.
-- Build/CI: Maven Wrapper, npm, GitHub Actions.
-- Documentacao API: SmallRye OpenAPI/Swagger.
-- Seguranca/config transversal: Quarkus OIDC, headers de seguranca, CORS e mappers de erro.
+- Backend: Java 25, Quarkus 3.35.2, RESTEasy Reactive/Quarkus REST, Jackson, SmallRye OpenAPI.
+- Persistencia: Hibernate ORM + Panache; H2 em `%dev`/`%test`; PostgreSQL 16+ em `%pg`/`%prod`; Flyway em `backend/src/main/resources/db/migration`.
+- Auth: Google OIDC via ID token Bearer. A API nao usa cookie de sessao.
+- Integracoes: Scryfall, Spicerack, TopDeck.gg, dataset local de meta e regras Commander em resources.
+- Frontend: React 19.2, Vite 8, ESLint 10, estado local React, sem router dedicado.
+- CI/CD: GitHub Actions com backend H2, backend PostgreSQL, lint/build frontend, versionamento por tag, imagem backend GHCR, deploy backend por hook, smoke manual e GitHub Pages.
 
-## Arquitetura
+## Arquitetura Backend
 
-### Backend
-
-A API segue uma organizacao em camadas:
+Camadas principais:
 
 - `controller`: endpoints REST e contratos HTTP.
-- `dto`: payloads de entrada/saida expostos pela API.
-- `service`: regras de negocio, recomendacoes, analise, importacao e integracoes.
-- `service/meta`: carregamento, normalizacao e consulta de dados de meta.
-- `service/synergy`: classificacao/tagging e motor de sinergia.
-- `repository` e `model`: persistencia Panache/Hibernate.
-- `client`: cliente Scryfall.
-- `config`: filtros, headers, mappers de erro e configuracoes transversais.
+- `dto`: payloads publicos e administrativos.
+- `model`/`repository`: entidades Panache/Hibernate e consultas.
+- `service`: regras de negocio, decks, analise, recomendacoes, auditoria, privacidade e integracoes.
+- `service/meta`: dataset local, top decks, adapters Spicerack/TopDeck/EDHREC, normalizacao e agregacao.
+- `service/synergy`: tags e motor de sinergia.
+- `service/rules`: banlist, brackets e game changers Commander.
+- `client`: REST clients externos.
+- `config`: headers de seguranca, logs estruturados/sanitizados, mappers e contexto de request.
 
 Controllers devem ficar finos. Regra de negocio deve viver em services/componentes testaveis.
 
-### Frontend
+## Arquitetura Frontend
 
-O frontend e uma SPA React estruturada em:
-
-- `src/pages`: telas principais.
+- `src/pages`: telas principais (`Home`, editor, importacao, consulta publica, meta admin, contato, release notes).
 - `src/components`: componentes de UI e composicao.
-- `src/components/ui`: elementos reutilizaveis simples.
-- `src/components/layout`: layout da aplicacao.
-- `src/services`: integracao com backend, especialmente `api.js`.
-- `src/assets` e `public`: imagens, favicon e icones.
-- `src/styles/global.css` e `src/index.css`: base visual e estilos globais.
+- `src/components/recommendations`: painel/cards/configuracoes de recomendacao.
+- `src/components/ui`: primitivos simples.
+- `src/services/api.js`: cliente REST central, timeout, retry de startup, `Authorization: Bearer`, `credentials: omit`.
+- `src/services/auth.js`: sessao Google em `sessionStorage`, validacao de issuer/audience/exp e admin meta por e-mail allowlistado.
+- `src/assets` e `public`: identidade visual, release notes publicas, politica de privacidade e icones.
 
-O app usa estado local React e ainda nao possui router dedicado.
+## Funcionalidades Principais
 
-## Funcionalidades
+- Busca de cartas por nome e collection API da Scryfall.
+- CRUD autenticado de decks privados/publicos.
+- Importacao e exportacao de decklists.
+- Vitrine publica com consulta read-only, filtro por comandante, copia de deck, likes e ranking.
+- Analise de deck: curva, CMC, roles, combos, probabilidade, mana base, comparacao e legalidade Commander.
+- Recomendacoes heuristicas e estrategicas com justificativas, score detalhado, adds/cuts, apply/undo swap e feedback/auditoria.
+- Ingestao de meta local, decks externos e top decks rankeados para grounding deterministico.
+- Admin de meta top decks no frontend para usuario Google autorizado.
+- Exportacao e exclusao de dados do usuario autenticado.
+- Diagnostico administrativo read-only de postura de seguranca.
+- Paginas publicas de contato, privacidade, release notes e Sobre.
 
-- Busca de cartas no Scryfall.
-- Busca em lote via collection API do Scryfall.
-- CRUD de decks.
-- Importacao de decklist em texto.
-- Exportacao de deck em formato `quantity name`.
-- Analise deterministica do deck: curva de mana, media de CMC, roles como ramp/draw/removal e resumo de composicao.
-- Recomendacoes heuristicas com adds/cuts.
-- Recomendacoes estrategicas com justificativas mais orientadas por papel, sinergia e meta.
-- Carregamento de dataset local de meta por commander.
-- Consulta/sincronizacao de fontes de meta.
-- UI para listar, criar, editar, importar, analisar e recomendar melhorias em decks.
+## Endpoints Atuais
 
-## Endpoints principais
+### Info
+
+- `GET /`: metadados basicos da API.
+- `GET /app/info`: metadados de build/runtime para UI.
 
 ### Cards
 
-- `GET /cards?name=`: pesquisa cartas na Scryfall.
-- `POST /cards/collection`: busca cartas em lote.
+- `GET /cards?name=`
+- `POST /cards/collection`
 
-### Decks
+### Decks Autenticados/Compatibilidade
 
-- `GET /decks`: lista decks.
-- `POST /decks`: cria deck.
-- `POST /decks/import`: importa decklist.
-- `GET /decks/{id}`: obtem deck por id.
-- `PUT /decks/{id}`: atualiza deck.
-- `DELETE /decks/{id}`: remove deck.
-- `GET /decks/{id}/export`: exporta deck como `text/plain`.
-- `GET /decks/{id}/analysis`: retorna analise do deck.
-- `POST /decks/{id}/recommendations`: gera recomendacoes heuristicas.
-- `POST /decks/{id}/recommendations/strategic`: gera recomendacoes estrategicas.
+- `GET /decks`
+- `POST /decks`
+- `POST /decks/import`
+- `GET /decks/public` (compatibilidade; vitrine nova usa `/public/decks`)
+- `GET /decks/{id}`
+- `GET /decks/{id}/consult`
+- `PUT /decks/{id}`
+- `DELETE /decks/{id}`
+- `GET /decks/{id}/export`
+- `GET /decks/{id}/analysis`
+- `GET /decks/{id}/legality`
+- `POST /decks/{id}/comparison`
+- `POST /decks/{id}/recommendations`
+- `POST /decks/{id}/recommendations/strategic`
+- `POST /decks/{id}/recommendations/apply-swap`
+- `POST /decks/{id}/recommendations/undo-swap`
+
+### Publico
+
+- `GET /public/decks`
+- `GET /public/decks/top`
+- `GET /public/decks/{id}`
+- `POST /public/decks/{id}/copy`
+- `POST /public/decks/{id}/like`
+- `DELETE /public/decks/{id}/like`
 
 ### Meta
 
-- `GET /meta/sources`: lista status das fontes de meta.
-- `POST /meta/sync`: sincroniza fontes de meta.
-- `GET /meta/commanders/{commander}`: retorna perfil de meta para um commander.
+- `GET /meta/sources`
+- `POST /meta/sync`
+- `GET /meta/decks`
+- `POST /meta/rebuild-profiles`
+- `GET /meta/commanders/{commander}`
+- `POST /meta/external-decks/import`
+- `POST /meta/top-decks/import`
+- `GET /meta/top-decks`
+- `GET /meta/top-decks/{id}`
+- `POST /meta/top-decks/sync`
 
-## Como funciona o fluxo de recomendacao
+### Auditoria, LGPD e Seguranca
 
-O pipeline de recomendacao combina regras deterministicas, dados de cartas, sinergia e meta:
+- `POST /recommendation-audits/{id}/feedback`
+- `GET /users/me/export`
+- `DELETE /users/me`
+- `POST /security/status/check`
 
-1. O deck e carregado e normalizado.
-2. O commander e a color identity delimitam o espaco de cartas validas.
-3. Candidatos sao coletados a partir de dados de meta, heuristicas e/ou cartas conhecidas.
-4. Candidatos duplicados ou fora da color identity sao removidos.
-5. O deck e analisado por roles, curva e necessidades.
-6. O scorer combina sinais como papel no deck, sinergia, meta e adequacao estrategica.
-7. Adds sao ranqueados.
-8. O deck pode ser completado ate o alvo Commander.
-9. Cuts sao sugeridos sem remover comandante e sem quebrar invariantes.
-10. A API retorna sugestoes com justificativas.
+## Fluxo de Recomendacao
 
-Invariantes importantes:
+1. Carrega deck, comandante e cartas persistidas.
+2. Normaliza nomes, roles, color identity e contexto Commander.
+3. Busca candidatos em meta local, top decks elegiveis, heuristicas, sinergia e cartas conhecidas.
+4. Filtra cartas fora da color identity, duplicatas e candidatos inelegiveis.
+5. Analisa curva, papeis, combos, mana base, bracket e necessidades do deck.
+6. Pontua candidatos por papel, sinergia, meta, bracket, estrategia e impacto esperado.
+7. Ordena adds e pareia cortes coerentes.
+8. Completa ate o alvo Commander quando aplicavel.
+9. Retorna recomendacoes explicaveis e auditaveis.
+10. Quando o usuario aplica/desfaz troca, registra auditoria sem vazar tokens/PII em logs.
+
+Invariantes:
 
 - Deck Commander deve respeitar color identity.
-- Nao sugerir carta que ja existe no deck como add.
-- Nao sugerir corte do comandante.
-- Fluxos de completar deck devem mirar 99 cartas + commander = 100 quando aplicavel.
+- Nao sugerir carta ja existente como add.
+- Nao cortar comandante.
+- Fluxos de completar deck miram 99 cartas no main deck + comandante = 100.
+- Top decks so influenciam ranking quando fonte/formato/bracket/amostra minima forem validos.
+- Deck privado nao pode aparecer em endpoints publicos nem ser consultado por anonimo/outro usuario.
 
-## Dados de meta
+## Persistencia e Dados
 
-O backend possui dataset local em:
+- Migrations Flyway vivem em `backend/src/main/resources/db/migration` e hoje cobrem schema de decks, historico, auditoria, visibilidade, decks externos, likes e meta top decks.
+- Dados locais de meta:
+  - `backend/src/main/resources/meta_dataset.json`
+  - `backend/src/main/resources/meta/commanders/`
+- Regras Commander:
+  - `backend/src/main/resources/rules/commander-banlist.json`
+  - `backend/src/main/resources/rules/commander-game-changers.json`
+- Combos conhecidos:
+  - `backend/src/main/resources/analysis/known-combos.json`
 
-- `backend/src/main/resources/meta_dataset.json`
-- `backend/src/main/resources/meta/commanders/`
+## Privacidade e Seguranca
 
-Os componentes em `backend/src/main/java/com/mtg/service/meta` carregam, normalizam e agregam esses dados. A ideia e usar o meta como grounding deterministico para recomendacoes, sem depender de modelo generativo.
+- Escopos Google: `openid`, `email`, `profile`.
+- Frontend armazena ID token e perfil publico apenas em `sessionStorage`.
+- Backend valida ID token como Bearer token e nao persiste `access_token` nem `refresh_token`.
+- Decks sem `visibility` devem assumir `private`.
+- DTOs publicos nao devem expor `owner_id`, e-mail, avatar, historico de trocas ou auditorias.
+- Logs nao devem conter tokens, cookies, Authorization, payloads completos de decks, nomes de cartas em massa ou PII desnecessaria.
+- Endpoints admin de meta aceitam Google JWT allowlistado por e-mail e mantem `X-Admin-Key` para operacao tecnica/Swagger.
 
-## Testes e validacao
+## Validacao
 
 Backend:
 
-- Testes com JUnit, Quarkus Test, Mockito e RestAssured.
-- Rodar em `backend`: `./mvnw.cmd test` no Windows ou `./mvnw test` no Linux/macOS.
-
-Frontend:
-
-- O projeto ainda nao possui script de testes frontend.
-- Rodar em `frontend`: `npm run lint` e `npm run build`.
-
-Validacao manual recomendada para mudancas relevantes:
-
-- Criar ou importar um deck.
-- Buscar cartas.
-- Abrir editor do deck.
-- Rodar analise.
-- Gerar recomendacoes e conferir duplicatas, color identity e quantidade.
-
-## Execucao local
-
-Backend no Windows/PowerShell:
-
 ```powershell
-$env:JAVA_HOME = "C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2"
-$env:Path = "$env:JAVA_HOME\bin;$env:Path"
 cd backend
-./mvnw.cmd quarkus:dev
+.\mvnw.cmd test
 ```
 
 Frontend:
 
 ```powershell
 cd frontend
-npm install
-npm run dev
+npm run lint
+npm run build
 ```
 
-URLs comuns:
+PostgreSQL local:
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:8080`
-- Quarkus Dev UI: `http://localhost:8080/q/dev/`
-- Swagger/OpenAPI: rota padrao do SmallRye OpenAPI no Quarkus.
+```powershell
+docker compose up -d postgres
+cd backend
+$env:QUARKUS_DATASOURCE_DB_KIND = "postgresql"
+$env:QUARKUS_DATASOURCE_JDBC_URL = "jdbc:postgresql://localhost:5432/mtg_deck_manager"
+$env:QUARKUS_DATASOURCE_USERNAME = "mtg"
+$env:QUARKUS_DATASOURCE_PASSWORD = "mtg_dev_password"
+$env:QUARKUS_FLYWAY_MIGRATE_AT_START = "true"
+$env:QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY = "validate"
+.\mvnw.cmd test
+```
 
-## CI/CD
+Quando mudar recomendacoes, importacao, persistencia, privacidade ou UI principal, validar tambem um fluxo representativo.
 
-O workflow `.github/workflows/ci.yml` roda em `master`, pull requests para `master` e execucao manual:
+## Manutencao Documental
 
-- Backend: Java 25 + `./mvnw test`.
-- Frontend: Node 24 + `npm ci` + `npm run build`.
-- Publicacao de imagem backend no GHCR em push/manual.
-- Deploy backend via hook opcional `BACKEND_DEPLOY_HOOK_URL`.
-- Deploy frontend no GitHub Pages usando `VITE_API_URL`.
-
-## Regras de manutencao
-
-- Antes de alterar comportamento observavel, consulte `AGENTS.md` na raiz e `.github/agents/AGENTS.md`.
-- Nao alterar regra negocial, contrato REST, criterio de score ou fluxo de recomendacao sem pedido explicito.
-- Ao mexer no backend, preservar separacao controller -> service -> repository/client.
-- Ao mexer no frontend, centralizar chamadas REST em `src/services/api.js`.
-- Sempre adicionar ou atualizar testes quando introduzir regra de negocio.
-- Nunca expor segredos no repositorio; usar variaveis de ambiente/configuracao.
-- Manter este arquivo atualizado quando mudarem stack, endpoints, arquitetura, CI/CD ou fluxos principais.
+- `AGENTS.md` da raiz e `.github/copilot-instructions.md` sao pontos de entrada; a fonte canonica e `.github/agents/AGENTS.md`.
+- Atualizar este arquivo quando mudarem objetivo, stack, endpoints, arquitetura, CI/CD, persistencia, seguranca, privacidade ou fluxos principais.
+- Atualizar `CHANGELOG.md` para mudancas relevantes. Release notes publicas so recebem itens que afetam usuarios/suporte.

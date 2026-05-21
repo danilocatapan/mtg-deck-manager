@@ -1,62 +1,79 @@
-# backend
+# Backend - MTG Deck Manager API
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+Versao docs: 2026-05-21
+Ultima atualizacao: 2026-05-21
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+API REST em Java 25 + Quarkus 3.35.2 para decks Commander, cartas, meta, recomendacoes, privacidade e administracao operacional.
 
-## Running the application in dev mode
+## Stack
 
-You can run your application in dev mode that enables live coding using:
+- Quarkus REST + Jackson.
+- Hibernate ORM/Panache.
+- H2 em `%dev` e `%test`.
+- PostgreSQL/Flyway em `%pg` e `%prod`.
+- Google OIDC validando ID token Bearer.
+- REST Clients: Scryfall, Spicerack e TopDeck.gg.
+- Testes: JUnit, Quarkus Test, Mockito, RestAssured.
 
-```shell script
-./mvnw quarkus:dev
+## Estrutura
+
+- `controller`: endpoints REST.
+- `dto`: contratos JSON.
+- `model`/`repository`: entidades e consultas.
+- `service`: regra de negocio, decks, analise, recomendacoes, auditoria, privacidade.
+- `service/meta`: dataset local, top decks, adapters externos e agregacao.
+- `service/rules`: banlist, brackets e game changers Commander.
+- `service/synergy`: tags e motor de sinergia.
+- `client`: clients HTTP externos.
+- `config`: headers, CORS, logs, mappers e contexto de request.
+
+## Desenvolvimento
+
+H2 local:
+
+```powershell
+$env:JAVA_HOME = "C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+.\mvnw.cmd quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+PostgreSQL local:
 
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
-./mvnw package
+```powershell
+docker compose up -d postgres
+.\mvnw.cmd quarkus:dev -Dquarkus.profile=pg
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+Testes:
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
+```powershell
+.\mvnw.cmd test
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+Package JVM:
 
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
-./mvnw package -Dnative
+```powershell
+.\mvnw.cmd package
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
+## Contratos Principais
 
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
+- `/cards`
+- `/decks`
+- `/public/decks`
+- `/meta`
+- `/recommendation-audits`
+- `/users/me`
+- `/security/status`
+- `/app/info`
 
-You can then execute your native executable with: `./target/backend-1.0.0-SNAPSHOT-runner`
+Consulte `PROJECT_CONTEXT.md` para a lista de endpoints atualizada.
 
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
+## Regras Criticas
 
-## Provided Code
-
-### REST
-
-Easily start your REST Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+- Nao alterar contrato REST, regra de negocio, score ou fluxo de recomendacao sem teste e pedido explicito.
+- Toda entidade persistida nova/alterada precisa de migration Flyway.
+- Deck privado nunca aparece em endpoint publico.
+- DTO publico nunca expoe `owner_id`, e-mail, avatar, auditoria ou historico de troca.
+- Recomendacao nunca sugere carta fora da color identity, duplicata ou corte do comandante.
+- Logs nao podem conter tokens, Authorization, payload completo de deck ou PII desnecessaria.

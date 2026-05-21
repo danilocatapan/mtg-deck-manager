@@ -1,5 +1,8 @@
 # Production Deploy Runbook
 
+Versao docs: 2026-05-21
+Ultima atualizacao: 2026-05-21
+
 ## Database
 
 Use PostgreSQL for every non-local runtime. The backend keeps H2 only for `%dev` and `%test`.
@@ -20,6 +23,8 @@ Flyway migrations live in:
 backend/src/main/resources/db/migration
 ```
 
+Current migrations cover deck schema, Commander contract fields, recommendation audit, deck visibility/public authorship, external/public deck likes, and meta top decks.
+
 For the first staging migration, enable:
 
 ```text
@@ -38,6 +43,8 @@ CORS_ORIGINS=https://danilocatapan.github.io,http://localhost:5173
 FRONTEND_URL=https://danilocatapan.github.io/mtg-deck-manager/
 SWAGGER_UI_ENABLED=false
 APP_LOG_LEVEL=INFO
+META_ADMIN_EMAILS=<comma-separated-admin-emails>
+SECURITY_ADMIN_SUBJECTS=<comma-separated-admin-google-subjects>
 ```
 
 If the service is linked to a Render PostgreSQL database and receives `DATABASE_URL`, the container converts it to the Quarkus JDBC settings automatically.
@@ -72,6 +79,12 @@ FRONTEND_URL=https://danilocatapan.github.io/mtg-deck-manager/
 SWAGGER_UI_ENABLED=false
 APP_LOG_LEVEL=INFO
 QUARKUS_FLYWAY_MIGRATE_AT_START=false
+META_SPICERACK_ENABLED=true
+SPICERACK_API_KEY=<optional-spicerack-key>
+META_TOPDECK_ENABLED=false
+TOPDECK_API_KEY=<optional-topdeck-key>
+META_ADMIN_EMAILS=<comma-separated-admin-emails>
+SECURITY_ADMIN_SUBJECTS=<comma-separated-admin-google-subjects>
 ```
 
 ## GitHub Actions Configuration
@@ -80,7 +93,9 @@ Repository variables:
 
 ```text
 VITE_API_URL=https://<backend-runtime-url>
+VITE_API_BASE_URL=https://<backend-runtime-url>
 VITE_GOOGLE_CLIENT_ID=<google-oauth-client-id>
+VITE_META_ADMIN_EMAILS=<comma-separated-admin-emails>
 VITE_CONTACT_FORM_ENDPOINT=https://formspree.io/f/<form-id>
 CORS_ORIGINS=https://danilocatapan.github.io,http://localhost:5173
 SWAGGER_UI_ENABLED=false
@@ -98,6 +113,8 @@ BACKEND_DEPLOY_HOOK_URL=<hosting-provider-deploy-hook>
 QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://<host>:5432/<database>
 QUARKUS_DATASOURCE_USERNAME=<database-user>
 QUARKUS_DATASOURCE_PASSWORD=<database-password>
+SPICERACK_API_KEY=<optional-spicerack-key>
+TOPDECK_API_KEY=<optional-topdeck-key>
 STAGING_BEARER_TOKEN=<short-lived-google-id-token-for-smoke-tests>
 ```
 
@@ -129,6 +146,23 @@ The smoke test calls:
 - `DELETE /decks/{id}`
 
 Use a staging database for these tests. The smoke deck is deleted at the end of a successful run.
+
+## Meta Admin Checks
+
+When enabling the top decks admin UI, configure the same admin e-mail allowlist in frontend and backend:
+
+```text
+VITE_META_ADMIN_EMAILS=<comma-separated-admin-emails>
+META_ADMIN_EMAILS=<comma-separated-admin-emails>
+```
+
+Validate with an authorized Google account:
+
+- open the frontend `Meta Admin` screen
+- list top decks
+- import a small JSON payload in staging
+- confirm `POST /meta/top-decks/import` updates profiles without exposing secrets in logs
+- confirm strategic recommendations mention/use `meta_top_decks` only when the sample is sufficient
 
 ## Promotion Checklist
 

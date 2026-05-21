@@ -25,6 +25,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Documentacao operacional e agents foram versionados em `agents-2026-05-21`/`docs-2026-05-21`, alinhando contexto, endpoints, PostgreSQL/Flyway, privacidade, meta top decks e fluxo atual de recomendacoes para reduzir reexploracao e alucinacao em Codex/Copilot.
 - Recomendacoes estrategicas passam a usar top decks importados como fonte `meta_top_decks` quando ha amostra suficiente por comandante/bracket, preservando score, filtros de cor, bloqueio de duplicatas e cortes seguros.
 - Cards de troca nas recomendacoes podem ser recolhidos ao clicar no card, deixando apenas o resumo com carta que entra e carta removida.
 - Telas de listagem, edicao e analise de decks receberam preview de carta reutilizavel, acoes flutuantes padronizadas, galeria com rolagem interna e ajustes mobile para comandante, imagens e footer.

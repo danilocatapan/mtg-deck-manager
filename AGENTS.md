@@ -1,5 +1,8 @@
 # AGENTS.md - Instrucoes para Codex
 
+Versao: agents-2026-05-21
+Ultima atualizacao: 2026-05-21
+
 Este arquivo e o ponto de entrada do Codex neste repositorio.
 
 ## Ordem de leitura
@@ -16,10 +19,11 @@ Este arquivo e o ponto de entrada do Codex neste repositorio.
 ## Regras para o Codex
 
 - Trate as instrucoes em `.github/agents` como regras locais do projeto.
-- Nao duplique regras globais neste arquivo; atualize os arquivos em `.github/agents` quando o projeto mudar.
+- Nao duplique regras globais neste arquivo; atualize os arquivos em `.github/agents` e `PROJECT_CONTEXT.md` quando stack, contratos, dados ou fluxos principais mudarem.
 - Antes de alterar comportamento observavel, valide contratos REST, testes existentes e invariantes de dominio.
 - Nao altere regra negocial, fluxo de recomendacao, criterio de score, side effects ou contratos publicos sem pedido explicito.
 - Preserve a separacao atual entre backend (`backend/`) e frontend (`frontend/`).
+- Para economizar tokens, leia primeiro o arquivo canonico e depois apenas os guias/arquivos diretamente ligados ao pedido; use `rg` para localizar codigo antes de abrir arquivos grandes.
 
 ## Validacao padrao
 

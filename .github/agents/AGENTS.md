@@ -1,5 +1,8 @@
 # AGENTS.md - Regras canonicas de agentes
 
+Versao: agents-2026-05-21
+Ultima atualizacao: 2026-05-21
+
 Papel deste arquivo
 -------------------
 Este e o arquivo canonico com regras globais, prioridades, topologia documental e politicas que orientam agentes, Copilot e Codex neste repositorio.
@@ -11,6 +14,7 @@ Adotamos explicitamente:
 - 1 bootstrap historico para Copilot (`.github/copilot-instructions.md`).
 - 1 arquivo canonico (`.github/agents/AGENTS.md`).
 - 5 guias especializados (`analysis.md`, `backend-quarkus.md`, `frontend-react.md`, `testing.md`, `workflow-graph.md`).
+- 1 snapshot operacional em `PROJECT_CONTEXT.md`, usado para entender objetivo, stack, contratos e fluxos sem reabrir todo o codigo.
 
 Nao criar resumos paralelos com regras globais. Quando o projeto mudar, atualizar este arquivo e os guias especializados afetados.
 
@@ -19,6 +23,16 @@ Fluxo minimo obrigatorio
 1. Leia este `AGENTS.md`.
 2. Escolha o guia especializado relevante.
 3. Antes de alterar comportamento observavel, execute a analise minima definida em `analysis.md`.
+4. Use `PROJECT_CONTEXT.md` como mapa rapido quando a tarefa exigir entendimento amplo do produto.
+
+Economia de contexto para agentes
+---------------------------------
+- Comece por `rg`/`rg --files` e abra apenas arquivos necessarios ao pedido atual.
+- Para backend, confirme primeiro controller/service/test afetado antes de abrir DTOs, entidades ou migrations.
+- Para frontend, confirme primeiro page/component/service afetado antes de abrir CSS/assets.
+- Evite colar arquivos inteiros na resposta final; informe arquivos alterados, validacoes executadas e riscos restantes.
+- Se a tarefa for documental, compare markdowns com codigo/configuracao real antes de atualizar instrucoes.
+- Quando a informacao ja estiver consolidada neste arquivo ou em `PROJECT_CONTEXT.md`, prefira citar o snapshot em vez de reexplorar tudo.
 
 Manutencao de regras e contexto para IA
 ---------------------------------------
@@ -48,7 +62,7 @@ Controle de complexidade
 - Implementar sempre a solucao mais simples que resolve a necessidade atual.
 - Nao criar camadas preventivas como novos adapters, ingestion services, normalizers, persistence abstractions ou DTOs paralelos sem pelo menos uma necessidade concreta imediata.
 - Reusar componentes existentes antes de criar pacotes novos; novas abstracoes so entram quando reduzem duplicacao real, isolam uma integracao externa ja usada ou simplificam comportamento observavel.
-- Em meta/recomendacoes, manter o runtime sem chamadas externas diretas; ingestao/cache deve evoluir dentro da estrutura existente antes de abrir nova arquitetura.
+- No fluxo de recomendacao, evitar chamadas externas diretas; ingestao/cache/sync de meta deve evoluir dentro da estrutura existente antes de abrir nova arquitetura.
 
 Congelamento de regra negocial
 ------------------------------
@@ -56,19 +70,25 @@ Qualquer mudanca que possa impactar o comportamento esperado pelo usuario (por e
 
 Snapshot do projeto (contexto rapido)
 -------------------------------------
-- Stack principal: Java 25 / Quarkus 3.35.x (backend).
-- Frontend: Vite 8 + React 19 (separado em `frontend/`).
-- Persistencia: Hibernate ORM / Panache (H2 para dev/test).
-- Integracoes: Scryfall REST, dataset local EDHREC em `backend/src/main/resources/meta`, adapters de meta em `service/meta`.
-- CI/CD: GitHub Actions em `.github/workflows/ci.yml`, com testes backend, build frontend, imagem backend e deploy GitHub Pages.
+- Stack principal: Java 25 / Quarkus 3.35.2 (backend).
+- Frontend: Vite 8 + React 19 (separado em `frontend/`, base path `/mtg-deck-manager/`).
+- Persistencia: Hibernate ORM / Panache, H2 para `%dev`/`%test`, PostgreSQL/Flyway para `%pg` e `%prod`.
+- Integracoes: Scryfall REST, Spicerack, TopDeck.gg, dataset local EDHREC/meta em `backend/src/main/resources/meta`, regras Commander em `backend/src/main/resources/rules`.
+- Autenticacao: Google OIDC via ID token Bearer; frontend guarda sessao apenas em `sessionStorage`.
+- Privacidade: decks privados por padrao, DTOs publicos sanitizados, exportacao/exclusao LGPD em `/users/me`.
+- CI/CD: GitHub Actions em `.github/workflows/ci.yml`, com testes backend H2, testes backend PostgreSQL, lint/build frontend, imagem backend GHCR, deploy backend por hook opcional, smoke tests manuais e deploy GitHub Pages.
 
 Hotspots obrigatorios do dominio
 --------------------------------
 - Recommendation engine (pipeline: meta -> candidates -> score -> completer -> cuts).
 - Strategic recommendations (`StrategicRecommendationService`) e recomendacoes heuristicas (`RecommendationService`).
-- Meta dataset ingestion (`MetaDatasetLoader`, `MetaProviderImpl`, adapters em `service/meta`).
+- Auditoria/aplicacao de recomendacoes (`RecommendationAuditService`, apply/undo swap, feedback).
+- Meta dataset ingestion (`MetaDatasetLoader`, `MetaProviderImpl`, `MetaDatasetService`, `MetaTopDeckService`, adapters em `service/meta`).
 - Color identity / Commander rules (`ColorIdentityMatcher`, `DeckCompleter`, selectors de add/cut).
 - Importacao de deck (`DeckImportService`) e normalizacao de listas.
+- Decks publicos, likes e copia (`PublicDeckController`, `DeckLikeRepository`, DTOs publicos).
+- LGPD/exportacao/exclusao (`UserPrivacyController`, `UserPrivacyService`).
+- Seguranca operacional (`SecurityResource`, `SecurityStatusService`, filtros/log sanitization em `config`).
 
 Invariantes globais do dominio
 ------------------------------
@@ -77,6 +97,8 @@ Invariantes globais do dominio
 - Nao introduzir cartas que ja existem no deck como sugestao de add.
 - Sugestoes de corte nao devem remover comandante nem quebrar contratos de quantidade.
 - Decks privados nunca devem aparecer em listagens publicas nem ser consultados por anonimos/outros usuarios; expose somente DTOs publicos sanitizados para decks publicos.
+- Apply/undo de troca recomendada deve registrar auditoria suficiente para rastreabilidade sem gravar tokens, PII desnecessaria ou payloads sensiveis em logs.
+- Meta top decks so deve influenciar recomendacoes quando a amostra minima e os filtros de formato/bracket/fonte forem respeitados.
 
 Prioridades operacionais transversais
 -------------------------------------
@@ -117,7 +139,7 @@ Estrategia de validacao com login/API:
 - Primeiro valide o estado real anonimo sem mocks: carregamento, chamada de login, tela publica, mensagens de API indisponivel/iniciando e layout.
 - Nao tente completar login Google real no Playwright sem token/credencial fornecida explicitamente. O login depende de Google Identity Services e normalmente bloqueia automacao/local sem configuracao real.
 - Para validar fluxos autenticados, use mocks de rede no Playwright MCP (`browser_run_code_unsafe` + `page.route`) com respostas equivalentes aos contratos REST. Simule `sessionStorage` com `mtg_google_id_token` e `mtg_google_profile` apenas quando o teste precisar liberar UI autenticada; o token fake precisa ter payload JWT com `sub`, `exp` futuro e, quando `VITE_GOOGLE_CLIENT_ID` estiver configurado, `aud` correspondente para passar por `getAuthToken()`.
-- Use mocks para `GET /decks/public`, `GET /decks`, `GET /decks/{id}/consult`, create/update/import/delete e `POST /cards/collection`. Nao use chamadas reais a Scryfall para validar UX.
+- Use mocks para `GET /public/decks`, `GET /decks/public` quando validar compatibilidade antiga, `GET /decks`, `GET /decks/{id}/consult`, create/update/import/delete e `POST /cards/collection`. Nao use chamadas reais a Scryfall para validar UX.
 - Contratos REST e autorizacao real devem ser validados por testes backend (`./mvnw.cmd test`), nao por login manual no browser.
 
 Checklist UX no Playwright:
@@ -148,8 +170,14 @@ Depois disso, em `backend`, execute `./mvnw.cmd test` ou `./mvnw.cmd clean insta
 
 Endpoints principais atuais
 ---------------------------
+- `GET /` e `GET /app/info`.
 - `GET /cards?name=` e `POST /cards/collection`.
-- `GET /decks`, `GET /decks/public`, `POST /decks`, `POST /decks/import`, `GET /decks/{id}`, `GET /decks/{id}/consult`, `PUT /decks/{id}`, `DELETE /decks/{id}`.
-- `GET /decks/{id}/export`, `GET /decks/{id}/analysis`, `POST /decks/{id}/recommendations`, `POST /decks/{id}/recommendations/strategic`.
-- `GET /meta/sources`, `POST /meta/sync`, `GET /meta/commanders/{commander}`.
+- `GET /decks`, `GET /decks/public` (compatibilidade), `POST /decks`, `POST /decks/import`, `GET /decks/{id}`, `GET /decks/{id}/consult`, `PUT /decks/{id}`, `DELETE /decks/{id}`.
+- `GET /decks/{id}/export`, `GET /decks/{id}/analysis`, `GET /decks/{id}/legality`, `POST /decks/{id}/comparison`.
+- `POST /decks/{id}/recommendations`, `POST /decks/{id}/recommendations/strategic`, `POST /decks/{id}/recommendations/apply-swap`, `POST /decks/{id}/recommendations/undo-swap`.
+- `GET /public/decks`, `GET /public/decks/top`, `GET /public/decks/{id}`, `POST /public/decks/{id}/copy`, `POST /public/decks/{id}/like`, `DELETE /public/decks/{id}/like`.
+- `GET /meta/sources`, `POST /meta/sync`, `GET /meta/decks`, `POST /meta/rebuild-profiles`, `GET /meta/commanders/{commander}`.
+- `POST /meta/external-decks/import`, `POST /meta/top-decks/import`, `GET /meta/top-decks`, `GET /meta/top-decks/{id}`, `POST /meta/top-decks/sync`.
+- `POST /recommendation-audits/{id}/feedback`.
+- `GET /users/me/export` e `DELETE /users/me`.
 - `POST /security/status/check` para diagnostico read-only de seguranca; exige usuario autenticado com role `admin` ou subject configurado em `SECURITY_ADMIN_SUBJECTS`, nao deve expor secrets/dados pessoais e deve manter logs sem valores sensiveis.

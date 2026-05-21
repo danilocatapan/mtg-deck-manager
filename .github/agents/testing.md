@@ -1,5 +1,8 @@
 # testing.md - Estrategia pratica de testes
 
+Versao: agents-2026-05-21
+Ultima atualizacao: 2026-05-21
+
 Quando usar
 -----------
 - Para decidir rapidamente que tipo de teste criar/rodar ao alterar codigo (unit, integration, controller/contract, build/lint).
@@ -28,17 +31,22 @@ Cobertura que merece atencao explicita
 --------------------------------------
 - Invariantes de dominio (color identity, deck size, duplicatas, comandante).
 - Pipeline de recomendacao: scorer + completer + selectors + filtro.
-- Meta dataset ingestion (parsing/normalization).
+- Meta dataset ingestion, top decks e adapters externos (parsing/normalization, amostra minima, fonte/bracket).
 - Importacao de deck e normalizacao de decklist.
+- Decks publicos, likes, copia, privacidade e LGPD.
+- Persistencia PostgreSQL/Flyway quando entidade, indice, constraint ou query mudar.
+- Auth/OIDC, CORS, headers e logs sanitizados quando seguranca for afetada.
 - Erros de contrato REST e respostas HTTP.
 
 Exemplos uteis do projeto
 -------------------------
 - `DeckControllerTest`, `DeckControllerRecommendationTest`, `DeckControllerAnalysisTest`.
+- `MetaTopDeckControllerTest`, `MetaExternalDeckImportTest`, `PublicDeckControllerLikeTest`, `UserPrivacyControllerTest`.
 - `RecommendationServiceTest`, `StrategicRecommendationServiceTest`, `RecommendationScoringTest`.
 - `DeckCompleterTest`, `DeckAnalysisServiceTest`, `ClassificationServiceTest`.
-- `MetaDatasetLoaderTest`, `MetaProviderImplTest`.
+- `MetaDatasetLoaderTest`, `MetaDatasetServiceTest`, `MetaProviderImplTest`, `MetaTopDeckSignalBuilderTest`.
 - `SynergyEngineTest`, `CardTaggerTest`.
+- `CommanderBracketServiceTest`, `CommanderGameChangerServiceTest`, `DeckLegalityRegressionTest`.
 
 Checklist rapido
 ----------------
@@ -49,6 +57,7 @@ Checklist rapido
 Comandos atuais
 ---------------
 - Backend: em `backend`, rode `./mvnw.cmd test` no Windows ou `./mvnw test` no Linux/macOS.
+- Backend com PostgreSQL local: suba `docker compose up -d postgres` e rode em `backend` com variaveis PostgreSQL/Flyway quando a mudanca tocar persistencia.
 - Frontend: em `frontend`, rode `npm run lint` e `npm run build`.
 - O frontend ainda nao possui script `test`; nao exigir `npm test` ate ele ser adicionado ao `package.json`.
 

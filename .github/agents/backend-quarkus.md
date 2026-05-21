@@ -1,5 +1,8 @@
 # backend-quarkus.md - Implementacao e refatoracao segura (Java + Quarkus)
 
+Versao: agents-2026-05-21
+Ultima atualizacao: 2026-05-21
+
 Quando usar
 -----------
 - Implementar ou refatorar endpoints, servicos, entidades, DTOs, repositories, clients ou fluxo de recomendacao no backend Quarkus.
@@ -8,8 +11,10 @@ Regras de arquitetura (resumido)
 --------------------------------
 - Manter separacao clara: Controller -> Service -> Repository/Entity/Client.
 - Evitar logica de negocio em controllers; colocar em `service` ou componentes de dominio.
-- Persistencia via Panache/Hibernate; alteracoes de entidade exigem avaliacao de schema/migration e testes.
+- Persistencia via Panache/Hibernate; alteracoes de entidade exigem migration Flyway em `backend/src/main/resources/db/migration`, avaliacao PostgreSQL e testes.
 - Contratos publicos vivem em controllers + DTOs; qualquer mudanca observavel exige teste.
+- Google OIDC deve continuar baseado em ID token Bearer; nao persistir access/refresh tokens.
+- Logs devem usar dados tecnicos, contagens e codigos; nunca tokens, Authorization, payload completo de deck ou PII desnecessaria.
 
 Fluxo de implementacao recomendado
 ----------------------------------
@@ -35,10 +40,13 @@ Guardrails de refatoracao segura
 Hotspots do repositorio (onde revisar primeiro)
 -----------------------------------------------
 - `RecommendationService` e `StrategicRecommendationService` - orquestram recomendacoes heuristicas e estrategicas.
+- `RecommendationAuditService`, `RecommendationAuditRepository`, apply/undo swap e feedback - rastreabilidade de trocas recomendadas.
 - `DeckCompleter`, `RecommendationScoring`, `RecommendationPairer`, `CandidateAddSelector`, `CandidateCutSelector` - pipeline de completar, pontuar e parear sugestoes.
 - `CardService` e `ScryfallClient` - integracao Scryfall, cache e queries.
-- `service/meta` - ingestao, adapters, normalizacao e dataset local.
+- `service/meta`, `MetaTopDeckService`, `MetaTopDeckSignalBuilder` - ingestao, adapters, top decks, normalizacao e dataset local.
 - `DeckImportService` e `service/meta/DecklistNormalizer` - parsing e normalizacao de listas.
+- `PublicDeckController`, `DeckLikeRepository`, `UserPrivacyController` - decks publicos, likes, copia e LGPD.
+- `service/rules` - banlist, brackets e game changers Commander.
 - `controller` + `dto` - contratos REST observaveis.
 - `config` - headers, auth, mappers de erro e configuracao transversal.
 

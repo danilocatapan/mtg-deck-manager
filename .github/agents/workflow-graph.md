@@ -1,24 +1,31 @@
 # workflow-graph.md - Guia do hotspot: pipeline de recomendacao
 
+Versao: agents-2026-05-21
+Ultima atualizacao: 2026-05-21
+
 Quando usar
 -----------
 - Ao alterar ou refatorar o fluxo de recomendacao (candidatos -> filtro -> scoring -> completar -> cortes).
 
 Invariantes do grafo
 --------------------
-- Ordem das etapas e importante: coleta de candidatos -> filtragem por cor/duplicidade -> scoring (meta + synergy) -> rank -> completar ate 99 -> sugestoes de corte.
+- Ordem das etapas e importante: coleta de candidatos -> filtragem por cor/duplicidade -> scoring (meta + synergy + top decks quando elegiveis) -> rank -> completar ate 99 -> sugestoes de corte -> auditoria/aplicacao quando solicitada.
 - Cada etapa deve ser idempotente e testavel isoladamente.
 - O pipeline nao deve sugerir cartas duplicadas nem cartas fora da color identity.
 - Sugestoes de corte nao devem remover comandante.
+- Meta top decks devem respeitar amostra minima, formato, bracket e sourceMode antes de influenciar ranking.
+- Apply/undo swap nao pode alterar carta errada nem quebrar quantidade total; deve preservar rastreabilidade da recomendacao aplicada.
 
 Pontos do codigo que merecem revisao explicita
 ----------------------------------------------
 - `RecommendationService` - orquestracao das recomendacoes heuristicas.
 - `StrategicRecommendationService` - recomendacoes estrategicas e criterios de decisao.
-- `MetaProvider`, `MetaProviderImpl`, `MetaDatasetLoader` - validacao de dados e normalizacao de nomes.
+- `MetaProvider`, `MetaProviderImpl`, `MetaDatasetLoader`, `MetaDatasetService` - validacao de dados e normalizacao de nomes.
+- `MetaTopDeckService`, `MetaTopDeckSignalBuilder`, `BracketMetaPolicy` - top decks persistidos e politica de uso no ranking.
 - `ColorIdentityMatcher`, `CandidateAddSelector`, `CandidateCutSelector` - regras de cor, duplicidade e elegibilidade.
 - `DeckCompleter` e `RecommendationPairer` - completar deck e parear adds/cuts.
 - `SynergyEngine`, `CardTagger` e `RecommendationScoring` - tags, pesos e combinacoes (meta vs synergy).
+- `RecommendationAuditService` - auditoria de recomendacoes geradas, feedback e trocas aplicadas/desfeitas.
 
 Validacoes minimas
 ------------------

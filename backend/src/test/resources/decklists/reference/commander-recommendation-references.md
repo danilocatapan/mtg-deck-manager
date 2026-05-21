@@ -1,5 +1,8 @@
 # Commander Recommendation Reference Decks
 
+Versao docs: 2026-05-21
+Ultima atualizacao: 2026-05-21
+
 Offline notes for recommendation regression tests. Tests should keep using local fixtures and mocks; these links are context for the archetypes and card choices.
 
 ## cEDH: Tymna/Kraum Blue Farm
@@ -37,3 +40,5 @@ Signals used by tests:
 - Control/stax lists should favor cheap interaction, early draw engines, efficient stax pieces, and cuts to slow generic value.
 - Turbo-combo/cEDH lists should favor compact win conditions, cheap tutors, fast mana, stack interaction, and one-card-away combo completion.
 - Tokens, aristocrats, reanimator, spellslinger, voltron, combat, midrange, and value lists should receive candidates from their structural plan while preserving Commander invariants.
+- Meta top deck signals may influence ranking only when sample, format, bracket/source and color identity filters are valid.
+- Apply/undo swap tests should preserve deck size, avoid commander cuts and keep recommendation audit data coherent.

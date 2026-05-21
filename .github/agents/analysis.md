@@ -1,5 +1,8 @@
 # analysis.md - Analise de impacto, bug e regressao
 
+Versao: agents-2026-05-21
+Ultima atualizacao: 2026-05-21
+
 Responsabilidade
 ----------------
 Fornecer passos concisos para diagnosticar bugs, avaliar impacto e propor a menor correcao segura. Este arquivo cobre analise de impacto, regressao e diagnostico; nao existe `debug.md` separado.
@@ -30,8 +33,10 @@ Checklist operacional de conformidade arquitetural
 - Verifique contratos REST expostos e testes de controller.
 - Verifique mudancas em entidades persistidas e impacto de schema.
 - Verifique configuracoes de cache, CORS, auth/OIDC e headers de seguranca quando afetadas.
-- Confirme compatibilidade de integracoes externas (Scryfall, fontes/adapters de meta).
+- Confirme compatibilidade de integracoes externas (Scryfall, Spicerack, TopDeck.gg, fontes/adapters de meta).
 - Confirme que frontend e backend continuam alinhados em payloads JSON.
+- Para dados publicos/LGPD, confirme isolamento por `owner_id`, visibilidade, DTOs sanitizados, exportacao/exclusao e ausencia de PII em logs.
+- Para PostgreSQL, confirme migration Flyway, constraints/indices, teste `%pg`/CI quando entidade persistida mudar.
 
 Classificacao de achados (P0/P1/P2)
 -----------------------------------
