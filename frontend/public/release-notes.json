@@ -5,7 +5,7 @@
     "title": "Decks publicos e curadoria da comunidade",
     "changes": {
       "added": [
-        "Top decks externos rankeados agora podem alimentar perfis de meta e melhorar recomendacoes quando houver amostra suficiente.",
+        "Tela Meta Admin permite ao usuario autorizado importar e consultar top decks externos que alimentam perfis de meta quando houver amostra suficiente.",
         "Decks publicos agora podem receber likes de usuarios autenticados, com ranking interno por periodo.",
         "Decks externos importados como top meta tambem aparecem como decks publicos consultaveis e copiaveis.",
         "Decks podem ser marcados como publicos ou privados, com vitrine publica, consulta em modo somente leitura e copia para a propria biblioteca.",
@@ -19,13 +19,14 @@
         "Importacao, analise e recomendacoes ficaram mais visuais no mobile, com abas e cards de troca recolhiveis para reduzir excesso de informacao."
       ],
       "fixed": [
+        "Botao de login Google aguarda o script externo carregar, permite o estilo oficial do Google Identity e deixa de depender de F5 para aparecer.",
         "Nomes de cartas em combos agora tambem abrem preview de imagem.",
         "Preview de imagem das cartas deixa de ficar cortado em telas mobile e nao prende falhas temporarias como imagem indisponivel.",
         "Tela mobile de edicao deixa de duplicar as acoes de analise e recomendacoes.",
-        "Editor deixa de manter o aviso de salvamento depois que o deck termina de salvar.",
-        "Header mobile evita clipping do logo em telas estreitas."
+        "Editor deixa de manter o aviso de salvamento depois que o deck termina de salvar."
       ],
       "security": [
+        "Tela Meta Admin e endpoints de top decks exigem Google autorizado por allowlist de e-mail, mantendo chave admin apenas para uso tecnico.",
         "Fluxo Google documentado para escopos minimos openid, email e profile, sem persistencia de access_token ou refresh_token.",
         "Logs de fluxos autenticados deixam de registrar payloads de decks, nomes de cartas em validacoes e detalhes de troca de recomendacao.",
         "Endpoint administrativo de diagnostico de seguranca e sessao frontend reforcada com validacao de token e limpeza automatica em acesso nao autorizado."

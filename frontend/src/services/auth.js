@@ -1,4 +1,5 @@
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+const META_ADMIN_EMAILS = import.meta.env.VITE_META_ADMIN_EMAILS || 'dcatapan@gmail.com'
 const TOKEN_KEY = 'mtg_google_id_token'
 const PROFILE_KEY = 'mtg_google_profile'
 const AUTH_EVENT = 'mtg-auth-change'
@@ -89,6 +90,16 @@ export function subscribeAuth(listener) {
 
 export function getGoogleClientId() {
   return GOOGLE_CLIENT_ID
+}
+
+export function isMetaAdmin(profile = getAuthProfile()) {
+  const email = String(profile?.email || '').trim().toLowerCase()
+  if (!email) return false
+  return META_ADMIN_EMAILS
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(email)
 }
 
 function isValidGoogleProfile(profile) {

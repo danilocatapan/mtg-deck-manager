@@ -7,6 +7,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 ## [0.0.0-local] - 2026-05-21
 
 ### Added
+- Tela `Meta Admin` no frontend para usuario Google autorizado importar JSON de top decks, consultar snapshots, abrir detalhes e registrar sync manual com orientacoes objetivas sobre impacto nas recomendacoes.
 - API administrativa `POST /meta/top-decks/import`, consultas e sync manual para top decks externos rankeados, com upsert idempotente, historico mensal, projecao em decks publicos e atualizacao imediata dos perfis de meta usados nas recomendacoes.
 - Avaliacao automatizada dos sinais de top decks garante amostra minima, rastreabilidade `meta_top_decks` e invariantes de recomendacao antes de privilegiar cartas recorrentes.
 - Analise de decks passa a expor as cartas por papel em `roleCards`, permitindo detalhar Ramp, Compra, Interacao, Protecao, Limpa-mesa, Vitoria e Terrenos na UI.
@@ -46,6 +47,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Exclusao de decks no frontend passa a usar um dialogo proprio, mantendo a experiencia visual consistente.
 
 ### Fixed
+- Botao de login Google passa a aguardar o carregamento assincrono do script do Google e a CSP permite o estilo oficial do Google Identity, evitando depender de F5 para aparecer.
 - Preview de carta deixa de manter falhas temporarias de imagem no cache da sessao e centraliza melhor o estado "Imagem indisponivel" no mobile.
 - Nomes de cartas na aba Combos da analise agora usam preview de imagem como nas demais listas.
 - Preview de imagem ao tocar/passar sobre nomes de cartas deixa de ficar cortado em telas mobile.
@@ -57,6 +59,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Auditorias de recomendacao passam a mapear JSONs persistidos como `TEXT` comum no Hibernate, evitando erro de Large Object nos testes PostgreSQL do CI.
 
 ### Security
+- Endpoints `/meta/top-decks/*` aceitam JWT Google allowlistado por e-mail para uso seguro da tela admin, mantendo `X-Admin-Key` para Swagger e operacao tecnica.
 - Formulario de contato usa endpoint externo configuravel sem persistir mensagens no banco da aplicacao, sem anexos e sem envio automatico de tokens ou dados da sessao.
 - Fluxo Google documentado para escopos minimos `openid`, `email` e `profile`, sem persistencia de `access_token` ou `refresh_token`.
 - Logs de fluxos autenticados deixam de registrar payloads de decks, nomes de cartas em validacoes e detalhes de troca de recomendacao.

@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Layout from './components/Layout'
 import ContactPage from './pages/ContactPage'
 import ReleaseNotesPage from './pages/ReleaseNotesPage'
+import MetaTopDeckAdminPage from './pages/MetaTopDeckAdminPage'
 
 function App() {
   const [view, setView] = useState(() => viewFromHash(window.location.hash))
@@ -26,15 +27,21 @@ function App() {
     setView('contact')
   }
 
+  function openMetaAdmin() {
+    window.location.hash = 'meta-admin'
+    setView('meta-admin')
+  }
+
   function backHome() {
     history.pushState('', document.title, window.location.pathname + window.location.search)
     setView('home')
   }
 
   return (
-    <Layout onOpenReleaseNotes={openReleaseNotes} onOpenContact={openContact}>
+    <Layout onOpenReleaseNotes={openReleaseNotes} onOpenContact={openContact} onOpenMetaAdmin={openMetaAdmin}>
       {view === 'release-notes' && <ReleaseNotesPage onBack={backHome} />}
       {view === 'contact' && <ContactPage onBack={backHome} />}
+      {view === 'meta-admin' && <MetaTopDeckAdminPage onBack={backHome} />}
       {view === 'home' && <Home />}
     </Layout>
   )
@@ -43,6 +50,7 @@ function App() {
 function viewFromHash(hash) {
   if (hash === '#release-notes') return 'release-notes'
   if (hash === '#contact') return 'contact'
+  if (hash === '#meta-admin') return 'meta-admin'
   return 'home'
 }
 

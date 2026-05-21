@@ -5,6 +5,7 @@ import com.mtg.dto.ExternalDeckImportResponseDTO;
 import com.mtg.dto.MetaTopDeckImportRequestDTO;
 import com.mtg.dto.MetaTopDeckImportResponseDTO;
 import com.mtg.dto.MetaTopDeckSyncRequestDTO;
+import com.mtg.service.AuthenticatedUserService;
 import com.mtg.service.ExternalDeckImportService;
 import com.mtg.service.MetaTopDeckService;
 import com.mtg.service.meta.CommanderMetaProfile;
@@ -13,6 +14,7 @@ import com.mtg.service.meta.ExternalMetaIngestionJob;
 import com.mtg.service.meta.MetaDeck;
 import com.mtg.service.meta.MetaProvider;
 import com.mtg.service.meta.MetaSourceStatus;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
@@ -25,9 +27,13 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
@@ -54,8 +60,17 @@ public class MetaController {
     @Inject
     MetaTopDeckService metaTopDeckService;
 
+    @Inject
+    AuthenticatedUserService authenticatedUserService;
+
+    @Inject
+    SecurityIdentity securityIdentity;
+
     @ConfigProperty(name = "meta.sync.api-key")
     Optional<String> syncApiKey;
+
+    @ConfigProperty(name = "meta.top-decks.admin-emails")
+    Optional<String> topDeckAdminEmails;
 
     @GET
     @Path("/sources")
@@ -111,7 +126,7 @@ public class MetaController {
             @HeaderParam("X-Admin-Key") String adminKey,
             MetaTopDeckImportRequestDTO request
     ) {
-        if (!isAdminAuthorized(adminKey)) {
+        if (!isTopDeckAdminAuthorized(adminKey)) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         MetaTopDeckImportResponseDTO response = metaTopDeckService.importTopDecks(request);
@@ -132,7 +147,7 @@ public class MetaController {
             @QueryParam("colorIdentity") String colorIdentity,
             @QueryParam("limit") Integer limit
     ) {
-        if (!isAdminAuthorized(adminKey)) {
+        if (!isTopDeckAdminAuthorized(adminKey)) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         return Response.ok(metaTopDeckService.list(source, rankingPeriod, rankingDate, format, commander, archetype, bracket, colorIdentity, limit)).build();
@@ -141,7 +156,7 @@ public class MetaController {
     @GET
     @Path("/top-decks/{id}")
     public Response topDeck(@HeaderParam("X-Admin-Key") String adminKey, @PathParam("id") Long id) {
-        if (!isAdminAuthorized(adminKey)) {
+        if (!isTopDeckAdminAuthorized(adminKey)) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         var deck = metaTopDeckService.get(id);
@@ -158,7 +173,7 @@ public class MetaController {
             @HeaderParam("X-Admin-Key") String adminKey,
             MetaTopDeckSyncRequestDTO request
     ) {
-        if (!isAdminAuthorized(adminKey)) {
+        if (!isTopDeckAdminAuthorized(adminKey)) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         return Response.ok(metaTopDeckService.sync(request)).build();
@@ -188,6 +203,38 @@ public class MetaController {
             LOG.warn("event=meta.admin.denied reason=missing_admin_key_config");
             return false;
         }
-        return syncApiKey.get().equals(adminKey);
+        return hasValidAdminKey(adminKey);
+    }
+
+    private boolean isTopDeckAdminAuthorized(String adminKey) {
+        if (hasValidAdminKey(adminKey)) {
+            return true;
+        }
+        if (securityIdentity == null || securityIdentity.isAnonymous()) {
+            return false;
+        }
+
+        try {
+            String email = authenticatedUserService.profile(securityIdentity).email();
+            if (email == null || email.isBlank()) {
+                return false;
+            }
+            return parseTopDeckAdminEmails().contains(email.trim().toLowerCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    private Set<String> parseTopDeckAdminEmails() {
+        return topDeckAdminEmails
+                .map(value -> Arrays.stream(value.split(","))
+                        .map(email -> email.trim().toLowerCase(Locale.ROOT))
+                        .filter(email -> !email.isBlank())
+                        .collect(Collectors.toUnmodifiableSet()))
+                .orElse(Set.of());
+    }
+
+    private boolean hasValidAdminKey(String adminKey) {
+        return syncApiKey.isPresent() && !syncApiKey.get().isBlank() && syncApiKey.get().equals(adminKey);
     }
 }

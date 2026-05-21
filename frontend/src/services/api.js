@@ -393,8 +393,6 @@ export async function getCommanderMeta(commander, { bracket = 'casual', sourceMo
   }
 }
 
-// TODO: ligar estes helpers a uma tela admin de controle dos top decks externos.
-// Reimportar o mesmo ranking atualiza o snapshot; novo mes cria historico; os dados alimentam recomendacoes.
 export async function fetchMetaTopDecks(filters = {}, adminKey = '') {
   try {
     const query = new URLSearchParams()

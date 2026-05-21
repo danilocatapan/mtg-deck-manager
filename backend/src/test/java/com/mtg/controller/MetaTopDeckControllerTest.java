@@ -11,6 +11,8 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.security.SecurityAttribute;
+import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -192,6 +194,38 @@ class MetaTopDeckControllerTest {
                 .then()
                 .statusCode(200)
                 .body("status", is("SUCCESS"));
+    }
+
+    @Test
+    @TestSecurity(user = "meta-admin-user", attributes = {
+            @SecurityAttribute(key = "email", value = "dcatapan@gmail.com")
+    })
+    void topDeckEndpointsAllowConfiguredGoogleAdminEmail() {
+        given()
+                .contentType(ContentType.JSON)
+                .body(topDeckPayload("https://moxfield.test/google-admin", 1, "Talion Google Admin", "Mystic Remora", "Demonic Consultation"))
+                .when().post("/meta/top-decks/import")
+                .then()
+                .statusCode(200)
+                .body("status", is("SUCCESS"));
+
+        given()
+                .queryParam("commander", "Talion")
+                .when().get("/meta/top-decks")
+                .then()
+                .statusCode(200)
+                .body("size()", is(1));
+    }
+
+    @Test
+    @TestSecurity(user = "regular-google-user", attributes = {
+            @SecurityAttribute(key = "email", value = "outro@example.com")
+    })
+    void topDeckEndpointsRejectNonAdminGoogleEmail() {
+        given()
+                .when().get("/meta/top-decks")
+                .then()
+                .statusCode(403);
     }
 
     private void importDeck(String deckUrl, int rank, String name, String card) {
