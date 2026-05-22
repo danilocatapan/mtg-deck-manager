@@ -106,5 +106,6 @@ Nunca commitar valores reais em `.env`, workflows ou documentacao publica.
 
 - Contexto do produto: `PROJECT_CONTEXT.md`
 - Regras de agentes: `AGENTS.md` e `.github/agents/AGENTS.md`
+- Inventario de skills Codex: `docs/codex-skills.md`
 - Deploy: `docs/production-deploy.md`
 - Schema PostgreSQL: `docs/postgresql-schema.md`

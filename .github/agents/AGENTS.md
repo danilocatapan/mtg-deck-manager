@@ -56,6 +56,10 @@ Tools, approvals e configuracao:
 
 Reuso, MCP, skills e automacoes:
 - Usar MCP/plugins quando o contexto necessario estiver fora do repositorio, mudar com frequencia ou exigir uma ferramenta repetivel, como GitHub, Linear, navegador ou documentacao oficial.
+- Antes de executar pedidos nao triviais, revisar rapidamente `docs/codex-skills.md` e decidir se alguma skill instalada melhora o resultado. Se uma skill for aplicavel, use-a ou mencione no andamento qual skill sera usada e por que. Se nenhuma ajudar, siga o fluxo normal sem exigir que o usuario cite nomes de skills.
+- Para pedidos amplos ou vagos, reformular mentalmente o prompt usando as skills disponiveis: objetivo mensuravel (`define-goal`), plano (`create-plan`), risco de codigo (`codebase-recon`), UX/browser (`frontend-design`, `playwright`, `webapp-testing`), recomendacoes offline (`jupyter-notebook`), release/documentacao (`changelog-generator`, `stop-slop`) e seguranca (`security-threat-model`, `security-best-practices`).
+- Nao obrigar o usuario a decorar skills. Quando o usuario pedir algo como "melhore", "analise", "valide", "arrume CI", "revise UX", "evolua recomendacoes" ou "prepare release", mapear o pedido para a skill adequada a partir do inventario.
+- Nao abrir `docs/codex-skills.md` para comandos triviais, respostas conceituais curtas ou tarefas em que a skill ja esteja claramente indicada pelo usuario ou pelo contexto.
 - Quando um prompt ou checklist for reutilizado varias vezes, transformar em skill local ou guia especializado antes de virar automacao.
 - Criar automacoes apenas para fluxos ja confiaveis manualmente, como resumo de commits, triagem de CI, varredura de bugs, preparacao de release notes ou revisao periodica de instrucoes.
 - Se o usuario pedir subagentes ou trabalho paralelo, delegar tarefas independentes com escopo claro, arquivos de responsabilidade e resultado esperado. Nao usar subagentes para trabalho que bloqueia a proxima acao imediata.
