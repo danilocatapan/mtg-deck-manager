@@ -1,9 +1,13 @@
 Objetivo
 --------
-Versao: agents-2026-05-21
-Ultima atualizacao: 2026-05-21
+Versao: agents-2026-05-22
+Ultima atualizacao: 2026-05-22
 
 Este e o bootstrap das instrucoes de agentes/Copilot para o MTG Deck Manager. Encaminhe sempre para o arquivo canonico `./.github/agents/AGENTS.md` antes de qualquer acao. Codex tambem possui um ponto de entrada na raiz em `./AGENTS.md`, que aponta para a mesma fonte canonica.
+
+Observacao sobre skills
+-----------------------
+As Codex skills instaladas em `~/.codex/skills` sao um recurso do Codex, nao do Copilot. Mesmo assim, quando o pedido for amplo ou nao trivial, consulte `./docs/codex-skills.md` como inventario de capacidades e use as orientacoes ali como checklist de qualidade, validacao, UX, documentacao, seguranca e recomendacoes.
 
 Ordem obrigatoria de leitura
 ----------------------------

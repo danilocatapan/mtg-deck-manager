@@ -27,6 +27,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Bootstraps de Codex e Copilot foram alinhados ao inventario `docs/codex-skills.md`, deixando claro que skills sao recurso do Codex e que Copilot pode usar o documento como checklist de orientacao.
 - Manual canonico de agentes passa a consultar `docs/codex-skills.md` em pedidos nao triviais para selecionar skills automaticamente, sem exigir que o usuario decore nomes ou adapte prompts manualmente.
 - Manual canonico de agentes recebeu um fluxo produtivo para Codex cobrindo prompts, planejamento, contexto, approvals, configuracao, MCP/plugins, skills, subagentes, automacoes, validacao e revisao.
 - Documentacao operacional e agents foram versionados em `agents-2026-05-21`/`docs-2026-05-21`, alinhando contexto, endpoints, PostgreSQL/Flyway, privacidade, meta top decks e fluxo atual de recomendacoes para reduzir reexploracao e alucinacao em Codex/Copilot.

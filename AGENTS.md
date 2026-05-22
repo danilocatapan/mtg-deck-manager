@@ -1,7 +1,7 @@
 # AGENTS.md - Instrucoes para Codex
 
-Versao: agents-2026-05-21
-Ultima atualizacao: 2026-05-21
+Versao: agents-2026-05-22
+Ultima atualizacao: 2026-05-22
 
 Este arquivo e o ponto de entrada do Codex neste repositorio.
 
@@ -15,6 +15,7 @@ Este arquivo e o ponto de entrada do Codex neste repositorio.
    - `testing.md` para estrategia de testes.
    - `workflow-graph.md` para pipeline de recomendacao.
 3. Use `.github/copilot-instructions.md` somente como bootstrap historico para Copilot; a fonte canonica fica em `.github/agents/AGENTS.md`.
+4. Para pedidos nao triviais no Codex, consulte `docs/codex-skills.md` e use skills instaladas quando elas melhorarem o resultado.
 
 ## Regras para o Codex
 
@@ -24,6 +25,7 @@ Este arquivo e o ponto de entrada do Codex neste repositorio.
 - Nao altere regra negocial, fluxo de recomendacao, criterio de score, side effects ou contratos publicos sem pedido explicito.
 - Preserve a separacao atual entre backend (`backend/`) e frontend (`frontend/`).
 - Para economizar tokens, leia primeiro o arquivo canonico e depois apenas os guias/arquivos diretamente ligados ao pedido; use `rg` para localizar codigo antes de abrir arquivos grandes.
+- O usuario nao precisa citar skills por nome. O Codex deve mapear pedidos amplos para as skills adequadas usando `docs/codex-skills.md`.
 
 ## Validacao padrao
 
