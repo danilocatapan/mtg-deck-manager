@@ -169,6 +169,12 @@ public class Deck {
             if (existing != null) {
                 existing.setName(incoming.getName());
                 existing.setQuantity(incoming.getQuantity());
+                existing.setScryfallId(incoming.getScryfallId());
+                existing.setSetCode(incoming.getSetCode());
+                existing.setSetName(incoming.getSetName());
+                existing.setCollectorNumber(incoming.getCollectorNumber());
+                existing.setFinish(incoming.getFinish());
+                existing.setImageUrl(incoming.getImageUrl());
             } else {
                 incoming.setDeck(this);
                 this.cards.add(incoming);

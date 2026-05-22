@@ -1,6 +1,7 @@
 package com.mtg.service;
 
 import com.mtg.client.ScryfallClient;
+import com.mtg.dto.CardLookupRequestDTO;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.ScryfallCardDTO;
 import com.mtg.dto.ScryfallCollectionRequestDTO;
@@ -116,7 +117,16 @@ public class CardService {
             try {
                 throttleScryfallRequest();
                 ScryfallCollectionResponseDTO response = scryfallClient.collection(toCollectionRequest(chunk));
-                mapCollectionResponse(response).forEach((name, card) -> cardsByName.putIfAbsent(name, card));
+                Map<String, CardResponseDTO> responseCards = mapCollectionResponse(response);
+                for (String name : chunk) {
+                    CardResponseDTO card = responseCards.get(normalizeLookupName(name));
+                    if (card == null) {
+                        card = responseCards.get(CardLookupRequestDTO.nameKey(name));
+                    }
+                    if (card != null) {
+                        cardsByName.putIfAbsent(normalizeLookupName(name), card);
+                    }
+                }
                 if (response != null && response.notFound() != null) {
                     response.notFound().stream()
                             .map(ScryfallCollectionRequestDTO.CardIdentifier::name)
@@ -137,6 +147,84 @@ public class CardService {
         cardsByName.forEach(cardLookupCache::put);
         LOG.debugv("event=cards.collection.success requested={0} resolved={1}", uniqueNames.size(), cardsByName.size());
         return Map.copyOf(cardsByName);
+    }
+
+    public Map<String, CardResponseDTO> findByCardRequests(List<CardLookupRequestDTO> requests) {
+        return findByCardRequests(requests, false);
+    }
+
+    public Map<String, CardResponseDTO> findByCardRequests(List<CardLookupRequestDTO> requests, boolean fallbackMissesIndividually) {
+        if (requests == null || requests.isEmpty()) {
+            return Map.of();
+        }
+
+        List<CardLookupRequestDTO> uniqueRequests = requests.stream()
+                .filter(Objects::nonNull)
+                .filter(request -> (request.scryfallId() != null && !request.scryfallId().isBlank())
+                        || request.hasPrinting()
+                        || (request.name() != null && !request.name().isBlank()))
+                .collect(java.util.stream.Collectors.toMap(
+                        CardLookupRequestDTO::lookupKey,
+                        request -> request,
+                        (first, ignored) -> first,
+                        LinkedHashMap::new
+                ))
+                .values()
+                .stream()
+                .toList();
+
+        if (uniqueRequests.isEmpty()) {
+            return Map.of();
+        }
+
+        LOG.infov("event=cards.collection.request count={0}", uniqueRequests.size());
+        Map<String, CardResponseDTO> cardsByRequest = new LinkedHashMap<>();
+        List<CardLookupRequestDTO> uncachedRequests = new ArrayList<>();
+        for (CardLookupRequestDTO request : uniqueRequests) {
+            CardResponseDTO cachedCard = cardLookupCache.get(request.lookupKey());
+            if (cachedCard == null && request.name() != null && !request.name().isBlank()) {
+                cachedCard = cardLookupCache.get(CardLookupRequestDTO.nameKey(request.name()));
+            }
+            if (cachedCard == null) {
+                uncachedRequests.add(request);
+            } else {
+                cardsByRequest.put(request.lookupKey(), cachedCard);
+            }
+        }
+
+        List<String> misses = new ArrayList<>();
+        for (int start = 0; start < uncachedRequests.size(); start += SCRYFALL_COLLECTION_LIMIT) {
+            List<CardLookupRequestDTO> chunk = uncachedRequests.subList(start, Math.min(start + SCRYFALL_COLLECTION_LIMIT, uncachedRequests.size()));
+            try {
+                throttleScryfallRequest();
+                ScryfallCollectionResponseDTO response = scryfallClient.collection(toCollectionRequestFromLookups(chunk));
+                Map<String, CardResponseDTO> responseCards = mapCollectionResponse(response);
+                for (CardLookupRequestDTO request : chunk) {
+                    CardResponseDTO card = responseCards.get(request.lookupKey());
+                    if (card == null && request.name() != null && !request.name().isBlank()) {
+                        card = responseCards.get(CardLookupRequestDTO.nameKey(request.name()));
+                    }
+                    if (card == null) {
+                        misses.add(request.name());
+                    } else {
+                        cardsByRequest.put(request.lookupKey(), card);
+                    }
+                }
+            } catch (WebApplicationException | ProcessingException exception) {
+                if (isRateLimited(exception)) {
+                    LOG.warnv("event=scryfall.rate_limited operation=collection count={0}", chunk.size());
+                    continue;
+                }
+                LOG.warnv("event=cards.collection.failure count={0}", chunk.size());
+                chunk.stream().map(CardLookupRequestDTO::name).filter(Objects::nonNull).forEach(misses::add);
+            }
+        }
+
+        if (fallbackMissesIndividually) {
+            fetchMissesIndividually(misses, cardsByRequest);
+        }
+        cardsByRequest.forEach(cardLookupCache::put);
+        return Map.copyOf(cardsByRequest);
     }
 
     @CacheResult(cacheName = "cards-by-query")
@@ -195,6 +283,22 @@ public class CardService {
         return new ScryfallCollectionRequestDTO(identifiers);
     }
 
+    private ScryfallCollectionRequestDTO toCollectionRequestFromLookups(List<CardLookupRequestDTO> requests) {
+        List<ScryfallCollectionRequestDTO.CardIdentifier> identifiers = requests.stream()
+                .map(request -> {
+                    if (request.scryfallId() != null && !request.scryfallId().isBlank()) {
+                        return new ScryfallCollectionRequestDTO.CardIdentifier(null, null, null, request.scryfallId().trim());
+                    }
+                    if (request.hasPrinting()) {
+                        return ScryfallCollectionRequestDTO.CardIdentifier.printing(request.setCode().trim().toLowerCase(Locale.ROOT), request.collectorNumber().trim());
+                    }
+                    return new ScryfallCollectionRequestDTO.CardIdentifier(request.name().trim());
+                })
+                .toList();
+
+        return new ScryfallCollectionRequestDTO(identifiers);
+    }
+
     private Map<String, CardResponseDTO> mapCollectionResponse(ScryfallCollectionResponseDTO response) {
         if (response == null || response.data() == null) {
             return Map.of();
@@ -203,7 +307,16 @@ public class CardService {
         Map<String, CardResponseDTO> cardsByName = new LinkedHashMap<>();
         response.data().stream()
                 .map(this::toCardResponse)
-                .forEach(card -> cardsByName.putIfAbsent(normalizeLookupName(card.name()), card));
+                .forEach(card -> {
+                    cardsByName.putIfAbsent(normalizeLookupName(card.name()), card);
+                    cardsByName.putIfAbsent(CardLookupRequestDTO.nameKey(card.name()), card);
+                    if (card.setCode() != null && card.collectorNumber() != null) {
+                        cardsByName.putIfAbsent(CardLookupRequestDTO.printingKey(card.setCode(), card.collectorNumber()), card);
+                    }
+                    if (card.scryfallId() != null) {
+                        cardsByName.putIfAbsent("id:" + card.scryfallId().trim().toLowerCase(Locale.ROOT), card);
+                    }
+                });
 
         return cardsByName;
     }
@@ -252,8 +365,17 @@ public class CardService {
                 card.colorIdentity(),
                 java.util.List.of(),
                 imageUrl(card),
-                estimatedPrice(card)
+                estimatedPrice(card),
+                card.id(),
+                normalizeSetCode(card.set()),
+                card.setName(),
+                card.collectorNumber(),
+                card.finishes() == null ? java.util.List.of() : card.finishes()
         );
+    }
+
+    private String normalizeSetCode(String setCode) {
+        return setCode == null || setCode.isBlank() ? null : setCode.trim().toUpperCase(Locale.ROOT);
     }
 
     private Double estimatedPrice(ScryfallCardDTO card) {

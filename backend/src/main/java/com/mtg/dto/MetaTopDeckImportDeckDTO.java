@@ -7,6 +7,7 @@ public record MetaTopDeckImportDeckDTO(
         String name,
         String commander,
         String deckUrl,
+        String decklist,
         String archetype,
         String bracket,
         List<String> colorIdentity,

@@ -12,16 +12,29 @@ import java.util.regex.Pattern;
 @ApplicationScoped
 public class DecklistNormalizer {
     private static final Logger LOG = Logger.getLogger(DecklistNormalizer.class);
-    private static final Pattern LINE = Pattern.compile("^\\s*(\\d+)\\s+(.+?)\\s*$");
+    private static final Pattern LINE = Pattern.compile("^\\s*(\\d+)\\s*x?\\s+(.+?)\\s*$", Pattern.CASE_INSENSITIVE);
 
     public List<MetaDeckCard> normalizePlainText(String decklist) {
         if (decklist == null || decklist.isBlank()) {
             return List.of();
         }
         List<MetaDeckCard> cards = new ArrayList<>();
+        boolean ignoreSection = false;
         for (String rawLine : decklist.split("\\R")) {
             String line = sanitize(rawLine);
-            if (line.isBlank() || isIgnoredLine(line)) {
+            if (line.isBlank()) {
+                continue;
+            }
+            String lower = line.toLowerCase(Locale.ROOT);
+            if (lower.equals("sideboard") || lower.equals("maybeboard") || lower.equals("tokens") || lower.equals("considering")) {
+                ignoreSection = true;
+                continue;
+            }
+            if (lower.equals("deck") || lower.equals("main deck") || lower.equals("mainboard") || lower.equals("~~mainboard~~")) {
+                ignoreSection = false;
+                continue;
+            }
+            if (isIgnoredLine(line) || ignoreSection) {
                 continue;
             }
             Matcher matcher = LINE.matcher(line);
@@ -99,9 +112,12 @@ public class DecklistNormalizer {
     }
 
     private String normalizeCardName(String value) {
-        return value
-                .replaceAll("\\s+\\([^)]*\\)", "")
-                .replaceAll("\\s+\\[[^]]*]", "")
-                .trim();
+        String normalized = value == null ? "" : value.trim();
+        normalized = normalized.replaceAll("\\s+\\*(F|E)\\*\\s*$", "");
+        normalized = normalized.replaceAll("\\s+\\[[^]]*]\\s*$", "");
+        normalized = normalized.replaceAll("\\s+\\([A-Za-z0-9]{2,8}\\)\\s+[A-Za-z0-9-]+\\s*$", "");
+        normalized = normalized.replaceAll("\\s+\\([A-Za-z0-9]{2,8}\\)\\s*$", "");
+        normalized = normalized.replaceAll("\\s+\\[[^]]*]", "");
+        return normalized.trim();
     }
 }

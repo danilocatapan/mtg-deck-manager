@@ -1,6 +1,7 @@
 package com.mtg.service;
 
 import com.mtg.dto.CardResponseDTO;
+import com.mtg.dto.CardLookupRequestDTO;
 import com.mtg.dto.CommanderDTO;
 import com.mtg.dto.DeckCardDTO;
 import com.mtg.dto.MetaTopDeckCardRequestDTO;
@@ -65,6 +66,9 @@ public class MetaTopDeckService {
 
     @Inject
     CardService cardService;
+
+    @Inject
+    DeckImportService importService;
 
     @Inject
     MetaTopDeckSignalBuilder signalBuilder;
@@ -252,7 +256,7 @@ public class MetaTopDeckService {
             throw new IllegalArgumentException("rank must be greater than zero");
         }
         validateName(deck.commander(), "commander");
-        List<MetaTopDeckCard> cards = parseCards(deck.cards());
+        List<MetaTopDeckCard> cards = parseCards(deck);
         if (cards.isEmpty()) {
             throw new IllegalArgumentException("cards must not be empty");
         }
@@ -275,15 +279,27 @@ public class MetaTopDeckService {
             throw new IllegalArgumentException("Commander top deck must have at most 100 cards including commander");
         }
 
-        List<String> namesToResolve = cards.stream().map(MetaTopDeckCard::getName).toList();
-        Map<String, CardResponseDTO> resolved = cardService.findByNames(namesToResolve);
-        CardResponseDTO commanderCard = resolved.get(cardService.normalizeLookupName(deck.commander()));
+        List<CardLookupRequestDTO> lookups = cards.stream()
+                .map(card -> new CardLookupRequestDTO(card.getName(), card.getSetCode(), card.getCollectorNumber(), card.getScryfallId()))
+                .toList();
+        Map<String, CardResponseDTO> resolved = cardService.findByCardRequests(lookups);
+        CardResponseDTO commanderCard = resolved.get(new CardLookupRequestDTO(deck.commander()).lookupKey());
+        if (commanderCard == null) {
+            commanderCard = resolved.get(CardLookupRequestDTO.nameKey(deck.commander()));
+        }
         if (commanderCard == null) {
             throw new IllegalArgumentException("commander not resolved: " + deck.commander().trim());
         }
         for (MetaTopDeckCard card : cards) {
-            if (resolved.get(cardService.normalizeLookupName(card.getName())) == null) {
+            CardLookupRequestDTO lookup = new CardLookupRequestDTO(card.getName(), card.getSetCode(), card.getCollectorNumber(), card.getScryfallId());
+            CardResponseDTO resolvedCard = resolved.get(lookup.lookupKey());
+            if (resolvedCard == null) {
+                resolvedCard = resolved.get(CardLookupRequestDTO.nameKey(card.getName()));
+            }
+            if (resolvedCard == null) {
                 warnings.add("Deck " + deckLabel(index, deck) + " contains unresolved card: " + card.getName());
+            } else {
+                enrichTopDeckCard(card, resolvedCard);
             }
         }
         String colorIdentity = normalizeColorIdentity(deck.colorIdentity());
@@ -306,7 +322,36 @@ public class MetaTopDeckService {
         );
     }
 
-    private List<MetaTopDeckCard> parseCards(List<MetaTopDeckCardRequestDTO> requestedCards) {
+    private List<MetaTopDeckCard> parseCards(MetaTopDeckImportDeckDTO deck) {
+        if (deck.cards() != null && !deck.cards().isEmpty()) {
+            return parseStructuredCards(deck.cards());
+        }
+        if (deck.decklist() == null || deck.decklist().isBlank()) {
+            throw new IllegalArgumentException("cards or decklist must not be empty");
+        }
+        if (deck.commander() == null || deck.commander().isBlank()) {
+            throw new IllegalArgumentException("commander is required for text import");
+        }
+        List<MetaTopDeckCardRequestDTO> requestedCards = new ArrayList<>();
+        requestedCards.add(new MetaTopDeckCardRequestDTO(deck.commander().trim(), 1, "COMMANDER"));
+        importService.parse(deck.decklist(), null).stream()
+                .filter(card -> !normalize(card.getName()).equals(normalize(deck.commander())))
+                .map(card -> new MetaTopDeckCardRequestDTO(
+                        card.getName(),
+                        card.getQuantity(),
+                        "MAIN",
+                        card.getScryfallId(),
+                        card.getSetCode(),
+                        card.getSetName(),
+                        card.getCollectorNumber(),
+                        card.getFinish(),
+                        card.getImageUrl()
+                ))
+                .forEach(requestedCards::add);
+        return parseStructuredCards(requestedCards);
+    }
+
+    private List<MetaTopDeckCard> parseStructuredCards(List<MetaTopDeckCardRequestDTO> requestedCards) {
         if (requestedCards == null || requestedCards.isEmpty()) {
             throw new IllegalArgumentException("cards must not be empty");
         }
@@ -330,6 +375,12 @@ public class MetaTopDeckService {
                 card.setNameNormalized(normalized);
                 card.setQuantity(requested.quantity());
                 card.setSection(section);
+                card.setScryfallId(blankToNull(requested.scryfallId()));
+                card.setSetCode(normalizeSetCode(requested.setCode()));
+                card.setSetName(blankToNull(requested.setName()));
+                card.setCollectorNumber(blankToNull(requested.collectorNumber()));
+                card.setFinish(normalizeRequestedFinish(requested.finish()));
+                card.setImageUrl(blankToNull(requested.imageUrl()));
                 card.setCreatedAt(now);
                 merged.put(key, card);
             } else {
@@ -414,7 +465,16 @@ public class MetaTopDeckService {
         List<DeckCard> mainCards = topDeck.getCards().stream()
                 .filter(card -> card.getSection() == MetaDeckCardSection.MAIN)
                 .filter(card -> !normalize(card.getName()).equals(topDeck.getCommanderNormalized()))
-                .map(card -> new DeckCard(card.getName(), card.getQuantity()))
+                .map(card -> {
+                    DeckCard deckCard = new DeckCard(card.getName(), card.getQuantity());
+                    deckCard.setScryfallId(card.getScryfallId());
+                    deckCard.setSetCode(card.getSetCode());
+                    deckCard.setSetName(card.getSetName());
+                    deckCard.setCollectorNumber(card.getCollectorNumber());
+                    deckCard.setFinish(card.getFinish());
+                    deckCard.setImageUrl(card.getImageUrl());
+                    return deckCard;
+                })
                 .collect(Collectors.toList());
         publicDeck.setCards(mainCards);
         if (publicDeck.getId() == null) {
@@ -481,9 +541,53 @@ public class MetaTopDeckService {
                 deck.getPopularityScore(),
                 deck.getCards().stream()
                         .sorted(Comparator.comparing(MetaTopDeckCard::getSection).thenComparing(MetaTopDeckCard::getName))
-                        .map(card -> new MetaTopDeckCardResponseDTO(card.getName(), card.getQuantity(), card.getSection().name(), card.getScryfallId()))
+                        .map(card -> new MetaTopDeckCardResponseDTO(
+                                card.getName(),
+                                card.getQuantity(),
+                                card.getSection().name(),
+                                card.getScryfallId(),
+                                card.getSetCode(),
+                                card.getSetName(),
+                                card.getCollectorNumber(),
+                                card.getFinish(),
+                                card.getImageUrl()
+                        ))
                         .toList()
         );
+    }
+
+    private void enrichTopDeckCard(MetaTopDeckCard card, CardResponseDTO resolvedCard) {
+        card.setName(resolvedCard.name());
+        card.setNameNormalized(normalize(resolvedCard.name()));
+        card.setScryfallId(resolvedCard.scryfallId());
+        card.setSetCode(firstPresent(card.getSetCode(), resolvedCard.setCode()));
+        card.setSetName(resolvedCard.setName());
+        card.setCollectorNumber(firstPresent(card.getCollectorNumber(), resolvedCard.collectorNumber()));
+        card.setFinish(normalizeFinish(card.getFinish(), resolvedCard.finishes()));
+        card.setImageUrl(resolvedCard.imageUrl());
+    }
+
+    private String normalizeSetCode(String setCode) {
+        return setCode == null || setCode.isBlank() ? null : setCode.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeRequestedFinish(String finish) {
+        return finish == null || finish.isBlank() ? "UNKNOWN" : finish.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeFinish(String requestedFinish, List<String> availableFinishes) {
+        String normalized = normalizeRequestedFinish(requestedFinish);
+        if (!"UNKNOWN".equals(normalized)) {
+            return normalized;
+        }
+        if (availableFinishes != null && availableFinishes.contains("nonfoil")) {
+            return "NONFOIL";
+        }
+        return "UNKNOWN";
+    }
+
+    private String firstPresent(String first, String second) {
+        return first != null && !first.isBlank() ? first : second;
     }
 
     private MetaDeckSource parseRequiredSource(String value) {

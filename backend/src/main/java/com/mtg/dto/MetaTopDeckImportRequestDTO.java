@@ -9,6 +9,8 @@ public record MetaTopDeckImportRequestDTO(
         String rankingPeriod,
         LocalDate rankingDate,
         String format,
+        String importFormat,
+        String decklistFormat,
         List<MetaTopDeckImportDeckDTO> decks
 ) {
 }

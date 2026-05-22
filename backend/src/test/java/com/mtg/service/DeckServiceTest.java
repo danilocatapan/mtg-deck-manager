@@ -1,6 +1,7 @@
 package com.mtg.service;
 
 import com.mtg.dto.DeckCardDTO;
+import com.mtg.dto.CardLookupRequestDTO;
 import com.mtg.dto.DeckRequestDTO;
 import com.mtg.dto.DeckResponseDTO;
 import com.mtg.dto.ApplyRecommendationSwapDTO;
@@ -48,6 +49,7 @@ class DeckServiceTest {
         deckService.cardService = cardService;
         lenient().when(cardService.normalizeLookupName(anyString())).thenAnswer(invocation -> normalize(invocation.getArgument(0)));
         lenient().when(cardService.findByNames(any())).thenAnswer(invocation -> resolvedCards(invocation.getArgument(0)));
+        lenient().when(cardService.findByCardRequests(any())).thenAnswer(invocation -> resolvedLookupCards(invocation.getArgument(0)));
     }
 
     @Test
@@ -137,7 +139,7 @@ class DeckServiceTest {
 
     @Test
     void importDeck_reportsActualCardCountWhenTooLarge() {
-        when(importService.parse(any())).thenReturn(List.of(
+        when(importService.parse(any(), any())).thenReturn(List.of(
                 new DeckCard("Mountain", 60),
                 new DeckCard("Forest", 45)
         ));
@@ -148,6 +150,30 @@ class DeckServiceTest {
         );
 
         assertEquals("Imported deck has 105 cards; maximum is 99.", exception.getMessage());
+    }
+
+    @Test
+    void importDeck_preservesPrintingMetadataFromParsedCards() {
+        when(importService.parse(any(), any())).thenReturn(List.of(
+                new DeckCard("Winota, Joiner of Forces", 1, "IKO", "349", "FOIL")
+        ));
+        doAnswer(invocation -> {
+            Deck deck = invocation.getArgument(0);
+            deck.setId(10L);
+            return null;
+        }).when(deckRepository).persist(any(Deck.class));
+
+        DeckResponseDTO response = deckService.importDeck(
+                new com.mtg.dto.DeckImportDTO("Winota Deck", "Commander", "1 Winota, Joiner of Forces (IKO) 349 *F*", null, null, "MOXFIELD"),
+                OWNER_ID
+        );
+
+        DeckCardDTO importedCard = response.cards().getFirst();
+        assertEquals("IKO", importedCard.setCode());
+        assertEquals("349", importedCard.collectorNumber());
+        assertEquals("FOIL", importedCard.finish());
+        assertEquals("scryfall-winota, joiner of forces", importedCard.scryfallId());
+        assertEquals("https://img.test/winota, joiner of forces.jpg", importedCard.imageUrl());
     }
 
     @Test
@@ -325,6 +351,33 @@ class DeckServiceTest {
                 continue;
             }
             cards.put(normalize(name), cardFor(name));
+        }
+        return cards;
+    }
+
+    private Map<String, CardResponseDTO> resolvedLookupCards(List<CardLookupRequestDTO> lookups) {
+        Map<String, CardResponseDTO> cards = new LinkedHashMap<>();
+        for (CardLookupRequestDTO lookup : lookups) {
+            if (lookup == null || lookup.name() == null || normalize(lookup.name()).equals("missing card")) {
+                continue;
+            }
+            CardResponseDTO base = cardFor(lookup.name());
+            cards.put(lookup.lookupKey(), new CardResponseDTO(
+                    base.name(),
+                    base.manaCost(),
+                    base.typeLine(),
+                    base.oracleText(),
+                    base.cmc(),
+                    base.colorIdentity(),
+                    base.keywords(),
+                    "https://img.test/" + normalize(base.name()) + ".jpg",
+                    base.estimatedPrice(),
+                    "scryfall-" + normalize(base.name()),
+                    lookup.setCode(),
+                    lookup.setCode() == null ? null : "Test Set",
+                    lookup.collectorNumber(),
+                    List.of("nonfoil")
+            ));
         }
         return cards;
     }

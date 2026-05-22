@@ -12,8 +12,27 @@ public record CardResponseDTO(
         java.util.List<String> colorIdentity,
         java.util.List<String> keywords,
         String imageUrl,
-        Double estimatedPrice
+        Double estimatedPrice,
+        String scryfallId,
+        String setCode,
+        String setName,
+        String collectorNumber,
+        java.util.List<String> finishes
 ) {
+    public CardResponseDTO(
+            String name,
+            String manaCost,
+            String typeLine,
+            String oracleText,
+            Double cmc,
+            java.util.List<String> colorIdentity,
+            java.util.List<String> keywords,
+            String imageUrl,
+            Double estimatedPrice
+    ) {
+        this(name, manaCost, typeLine, oracleText, cmc, colorIdentity, keywords, imageUrl, estimatedPrice, null, null, null, null, java.util.List.of());
+    }
+
     public CardResponseDTO(
             String name,
             String manaCost,

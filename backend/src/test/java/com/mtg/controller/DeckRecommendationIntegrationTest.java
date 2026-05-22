@@ -1,6 +1,7 @@
 package com.mtg.controller;
 
 import com.mtg.dto.CardResponseDTO;
+import com.mtg.dto.CardLookupRequestDTO;
 import com.mtg.dto.DeckImportDTO;
 import com.mtg.model.RecommendationAuditRun;
 import com.mtg.repository.RecommendationAuditRepository;
@@ -52,6 +53,7 @@ class DeckRecommendationIntegrationTest {
     void setupCards() {
         Mockito.when(cardService.normalizeLookupName(anyString())).thenAnswer(invocation -> normalize(invocation.getArgument(0)));
         Mockito.when(cardService.findByNames(any())).thenAnswer(invocation -> resolvedCards(invocation.getArgument(0)));
+        Mockito.when(cardService.findByCardRequests(any())).thenAnswer(invocation -> resolvedLookupCards(invocation.getArgument(0)));
     }
 
     @Test
@@ -221,6 +223,33 @@ class DeckRecommendationIntegrationTest {
             }
             CardResponseDTO card = cardFor(name.trim());
             cards.put(normalize(card.name()), card);
+        }
+        return cards;
+    }
+
+    private Map<String, CardResponseDTO> resolvedLookupCards(List<CardLookupRequestDTO> lookups) {
+        Map<String, CardResponseDTO> cards = new LinkedHashMap<>();
+        for (CardLookupRequestDTO lookup : lookups) {
+            if (lookup == null || lookup.name() == null || lookup.name().isBlank()) {
+                continue;
+            }
+            CardResponseDTO base = cardFor(lookup.name().trim());
+            cards.put(lookup.lookupKey(), new CardResponseDTO(
+                    base.name(),
+                    base.manaCost(),
+                    base.typeLine(),
+                    base.oracleText(),
+                    base.cmc(),
+                    base.colorIdentity(),
+                    base.keywords(),
+                    null,
+                    null,
+                    "scryfall-" + normalize(base.name()),
+                    lookup.setCode(),
+                    lookup.setCode() == null ? null : "Test Set",
+                    lookup.collectorNumber(),
+                    List.of("nonfoil")
+            ));
         }
         return cards;
     }

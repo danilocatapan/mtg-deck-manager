@@ -40,6 +40,21 @@ public class MetaTopDeckCard {
     @Column(name = "scryfall_id", length = 80)
     private String scryfallId;
 
+    @Column(name = "set_code", length = 16)
+    private String setCode;
+
+    @Column(name = "set_name", length = 160)
+    private String setName;
+
+    @Column(name = "collector_number", length = 32)
+    private String collectorNumber;
+
+    @Column(length = 16)
+    private String finish;
+
+    @Column(name = "image_url", length = 1000)
+    private String imageUrl;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -57,6 +72,16 @@ public class MetaTopDeckCard {
     public void setSection(MetaDeckCardSection section) { this.section = section; }
     public String getScryfallId() { return scryfallId; }
     public void setScryfallId(String scryfallId) { this.scryfallId = scryfallId; }
+    public String getSetCode() { return setCode; }
+    public void setSetCode(String setCode) { this.setCode = setCode; }
+    public String getSetName() { return setName; }
+    public void setSetName(String setName) { this.setName = setName; }
+    public String getCollectorNumber() { return collectorNumber; }
+    public void setCollectorNumber(String collectorNumber) { this.collectorNumber = collectorNumber; }
+    public String getFinish() { return finish; }
+    public void setFinish(String finish) { this.finish = finish; }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
 }

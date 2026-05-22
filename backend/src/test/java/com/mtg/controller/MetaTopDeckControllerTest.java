@@ -1,6 +1,7 @@
 package com.mtg.controller;
 
 import com.mtg.dto.CardResponseDTO;
+import com.mtg.dto.CardLookupRequestDTO;
 import com.mtg.model.Deck;
 import com.mtg.repository.DeckRepository;
 import com.mtg.repository.MetaTopDeckImportBatchRepository;
@@ -56,6 +57,7 @@ class MetaTopDeckControllerTest {
     void setup() {
         lenient().when(cardService.normalizeLookupName(anyString())).thenAnswer(invocation -> normalize(invocation.getArgument(0)));
         lenient().when(cardService.findByNames(any())).thenAnswer(invocation -> resolvedCards(invocation.getArgument(0)));
+        lenient().when(cardService.findByCardRequests(any())).thenAnswer(invocation -> resolvedLookupCards(invocation.getArgument(0)));
         QuarkusTransaction.requiringNew().run(() -> {
             entityManager.createQuery("delete from MetaTopDeckCard").executeUpdate();
             topDeckRepository.deleteAll();
@@ -122,6 +124,48 @@ class MetaTopDeckControllerTest {
                 .statusCode(200)
                 .body("name", is("Talion Top 1 Updated"))
                 .body("cards.name", hasItem("Mystic Remora"));
+    }
+
+    @Test
+    void importsTextTopDeckPreservingPrintingMetadata() {
+        given()
+                .header("X-Admin-Key", "top-deck-test-key")
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "source": "MOXFIELD",
+                          "sourceUrl": "https://moxfield.com",
+                          "rankingPeriod": "MONTHLY",
+                          "rankingDate": "2026-05-01",
+                          "format": "COMMANDER",
+                          "importFormat": "TEXT",
+                          "decklistFormat": "MOXFIELD",
+                          "decks": [
+                            {
+                              "rank": 1,
+                              "name": "Text Talion",
+                              "commander": "Talion, the Kindly Lord",
+                              "deckUrl": "https://moxfield.test/text-talion",
+                              "bracket": "BRACKET_5",
+                              "decklist": "1 Talion, the Kindly Lord\\n1 Winota, Joiner of Forces (IKO) 349 *F*"
+                            }
+                          ]
+                        }
+                        """)
+                .when().post("/meta/top-decks/import")
+                .then()
+                .statusCode(200)
+                .body("importedDecks", is(1));
+
+        Long deckId = topDeckRepository.listAll().getFirst().getId();
+        given()
+                .header("X-Admin-Key", "top-deck-test-key")
+                .when().get("/meta/top-decks/" + deckId)
+                .then()
+                .statusCode(200)
+                .body("cards.find { it.name == 'Winota, Joiner of Forces' }.setCode", is("IKO"))
+                .body("cards.find { it.name == 'Winota, Joiner of Forces' }.collectorNumber", is("349"))
+                .body("cards.find { it.name == 'Winota, Joiner of Forces' }.finish", is("FOIL"));
     }
 
     @Test
@@ -284,6 +328,33 @@ class MetaTopDeckControllerTest {
                 continue;
             }
             cards.put(normalize(name), cardFor(name));
+        }
+        return cards;
+    }
+
+    private Map<String, CardResponseDTO> resolvedLookupCards(List<CardLookupRequestDTO> lookups) {
+        Map<String, CardResponseDTO> cards = new LinkedHashMap<>();
+        for (CardLookupRequestDTO lookup : lookups) {
+            if (lookup == null || lookup.name() == null || lookup.name().isBlank() || normalize(lookup.name()).equals("missing commander")) {
+                continue;
+            }
+            CardResponseDTO base = cardFor(lookup.name());
+            cards.put(lookup.lookupKey(), new CardResponseDTO(
+                    base.name(),
+                    base.manaCost(),
+                    base.typeLine(),
+                    base.oracleText(),
+                    base.cmc(),
+                    base.colorIdentity(),
+                    base.keywords(),
+                    "https://img.test/" + normalize(base.name()) + ".jpg",
+                    null,
+                    "scryfall-" + normalize(base.name()),
+                    lookup.setCode(),
+                    lookup.setCode() == null ? null : "Test Set",
+                    lookup.collectorNumber(),
+                    List.of("nonfoil")
+            ));
         }
         return cards;
     }

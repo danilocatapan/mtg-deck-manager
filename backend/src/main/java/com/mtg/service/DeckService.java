@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.mtg.dto.ApplyRecommendationSwapDTO;
 import com.mtg.dto.AuthenticatedUserDTO;
+import com.mtg.dto.CardLookupRequestDTO;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.CommanderDTO;
 import com.mtg.dto.DeckCardDTO;
@@ -127,14 +128,12 @@ public class DeckService {
         }
         List<CommanderDTO> commanders = normalizeCommanders(dto.commander(), dto.commanders());
 
-        var cards = removeCommandersFromMainDeck(importService.parse(dto.content()), commanders);
+        var cards = removeCommandersFromMainDeck(importService.parse(dto.content(), dto.sourceFormat()), commanders);
         int total = cards.stream().mapToInt(DeckCard::getQuantity).sum();
         if (total > 99) {
             throw new IllegalArgumentException("Imported deck has " + total + " cards; maximum is 99.");
         }
-        Map<String, CardResponseDTO> resolved = validateCardsExist(commanders, cards.stream()
-                .map(card -> new DeckCardDTO(card.getName(), card.getQuantity()))
-                .toList());
+        Map<String, CardResponseDTO> resolved = validateImportedCardsExist(commanders, cards);
 
         Deck deck = new Deck();
         deck.setName(dto.name().trim());
@@ -424,7 +423,16 @@ public class DeckService {
 
     private List<DeckCard> toEntities(List<DeckCardDTO> cards) {
         return cards.stream()
-                .map(c -> new DeckCard(c.name().trim(), c.quantity()))
+                .map(c -> {
+                    DeckCard card = new DeckCard(c.name().trim(), c.quantity());
+                    card.setScryfallId(c.scryfallId());
+                    card.setSetCode(c.setCode());
+                    card.setSetName(c.setName());
+                    card.setCollectorNumber(c.collectorNumber());
+                    card.setFinish(c.finish());
+                    card.setImageUrl(c.imageUrl());
+                    return card;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -481,6 +489,70 @@ public class DeckService {
             }
         }
         return resolved;
+    }
+
+    private Map<String, CardResponseDTO> validateImportedCardsExist(List<CommanderDTO> commanders, List<DeckCard> cards) {
+        List<CardLookupRequestDTO> lookups = new java.util.ArrayList<>();
+        commanders.stream().map(CommanderDTO::name).map(CardLookupRequestDTO::new).forEach(lookups::add);
+        cards.stream()
+                .map(card -> new CardLookupRequestDTO(card.getName(), card.getSetCode(), card.getCollectorNumber(), card.getScryfallId()))
+                .forEach(lookups::add);
+
+        Map<String, CardResponseDTO> resolved = cardService.findByCardRequests(lookups);
+        for (CommanderDTO commander : commanders) {
+            CardLookupRequestDTO lookup = new CardLookupRequestDTO(commander.name());
+            if (!resolved.containsKey(lookup.lookupKey())) {
+                LOG.warn("event=deck.card_validation.failed reason=commander_not_found");
+                throw new IllegalArgumentException("Card not found: " + commander.name().trim());
+            }
+        }
+        for (DeckCard card : cards) {
+            CardLookupRequestDTO lookup = new CardLookupRequestDTO(card.getName(), card.getSetCode(), card.getCollectorNumber(), card.getScryfallId());
+            CardResponseDTO resolvedCard = resolved.get(lookup.lookupKey());
+            if (resolvedCard == null && card.getName() != null) {
+                resolvedCard = resolved.get(CardLookupRequestDTO.nameKey(card.getName()));
+            }
+            if (resolvedCard == null) {
+                LOG.warn("event=deck.card_validation.failed reason=not_found");
+                throw new IllegalArgumentException("Card not found: " + card.getName().trim());
+            }
+            enrichDeckCard(card, resolvedCard);
+        }
+        return resolved.entrySet().stream()
+                .filter(entry -> entry.getValue() != null && entry.getValue().name() != null)
+                .collect(Collectors.toMap(
+                        entry -> cardService.normalizeLookupName(entry.getValue().name()),
+                        Map.Entry::getValue,
+                        (first, ignored) -> first,
+                        java.util.LinkedHashMap::new
+                ));
+    }
+
+    private void enrichDeckCard(DeckCard card, CardResponseDTO resolvedCard) {
+        card.setName(resolvedCard.name());
+        card.setScryfallId(resolvedCard.scryfallId());
+        card.setSetCode(firstPresent(card.getSetCode(), resolvedCard.setCode()));
+        card.setSetName(resolvedCard.setName());
+        card.setCollectorNumber(firstPresent(card.getCollectorNumber(), resolvedCard.collectorNumber()));
+        card.setFinish(normalizeFinish(card.getFinish(), resolvedCard.finishes()));
+        card.setImageUrl(resolvedCard.imageUrl());
+    }
+
+    private String normalizeFinish(String requestedFinish, List<String> availableFinishes) {
+        String normalized = requestedFinish == null || requestedFinish.isBlank()
+                ? "UNKNOWN"
+                : requestedFinish.trim().toUpperCase(Locale.ROOT);
+        if (!"UNKNOWN".equals(normalized)) {
+            return normalized;
+        }
+        if (availableFinishes != null && availableFinishes.contains("nonfoil")) {
+            return "NONFOIL";
+        }
+        return "UNKNOWN";
+    }
+
+    private String firstPresent(String first, String second) {
+        return first != null && !first.isBlank() ? first : second;
     }
 
     private boolean sameCommanders(List<CommanderDTO> currentCommanders, List<CommanderDTO> requestedCommanders) {
@@ -636,14 +708,14 @@ public class DeckService {
 
     private DeckResponseDTO toDto(Deck deck) {
         List<DeckCardDTO> cards = deck.getCards().stream()
-                .map(c -> new DeckCardDTO(c.getName(), c.getQuantity()))
+                .map(this::toDeckCardDto)
                 .collect(Collectors.toList());
         return new DeckResponseDTO(deck.getId(), deck.getName(), deck.getCommander(), cards, deck.getColorIdentity(), commandersFor(deck), historyFor(deck), deck.getVisibility());
     }
 
     private DeckConsultResponseDTO toConsultDto(Deck deck) {
         List<DeckCardDTO> cards = deck.getCards().stream()
-                .map(c -> new DeckCardDTO(c.getName(), c.getQuantity()))
+                .map(this::toDeckCardDto)
                 .collect(Collectors.toList());
         return new DeckConsultResponseDTO(
                 deck.getId(),
@@ -659,7 +731,7 @@ public class DeckService {
 
     private PublicDeckResponseDTO toPublicDto(Deck deck, String currentOwnerId) {
         List<DeckCardDTO> cards = deck.getCards().stream()
-                .map(c -> new DeckCardDTO(c.getName(), c.getQuantity()))
+                .map(this::toDeckCardDto)
                 .collect(Collectors.toList());
         return new PublicDeckResponseDTO(
                 deck.getId(),
@@ -678,6 +750,19 @@ public class DeckService {
                 deck.getExternalSource(),
                 deck.getExternalSourceUrl(),
                 deck.getExternalDeckUrl()
+        );
+    }
+
+    private DeckCardDTO toDeckCardDto(DeckCard card) {
+        return new DeckCardDTO(
+                card.getName(),
+                card.getQuantity(),
+                card.getScryfallId(),
+                card.getSetCode(),
+                card.getSetName(),
+                card.getCollectorNumber(),
+                card.getFinish(),
+                card.getImageUrl()
         );
     }
 

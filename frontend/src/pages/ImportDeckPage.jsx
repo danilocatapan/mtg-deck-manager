@@ -9,8 +9,55 @@ const SAMPLE_DECK = `1 Sol Ring
 12 Mountain
 12 Forest`
 const PREVIEW_COLLAPSED_LIMIT = 8
+const IMPORT_FORMATS = [
+  { value: 'MOXFIELD', label: 'Moxfield' },
+  { value: 'MTG_ARENA', label: 'MTG Arena' },
+  { value: 'MTGO', label: 'MTGO' },
+  { value: 'ARCHIDEKT', label: 'Archidekt' },
+  { value: 'PLAIN_TEXT', label: 'Plain Text' },
+  { value: 'LIGAMAGIC', label: 'Liga Magic' },
+]
 
-function parsePreview(content) {
+function allowsPrintingMetadata(sourceFormat) {
+  return ['MOXFIELD', 'MTG_ARENA', 'ARCHIDEKT'].includes(sourceFormat)
+}
+
+function parseCardText(value, sourceFormat) {
+  let text = String(value || '').trim()
+  let finish = ''
+  if (!allowsPrintingMetadata(sourceFormat)) {
+    return { name: text, setCode: '', collectorNumber: '', finish }
+  }
+  const finishMatch = text.match(/\s+\*(F|E)\*\s*$/i)
+  if (finishMatch) {
+    finish = finishMatch[1].toUpperCase() === 'F' ? 'foil' : 'etched'
+    text = text.replace(/\s+\*(F|E)\*\s*$/i, '').trim()
+  }
+
+  let setCode = ''
+  let collectorNumber = ''
+  const numbered = text.match(/^(.*?)\s+\(([A-Za-z0-9]{2,8})\)\s+([A-Za-z0-9-]+)\s*$/)
+  if (numbered) {
+    text = numbered[1].trim()
+    setCode = numbered[2].toUpperCase()
+    collectorNumber = numbered[3]
+  } else {
+    const setOnly = text.match(/^(.*?)\s+\(([A-Za-z0-9]{2,8})\)\s*$/)
+    if (setOnly) {
+      text = setOnly[1].trim()
+      setCode = setOnly[2].toUpperCase()
+    }
+  }
+
+  return { name: text, setCode, collectorNumber, finish }
+}
+
+function printingLabel(card) {
+  const edition = card.setCode ? `${card.setCode}${card.collectorNumber ? ` #${card.collectorNumber}` : ''}` : ''
+  return [edition, card.finish].filter(Boolean).join(' - ')
+}
+
+function parsePreview(content, sourceFormat) {
   if (!content.trim()) return { cards: [], errors: [], total: 0, duplicates: [] }
 
   const cards = []
@@ -20,20 +67,28 @@ function parsePreview(content) {
     const line = rawLine.trim()
     if (!line) return
 
-    const match = line.match(/^(\d+)\s+(.+)$/)
+    if (/^(deck|main deck|mainboard|commander|commanders|sideboard|maybeboard|tokens)$/i.test(line)
+      || line.startsWith('//')
+      || line.startsWith('#')
+      || /^SB:/i.test(line)) {
+      return
+    }
+
+    const match = line.match(/^(\d+)\s*x?\s+(.+)$/i)
     if (!match) {
       errors.push({ line: index + 1, message: `Linha ${index + 1}: use "quantidade nome da carta".` })
       return
     }
 
     const quantity = Number(match[1])
-    const name = match[2].trim()
+    const parsed = parseCardText(match[2], sourceFormat)
+    const name = parsed.name
     if (quantity < 1 || !name) {
       errors.push({ line: index + 1, message: `Linha ${index + 1}: a quantidade deve ser maior que zero e o nome da carta é obrigatório.` })
       return
     }
 
-    cards.push({ quantity, name })
+    cards.push({ quantity, ...parsed })
   })
 
   const duplicates = cards.filter((card, index) => cards.findIndex((item) => item.name.toLowerCase() === card.name.toLowerCase()) !== index)
@@ -50,13 +105,14 @@ export default function ImportDeckPage({ onDone }) {
   const [name, setName] = useState('')
   const [commander, setCommander] = useState('')
   const [visibility, setVisibility] = useState('private')
+  const [sourceFormat, setSourceFormat] = useState('MOXFIELD')
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
   const [previewExpanded, setPreviewExpanded] = useState(false)
 
-  const preview = useMemo(() => parsePreview(content), [content])
+  const preview = useMemo(() => parsePreview(content, sourceFormat), [content, sourceFormat])
   const isOverLimit = preview.total > 99
   const visiblePreviewCards = previewExpanded ? preview.cards : preview.cards.slice(0, PREVIEW_COLLAPSED_LIMIT)
   const hiddenPreviewCount = Math.max(0, preview.cards.length - visiblePreviewCards.length)
@@ -96,7 +152,7 @@ export default function ImportDeckPage({ onDone }) {
       }
 
       setLoading(true)
-      const created = await importDeck({ name: name.trim(), commander: commander.trim(), content, visibility })
+      const created = await importDeck({ name: name.trim(), commander: commander.trim(), content, visibility, sourceFormat })
       setMessage(`${created.name} importado.`)
       onDone && onDone(`${created.name} importado.`, created)
     } catch (e) {
@@ -139,6 +195,15 @@ export default function ImportDeckPage({ onDone }) {
             <label>
               Comandante
               <input value={commander} onChange={(e) => setCommander(e.target.value)} placeholder="Xenagos, God of Revels" />
+            </label>
+            <label>
+              Origem da exportacao
+              <small>Use a origem para preservar edicao, numero e foil quando a lista trouxer esses dados.</small>
+              <select value={sourceFormat} onChange={(e) => setSourceFormat(e.target.value)}>
+                {IMPORT_FORMATS.map((format) => (
+                  <option key={format.value} value={format.value}>{format.label}</option>
+                ))}
+              </select>
             </label>
             <label>
               Visibilidade
@@ -197,7 +262,7 @@ export default function ImportDeckPage({ onDone }) {
               {visiblePreviewCards.map((card, index) => (
                 <div key={`${card.name}-${index}`} className="deck-row">
                   <strong>{card.name}</strong>
-                  <span>{card.quantity}x</span>
+                  <span>{card.quantity}x{printingLabel(card) ? ` - ${printingLabel(card)}` : ''}</span>
                 </div>
               ))}
               {preview.cards.length > PREVIEW_COLLAPSED_LIMIT && (

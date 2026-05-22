@@ -1,6 +1,7 @@
 package com.mtg.service;
 
 import com.mtg.dto.CardResponseDTO;
+import com.mtg.dto.CardLookupRequestDTO;
 import com.mtg.dto.CommanderDTO;
 import com.mtg.dto.DeckCardDTO;
 import com.mtg.dto.ExternalDeckImportCardDTO;
@@ -156,11 +157,13 @@ public class ExternalDeckImportService {
             warnings.add("Deck " + deckLabel(index, imported) + " has " + mainDeckTotal + " main-deck cards; expected 99 for Commander.");
         }
 
-        List<String> namesToResolve = new ArrayList<>();
-        namesToResolve.add(commander);
-        requestedCards.stream().map(DeckCardDTO::name).forEach(namesToResolve::add);
-        Map<String, CardResponseDTO> resolved = cardService.findByNames(namesToResolve);
-        CardResponseDTO commanderCard = resolved.get(cardService.normalizeLookupName(commander));
+        List<CardLookupRequestDTO> lookups = new ArrayList<>();
+        lookups.add(new CardLookupRequestDTO(commander));
+        requestedCards.stream()
+                .map(card -> new CardLookupRequestDTO(card.name(), card.setCode(), card.collectorNumber(), card.scryfallId()))
+                .forEach(lookups::add);
+        Map<String, CardResponseDTO> resolved = cardService.findByCardRequests(lookups);
+        CardResponseDTO commanderCard = resolved.get(new CardLookupRequestDTO(commander).lookupKey());
         if (commanderCard == null) {
             warnings.add("Deck " + deckLabel(index, imported) + " ignored: commander not resolved: " + commander.trim());
             return null;
@@ -168,8 +171,13 @@ public class ExternalDeckImportService {
 
         List<DeckCardDTO> resolvedCards = new ArrayList<>();
         for (DeckCardDTO card : requestedCards) {
-            if (resolved.containsKey(cardService.normalizeLookupName(card.name()))) {
-                resolvedCards.add(card);
+            CardLookupRequestDTO lookup = new CardLookupRequestDTO(card.name(), card.setCode(), card.collectorNumber(), card.scryfallId());
+            CardResponseDTO resolvedCard = resolved.get(lookup.lookupKey());
+            if (resolvedCard == null) {
+                resolvedCard = resolved.get(CardLookupRequestDTO.nameKey(card.name()));
+            }
+            if (resolvedCard != null) {
+                resolvedCards.add(enrichedCard(card, resolvedCard));
             } else {
                 warnings.add("Deck " + deckLabel(index, imported) + " skipped unresolved card: " + card.name().trim());
             }
@@ -205,7 +213,16 @@ public class ExternalDeckImportService {
         deck.setExternalRank(imported.externalRank());
         deck.setImportedAt(OffsetDateTime.now());
         deck.setCards(imported.cards().stream()
-                .map(card -> new DeckCard(card.name().trim(), card.quantity()))
+                .map(card -> {
+                    DeckCard deckCard = new DeckCard(card.name().trim(), card.quantity());
+                    deckCard.setScryfallId(card.scryfallId());
+                    deckCard.setSetCode(card.setCode());
+                    deckCard.setSetName(card.setName());
+                    deckCard.setCollectorNumber(card.collectorNumber());
+                    deckCard.setFinish(card.finish());
+                    deckCard.setImageUrl(card.imageUrl());
+                    return deckCard;
+                })
                 .collect(Collectors.toList()));
         deckRepository.persist(deck);
         return deck;
@@ -233,7 +250,7 @@ public class ExternalDeckImportService {
             if (card.quantity() < 1 || card.quantity() > 99) {
                 throw new IllegalArgumentException("card quantity must be between 1 and 99");
             }
-            parsed.add(new DeckCardDTO(card.name().trim(), card.quantity()));
+            parsed.add(new DeckCardDTO(card.name().trim(), card.quantity(), card.scryfallId(), card.setCode(), card.setName(), card.collectorNumber(), card.finish(), card.imageUrl()));
         }
         return parsed;
     }
@@ -264,12 +281,38 @@ public class ExternalDeckImportService {
             String key = normalize(card.name());
             DeckCardDTO existing = merged.get(key);
             if (existing == null) {
-                merged.put(key, new DeckCardDTO(card.name().trim(), card.quantity()));
+                merged.put(key, new DeckCardDTO(card.name().trim(), card.quantity(), card.scryfallId(), card.setCode(), card.setName(), card.collectorNumber(), card.finish(), card.imageUrl()));
             } else {
-                merged.put(key, new DeckCardDTO(existing.name(), existing.quantity() + card.quantity()));
+                merged.put(key, new DeckCardDTO(existing.name(), existing.quantity() + card.quantity(), existing.scryfallId(), existing.setCode(), existing.setName(), existing.collectorNumber(), existing.finish(), existing.imageUrl()));
             }
         }
         return new ArrayList<>(merged.values());
+    }
+
+    private DeckCardDTO enrichedCard(DeckCardDTO card, CardResponseDTO resolvedCard) {
+        return new DeckCardDTO(
+                resolvedCard.name(),
+                card.quantity(),
+                resolvedCard.scryfallId(),
+                firstPresent(card.setCode(), resolvedCard.setCode()),
+                resolvedCard.setName(),
+                firstPresent(card.collectorNumber(), resolvedCard.collectorNumber()),
+                normalizeFinish(card.finish(), resolvedCard.finishes()),
+                resolvedCard.imageUrl()
+        );
+    }
+
+    private String normalizeFinish(String requestedFinish, List<String> availableFinishes) {
+        String normalized = requestedFinish == null || requestedFinish.isBlank()
+                ? "UNKNOWN"
+                : requestedFinish.trim().toUpperCase(Locale.ROOT);
+        if (!"UNKNOWN".equals(normalized)) {
+            return normalized;
+        }
+        if (availableFinishes != null && availableFinishes.contains("nonfoil")) {
+            return "NONFOIL";
+        }
+        return "UNKNOWN";
     }
 
     private void validateDuplicates(List<DeckCardDTO> cards) {

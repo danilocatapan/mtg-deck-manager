@@ -1,6 +1,7 @@
 package com.mtg.service;
 
 import com.mtg.client.ScryfallClient;
+import com.mtg.dto.CardLookupRequestDTO;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.ScryfallCardDTO;
 import com.mtg.dto.ScryfallCollectionRequestDTO;
@@ -222,5 +223,44 @@ class CardServiceTest {
         assertEquals(1, cards.size());
         assertEquals("Fallback Card", cards.get("fallback card").name());
         verify(scryfallClient, times(1)).searchByName("\"Fallback Card\"");
+    }
+
+    @Test
+    void shouldResolveSpecificPrintingsWithoutIndividualFallback() {
+        when(scryfallClient.collection(new ScryfallCollectionRequestDTO(List.of(
+                ScryfallCollectionRequestDTO.CardIdentifier.printing("iko", "349")
+        )))).thenReturn(new ScryfallCollectionResponseDTO(
+                List.of(new ScryfallCardDTO(
+                        "scryfall-winota",
+                        "Winota, Joiner of Forces",
+                        "iko",
+                        "Ikoria: Lair of Behemoths",
+                        "349",
+                        "{2}{R}{W}",
+                        4.0,
+                        "Legendary Creature - Human Warrior",
+                        "Whenever a non-Human creature you control attacks...",
+                        java.util.List.of("R", "W"),
+                        null,
+                        null,
+                        java.util.List.of("foil", "nonfoil"),
+                        new ScryfallCardDTO.PricesDTO("2.35", "5.10", null, null)
+                )),
+                List.of()
+        ));
+
+        Map<String, CardResponseDTO> cards = cardService.findByCardRequests(List.of(
+                new CardLookupRequestDTO("Winota, Joiner of Forces", "IKO", "349", null)
+        ));
+
+        CardResponseDTO card = cards.get(CardLookupRequestDTO.printingKey("IKO", "349"));
+        assertEquals("Winota, Joiner of Forces", card.name());
+        assertEquals("IKO", card.setCode());
+        assertEquals("349", card.collectorNumber());
+        assertEquals("scryfall-winota", card.scryfallId());
+        verify(scryfallClient, times(1)).collection(new ScryfallCollectionRequestDTO(List.of(
+                ScryfallCollectionRequestDTO.CardIdentifier.printing("iko", "349")
+        )));
+        verify(scryfallClient, times(0)).searchByName(anyString());
     }
 }

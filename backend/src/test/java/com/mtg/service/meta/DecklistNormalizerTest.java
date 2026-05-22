@@ -46,6 +46,14 @@ class DecklistNormalizerTest {
     }
 
     @Test
+    void removesSetCollectorNumberAndFoilTags() {
+        var cards = normalizer.normalizePlainText("1 Winota, Joiner of Forces (IKO) 349 *F*");
+
+        assertEquals(1, cards.size());
+        assertEquals("Winota, Joiner of Forces", cards.getFirst().name());
+    }
+
+    @Test
     void findsCommanderFromCommanderSection() {
         String commander = normalizer.findCommander("""
                 Commander

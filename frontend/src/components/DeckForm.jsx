@@ -52,7 +52,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       setName(initial.name || '')
       setCommander(initial.commander || '')
       setVisibility(initial.visibility || 'private')
-      setCards(initial.cards ? initial.cards.map((card) => ({ name: card.name, quantity: card.quantity })) : [])
+      setCards(initial.cards ? initial.cards.map((card) => ({ ...card, name: card.name, quantity: card.quantity })) : [])
     }
   }, [initial])
 
@@ -102,7 +102,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
     setCards((prev) => {
       const found = prev.find((item) => item.name === card.name)
       if (found) return prev.map((item) => (item.name === card.name ? { ...item, quantity: item.quantity + 1 } : item))
-      return [...prev, { name: card.name, quantity: 1 }]
+      return [...prev, { ...card, name: card.name, quantity: 1 }]
     })
     if (card.imageUrl) {
       setCardImages((prev) => {
@@ -160,7 +160,16 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       name: name.trim(),
       commander: commander.trim(),
       visibility,
-      cards: cards.map((card) => ({ name: card.name, quantity: card.quantity })),
+      cards: cards.map((card) => ({
+        name: card.name,
+        quantity: card.quantity,
+        scryfallId: card.scryfallId,
+        setCode: card.setCode,
+        setName: card.setName,
+        collectorNumber: card.collectorNumber,
+        finish: card.finish,
+        imageUrl: card.imageUrl,
+      })),
     }
     setSavedMessage('Salvando deck...')
     setSaving(true)

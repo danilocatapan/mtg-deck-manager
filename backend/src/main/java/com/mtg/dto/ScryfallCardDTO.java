@@ -7,7 +7,11 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Schema(name = "ScryfallCard")
 public record ScryfallCardDTO(
+        String id,
         String name,
+        String set,
+        @JsonProperty("set_name") String setName,
+        @JsonProperty("collector_number") String collectorNumber,
         @JsonProperty("mana_cost") String manaCost,
         @JsonProperty("cmc") Double cmc,
         @JsonProperty("type_line") String typeLine,
@@ -15,6 +19,7 @@ public record ScryfallCardDTO(
         @JsonProperty("color_identity") java.util.List<String> colorIdentity,
         @JsonProperty("image_uris") ImageUris imageUris,
         @JsonProperty("card_faces") java.util.List<CardFaceDTO> cardFaces,
+        java.util.List<String> finishes,
         PricesDTO prices
 ) {
     public ScryfallCardDTO(
@@ -23,9 +28,23 @@ public record ScryfallCardDTO(
             Double cmc,
             String typeLine,
             String oracleText,
+            java.util.List<String> colorIdentity,
+            ImageUris imageUris,
+            java.util.List<CardFaceDTO> cardFaces,
+            PricesDTO prices
+    ) {
+        this(null, name, null, null, null, manaCost, cmc, typeLine, oracleText, colorIdentity, imageUris, cardFaces, null, prices);
+    }
+
+    public ScryfallCardDTO(
+            String name,
+            String manaCost,
+            Double cmc,
+            String typeLine,
+            String oracleText,
             java.util.List<String> colorIdentity
     ) {
-        this(name, manaCost, cmc, typeLine, oracleText, colorIdentity, null, null, null);
+        this(null, name, null, null, null, manaCost, cmc, typeLine, oracleText, colorIdentity, null, null, null, null);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

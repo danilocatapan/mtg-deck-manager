@@ -55,6 +55,12 @@ function cardTotalLabel(quantity) {
   return `${quantity} ${quantity === 1 ? 'carta' : 'cartas'}`
 }
 
+function printingLabel(card) {
+  const edition = card.setCode ? `${card.setCode}${card.collectorNumber ? ` #${card.collectorNumber}` : ''}` : ''
+  const finish = card.finish && card.finish !== 'UNKNOWN' ? String(card.finish).toLowerCase() : ''
+  return [edition, finish].filter(Boolean).join(' - ')
+}
+
 function mergeCardDetails(prev, fetchedCards, requestedNames = []) {
   const next = { ...prev }
   let changed = false
@@ -238,15 +244,16 @@ export default function DeckCardListView({
 
   function imageForCard(card) {
     const details = cardDetails[normalizeCardName(card.name)]
-    return details?.imageUrl || imageForName(cardImages, card.name)
+    return card.imageUrl || details?.imageUrl || imageForName(cardImages, card.name)
   }
 
   function renderDeckRow(card) {
     return (
-      <div key={card.name} className={editable ? 'deck-row' : 'deck-row deck-row-readonly'}>
+      <div key={`${card.name}-${card.setCode || ''}-${card.collectorNumber || ''}`} className={editable ? 'deck-row' : 'deck-row deck-row-readonly'}>
         <div className="deck-row-card">
           <strong><CardNamePreview name={card.name} imageUrl={imageForCard(card)} /></strong>
           <span>{card.typeLine}</span>
+          {printingLabel(card) && <small>{printingLabel(card)}</small>}
         </div>
         {editable ? (
           <>
@@ -362,7 +369,7 @@ export default function DeckCardListView({
           <div className="deck-image-grid-scroll">
             <div className="deck-image-grid">
               {filteredCards.map((card) => (
-                <article key={card.name} className="deck-image-card">
+                <article key={`${card.name}-${card.setCode || ''}-${card.collectorNumber || ''}`} className="deck-image-card">
                   <div className="card-art-frame">
                     {imageForCard(card) ? (
                       <img

@@ -1,22 +1,22 @@
 [
   {
     "version": "0.0.0-local",
-    "date": "2026-05-21",
+    "date": "2026-05-22",
     "title": "Decks publicos e curadoria da comunidade",
     "changes": {
       "added": [
+        "Importacoes preservam edicao, numero de colecao, foil e imagem correta quando a lista traz dados de impressao.",
         "Tela Meta Admin permite ao usuario autorizado importar e consultar top decks externos que alimentam perfis de meta quando houver amostra suficiente.",
         "Decks publicos agora podem receber likes de usuarios autenticados, com ranking interno por periodo.",
         "Decks externos importados como top meta tambem aparecem como decks publicos consultaveis e copiaveis.",
-        "Decks podem ser marcados como publicos ou privados, com vitrine publica, consulta em modo somente leitura e copia para a propria biblioteca.",
-        "Endpoints autenticados GET /users/me/export e DELETE /users/me para exportacao LGPD e exclusao de dados do usuario."
+        "Decks podem ser marcados como publicos ou privados, com vitrine publica, consulta em modo somente leitura e copia para a propria biblioteca."
       ],
       "changed": [
+        "Importacao de decks resolve cartas por edicao em lote no Scryfall e ignora sideboard/maybeboard em listas Commander.",
         "Recomendacoes passam a rastrear quando uma sugestao veio de recorrencia em top decks externos.",
         "Listagem, edicao e analise de decks receberam previews de cartas, acoes flutuantes padronizadas e melhorias mobile para imagens, comandante e footer.",
         "Ver deck agora tem filtro por nome, filtro por tipo, agrupamento por tipo e alternancia entre lista e imagens.",
-        "Vitrine publica exibe likes e permite curtir ou remover o proprio like em qualquer deck publico.",
-        "Importacao, analise e recomendacoes ficaram mais visuais no mobile, com abas e cards de troca recolhiveis para reduzir excesso de informacao."
+        "Vitrine publica exibe likes e permite curtir ou remover o proprio like em qualquer deck publico."
       ],
       "fixed": [
         "Botao de login Google aguarda o script externo carregar, permite o estilo oficial do Google Identity e deixa de depender de F5 para aparecer.",

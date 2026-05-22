@@ -311,7 +311,7 @@ export default function MetaTopDeckAdminPage({ onBack }) {
                 {(selectedDeck.cards || []).map((card) => (
                   <div key={`${card.section}-${card.name}`} className="deck-row">
                     <strong>{card.name}</strong>
-                    <span>{card.quantity}x {card.section}</span>
+                    <span>{card.quantity}x {card.section}{printingLabel(card) ? ` - ${printingLabel(card)}` : ''}</span>
                   </div>
                 ))}
               </div>
@@ -365,6 +365,12 @@ function adminErrorMessage(exception, fallback) {
 function importMessage(response) {
   if (!response) return 'Importacao concluida.'
   return `Importacao ${response.status}: ${response.importedDecks} importados, ${response.updatedDecks} atualizados, ${response.ignoredDecks} ignorados.`
+}
+
+function printingLabel(card) {
+  const edition = card?.setCode ? `${card.setCode}${card.collectorNumber ? ` #${card.collectorNumber}` : ''}` : ''
+  const finish = card?.finish && card.finish !== 'UNKNOWN' ? String(card.finish).toLowerCase() : ''
+  return [edition, finish].filter(Boolean).join(' - ')
 }
 
 function currentMonthDate() {

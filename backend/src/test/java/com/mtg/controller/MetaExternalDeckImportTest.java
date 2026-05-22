@@ -1,6 +1,7 @@
 package com.mtg.controller;
 
 import com.mtg.dto.CardResponseDTO;
+import com.mtg.dto.CardLookupRequestDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
 import com.mtg.model.DeckVisibility;
@@ -45,6 +46,7 @@ class MetaExternalDeckImportTest {
     void setup() {
         lenient().when(cardService.normalizeLookupName(anyString())).thenAnswer(invocation -> normalize(invocation.getArgument(0)));
         lenient().when(cardService.findByNames(any())).thenAnswer(invocation -> resolvedCards(invocation.getArgument(0)));
+        lenient().when(cardService.findByCardRequests(any())).thenAnswer(invocation -> resolvedLookupCards(invocation.getArgument(0)));
     }
 
     @Test
@@ -250,6 +252,33 @@ class MetaExternalDeckImportTest {
                 continue;
             }
             cards.put(normalize(name), cardFor(name));
+        }
+        return cards;
+    }
+
+    private Map<String, CardResponseDTO> resolvedLookupCards(List<CardLookupRequestDTO> lookups) {
+        Map<String, CardResponseDTO> cards = new LinkedHashMap<>();
+        for (CardLookupRequestDTO lookup : lookups) {
+            if (lookup == null || lookup.name() == null || lookup.name().isBlank() || normalize(lookup.name()).equals("missing card")) {
+                continue;
+            }
+            CardResponseDTO base = cardFor(lookup.name());
+            cards.put(lookup.lookupKey(), new CardResponseDTO(
+                    base.name(),
+                    base.manaCost(),
+                    base.typeLine(),
+                    base.oracleText(),
+                    base.cmc(),
+                    base.colorIdentity(),
+                    base.keywords(),
+                    "https://img.test/" + normalize(base.name()) + ".jpg",
+                    null,
+                    "scryfall-" + normalize(base.name()),
+                    lookup.setCode(),
+                    lookup.setCode() == null ? null : "Test Set",
+                    lookup.collectorNumber(),
+                    List.of("nonfoil")
+            ));
         }
         return cards;
     }
