@@ -1,0 +1,12 @@
+# Configuracao compartilhada do Codex para este repositorio.
+# Preferencias pessoais devem ficar em ~/.codex/config.toml.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_reasoning_effort = "medium"
+web_search = "cached"
+
+[features]
+multi_agent = true
+shell_snapshot = true
+

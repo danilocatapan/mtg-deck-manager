@@ -4,9 +4,10 @@ Todas as mudancas notaveis deste projeto serao documentadas aqui.
 
 O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e atualizado a partir das tags Git e mensagens de commit da release.
 
-## [0.0.0-local] - 2026-05-21
+## [0.0.0-local] - 2026-05-22
 
 ### Added
+- Configuracao compartilhada `.codex/config.toml` para padronizar approvals conservadores, sandbox de workspace, busca cacheada, snapshot de shell e multi-agent em sessoes confiaveis do Codex.
 - Tela `Meta Admin` no frontend para usuario Google autorizado importar JSON de top decks, consultar snapshots, abrir detalhes e registrar sync manual com orientacoes objetivas sobre impacto nas recomendacoes.
 - API administrativa `POST /meta/top-decks/import`, consultas e sync manual para top decks externos rankeados, com upsert idempotente, historico mensal, projecao em decks publicos e atualizacao imediata dos perfis de meta usados nas recomendacoes.
 - Avaliacao automatizada dos sinais de top decks garante amostra minima, rastreabilidade `meta_top_decks` e invariantes de recomendacao antes de privilegiar cartas recorrentes.
@@ -25,6 +26,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Manual canonico de agentes recebeu um fluxo produtivo para Codex cobrindo prompts, planejamento, contexto, approvals, configuracao, MCP/plugins, skills, subagentes, automacoes, validacao e revisao.
 - Documentacao operacional e agents foram versionados em `agents-2026-05-21`/`docs-2026-05-21`, alinhando contexto, endpoints, PostgreSQL/Flyway, privacidade, meta top decks e fluxo atual de recomendacoes para reduzir reexploracao e alucinacao em Codex/Copilot.
 - Recomendacoes estrategicas passam a usar top decks importados como fonte `meta_top_decks` quando ha amostra suficiente por comandante/bracket, preservando score, filtros de cor, bloqueio de duplicatas e cortes seguros.
 - Cards de troca nas recomendacoes podem ser recolhidos ao clicar no card, deixando apenas o resumo com carta que entra e carta removida.

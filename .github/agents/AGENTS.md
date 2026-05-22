@@ -1,7 +1,7 @@
 # AGENTS.md - Regras canonicas de agentes
 
-Versao: agents-2026-05-21
-Ultima atualizacao: 2026-05-21
+Versao: agents-2026-05-22
+Ultima atualizacao: 2026-05-22
 
 Papel deste arquivo
 -------------------
@@ -33,6 +33,37 @@ Economia de contexto para agentes
 - Evite colar arquivos inteiros na resposta final; informe arquivos alterados, validacoes executadas e riscos restantes.
 - Se a tarefa for documental, compare markdowns com codigo/configuracao real antes de atualizar instrucoes.
 - Quando a informacao ja estiver consolidada neste arquivo ou em `PROJECT_CONTEXT.md`, prefira citar o snapshot em vez de reexplorar tudo.
+
+Manual produtivo para Codex
+---------------------------
+Estas praticas consolidam o fluxo atual do projeto com boas praticas oficiais do Codex e com o material revisado em 2026-05-22 sobre projetos, prompts, tools, approvals, contexto, `AGENTS.md`, MCP/plugins, skills, subagentes e automacoes.
+
+Prompts e escopo:
+- Para pedidos complexos, estruturar a demanda em objetivo, contexto, restricoes e criterio de conclusao. Quando o usuario nao fornecer esses itens, inferir pelo repositorio e explicitar as premissas.
+- Usar referencias diretas a arquivos, erros, endpoints, telas ou comandos quando existirem. Evitar prompts longos com regras duraveis; regras recorrentes devem virar atualizacao deste arquivo, guia especializado ou skill.
+- Quando o pedido estiver ambiguo e puder afetar contrato, regra negocial, seguranca ou dados, fazer perguntas curtas antes de implementar.
+
+Planejamento e threads:
+- Para tarefas grandes, ambiguidade alta, investigacoes ou mudancas multi-area, planejar antes de editar e manter uma lista curta de passos.
+- Manter uma thread por unidade coerente de trabalho. Usar `/compact` ou resumo operacional quando a conversa ficar longa, e `/resume`/fork apenas quando o trabalho continuar ou ramificar de verdade.
+- Ao final de cada tarefa relevante, registrar arquivos alterados, validacoes executadas, riscos restantes e proximos passos objetivos.
+
+Tools, approvals e configuracao:
+- Usar tools para ler, editar, testar e validar o resultado em vez de depender so de explicacao. Comecar por comandos read-only e pedir aprovacao para escrita, rede, comandos destrutivos, instalacoes ou operacoes fora do sandbox.
+- Manter sandbox e approvals conservadores por padrao. Afrouxar permissoes somente para repositorios confiaveis e fluxos bem entendidos.
+- Configuracao pessoal deve ficar em `~/.codex/config.toml`; configuracao compartilhada do projeto deve ficar em `.codex/config.toml`; overrides de CLI devem ser temporarios.
+- Selecionar esforco de raciocinio conforme risco: baixo para tarefas mecanicas pequenas, medio/alto para debugging e mudancas compartilhadas, extra alto para arquitetura, seguranca, migracoes ou investigacoes longas.
+
+Reuso, MCP, skills e automacoes:
+- Usar MCP/plugins quando o contexto necessario estiver fora do repositorio, mudar com frequencia ou exigir uma ferramenta repetivel, como GitHub, Linear, navegador ou documentacao oficial.
+- Quando um prompt ou checklist for reutilizado varias vezes, transformar em skill local ou guia especializado antes de virar automacao.
+- Criar automacoes apenas para fluxos ja confiaveis manualmente, como resumo de commits, triagem de CI, varredura de bugs, preparacao de release notes ou revisao periodica de instrucoes.
+- Se o usuario pedir subagentes ou trabalho paralelo, delegar tarefas independentes com escopo claro, arquivos de responsabilidade e resultado esperado. Nao usar subagentes para trabalho que bloqueia a proxima acao imediata.
+
+Validacao e revisao:
+- Codex deve fechar o ciclo: implementar, testar, revisar diff e confirmar que o comportamento pedido foi atendido.
+- Usar `/review` ou postura de code review para revisar PRs, commits ou mudancas locais quando o usuario pedir revisao.
+- Se uma mesma falha de instrucao ocorrer duas vezes, propor uma retrospectiva curta e atualizar `AGENTS.md`, guia especializado ou skill correspondente.
 
 Manutencao de regras e contexto para IA
 ---------------------------------------
