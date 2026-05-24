@@ -263,4 +263,55 @@ class CardServiceTest {
         )));
         verify(scryfallClient, times(0)).searchByName(anyString());
     }
+
+    @Test
+    void shouldMapModalDoubleFacedCardsUsingFrontFaceDetailsAndImage() {
+        when(scryfallClient.collection(new ScryfallCollectionRequestDTO(List.of(
+                new ScryfallCollectionRequestDTO.CardIdentifier("Agadeem's Awakening")
+        )))).thenReturn(new ScryfallCollectionResponseDTO(
+                List.of(new ScryfallCardDTO(
+                        "scryfall-agadeem",
+                        "Agadeem's Awakening // Agadeem, the Undercrypt",
+                        "znr",
+                        "Zendikar Rising",
+                        "90",
+                        null,
+                        3.0,
+                        "Sorcery // Land",
+                        null,
+                        java.util.List.of("B"),
+                        null,
+                        List.of(
+                                new ScryfallCardDTO.CardFaceDTO(
+                                        "Agadeem's Awakening",
+                                        "{X}{B}{B}{B}",
+                                        "Sorcery",
+                                        "Return from your graveyard to the battlefield any number of target creature cards.",
+                                        new ScryfallCardDTO.ImageUris("small-front.jpg", "normal-front.jpg", "large-front.jpg", "png-front.jpg")
+                                ),
+                                new ScryfallCardDTO.CardFaceDTO(
+                                        "Agadeem, the Undercrypt",
+                                        "",
+                                        "Land",
+                                        "As Agadeem, the Undercrypt enters the battlefield, you may pay 3 life.",
+                                        new ScryfallCardDTO.ImageUris("small-back.jpg", "normal-back.jpg", "large-back.jpg", "png-back.jpg")
+                                )
+                        ),
+                        java.util.List.of("nonfoil", "foil"),
+                        new ScryfallCardDTO.PricesDTO("12.34", null, null, null)
+                )),
+                List.of()
+        ));
+
+        Map<String, CardResponseDTO> cards = cardService.findByNames(List.of("Agadeem's Awakening"));
+
+        CardResponseDTO card = cards.get("agadeem's awakening");
+        assertEquals("Agadeem's Awakening", card.name());
+        assertEquals("{X}{B}{B}{B}", card.manaCost());
+        assertEquals("Sorcery", card.typeLine());
+        assertEquals("Return from your graveyard to the battlefield any number of target creature cards.", card.oracleText());
+        assertEquals("normal-front.jpg", card.imageUrl());
+        assertEquals("ZNR", card.setCode());
+        assertEquals("90", card.collectorNumber());
+    }
 }

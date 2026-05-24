@@ -305,11 +305,14 @@ public class CardService {
         }
 
         Map<String, CardResponseDTO> cardsByName = new LinkedHashMap<>();
-        response.data().stream()
-                .map(this::toCardResponse)
-                .forEach(card -> {
+        response.data().forEach(scryfallCard -> {
+                    CardResponseDTO card = toCardResponse(scryfallCard);
                     cardsByName.putIfAbsent(normalizeLookupName(card.name()), card);
                     cardsByName.putIfAbsent(CardLookupRequestDTO.nameKey(card.name()), card);
+                    lookupNames(scryfallCard).forEach(name -> {
+                        cardsByName.putIfAbsent(normalizeLookupName(name), card);
+                        cardsByName.putIfAbsent(CardLookupRequestDTO.nameKey(name), card);
+                    });
                     if (card.setCode() != null && card.collectorNumber() != null) {
                         cardsByName.putIfAbsent(CardLookupRequestDTO.printingKey(card.setCode(), card.collectorNumber()), card);
                     }
@@ -356,11 +359,12 @@ public class CardService {
     }
 
     private CardResponseDTO toCardResponse(ScryfallCardDTO card) {
+        ScryfallCardDTO.CardFaceDTO frontFace = frontFace(card);
         return new CardResponseDTO(
-                card.name(),
-                card.manaCost(),
-                card.typeLine(),
-                card.oracleText(),
+                firstPresent(frontFace == null ? null : frontFace.name(), card.name()),
+                firstPresent(frontFace == null ? null : frontFace.manaCost(), card.manaCost()),
+                firstPresent(frontFace == null ? null : frontFace.typeLine(), card.typeLine()),
+                firstPresent(frontFace == null ? null : frontFace.oracleText(), card.oracleText()),
                 card.cmc(),
                 card.colorIdentity(),
                 java.util.List.of(),
@@ -372,6 +376,30 @@ public class CardService {
                 card.collectorNumber(),
                 card.finishes() == null ? java.util.List.of() : card.finishes()
         );
+    }
+
+    private List<String> lookupNames(ScryfallCardDTO card) {
+        if (card == null) {
+            return List.of();
+        }
+        List<String> names = new ArrayList<>();
+        if (card.name() != null && !card.name().isBlank()) {
+            names.add(card.name());
+        }
+        if (card.cardFaces() != null) {
+            card.cardFaces().stream()
+                    .map(ScryfallCardDTO.CardFaceDTO::name)
+                    .filter(name -> name != null && !name.isBlank())
+                    .forEach(names::add);
+        }
+        return names;
+    }
+
+    private ScryfallCardDTO.CardFaceDTO frontFace(ScryfallCardDTO card) {
+        if (card == null || card.cardFaces() == null || card.cardFaces().isEmpty()) {
+            return null;
+        }
+        return card.cardFaces().get(0);
     }
 
     private String normalizeSetCode(String setCode) {
@@ -416,6 +444,10 @@ public class CardService {
         if (imageUris.large() != null && !imageUris.large().isBlank()) return imageUris.large();
         if (imageUris.small() != null && !imageUris.small().isBlank()) return imageUris.small();
         return imageUris.png();
+    }
+
+    private String firstPresent(String first, String second) {
+        return first != null && !first.isBlank() ? first : second;
     }
 
     public String normalizeLookupName(String name) {

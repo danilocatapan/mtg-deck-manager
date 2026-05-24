@@ -33,6 +33,7 @@ public class DeckRoleAnalyzer {
         int protection = 0;
         int boardWipes = 0;
         int finishers = 0;
+        int curveCardCount = 0;
         double cmcSum = 0.0;
         Set<String> deckTags = new HashSet<>();
 
@@ -45,14 +46,18 @@ public class DeckRoleAnalyzer {
 
             String oracle = text(card.oracleText());
             double cmc = card.cmc() != null ? card.cmc() : 0.0;
-            cmcSum += cmc * qty;
             Set<String> tags = synergyEngine.tagsForCard(card);
             Set<String> cardRoles = classifier().rolesFor(card);
+            boolean land = cardRoles.contains("land");
+            if (!land) {
+                cmcSum += cmc * qty;
+                curveCardCount += qty;
+            }
             deckTags.addAll(tags);
             deckTags.addAll(cardRoles);
 
-            if (cardRoles.contains("land")) lands += qty;
-            if (cardRoles.contains("ramp") || tags.contains("treasure") || tags.contains("mana-rock")) ramp += qty;
+            if (land) lands += qty;
+            if (!land && (cardRoles.contains("ramp") || tags.contains("treasure") || tags.contains("mana-rock"))) ramp += qty;
             if (cardRoles.contains("draw") || cardRoles.contains("selection") || tags.contains("impulse-draw") || oracle.contains("impulse")) draw += qty;
             if (cardRoles.contains("removal") || cardRoles.contains("counterspell") || tags.contains("stack-interaction")) removal += qty;
             if (cardRoles.contains("protection")) protection += qty;
@@ -60,7 +65,7 @@ public class DeckRoleAnalyzer {
             if (cardRoles.contains("finisher")) finishers += qty;
         }
 
-        double averageCmc = totalCards > 0 ? cmcSum / totalCards : 0.0;
+        double averageCmc = curveCardCount > 0 ? cmcSum / curveCardCount : 0.0;
         Map<String, Integer> gaps = detectGaps(lands, ramp, draw, removal, protection, finishers, averageCmc, bracket, deckTags);
 
         return new DeckRoleSummary(totalCards, lands, ramp, draw, removal, protection, boardWipes, finishers, averageCmc, gaps, deckTags);

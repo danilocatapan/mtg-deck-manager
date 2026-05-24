@@ -177,6 +177,28 @@ class DeckServiceTest {
     }
 
     @Test
+    void importDeck_removesCommanderFromMainDeckWhenItAppearsInImportedList() {
+        when(importService.parse(any(), any())).thenReturn(List.of(
+                new DeckCard("Any Commander", 1),
+                new DeckCard("Forest", 99)
+        ));
+        doAnswer(invocation -> {
+            Deck deck = invocation.getArgument(0);
+            deck.setId(11L);
+            return null;
+        }).when(deckRepository).persist(any(Deck.class));
+
+        DeckResponseDTO response = deckService.importDeck(
+                new com.mtg.dto.DeckImportDTO("Commander In List", "Any Commander", "1 Any Commander\n99 Forest"),
+                OWNER_ID
+        );
+
+        assertEquals(99, response.cards().stream().mapToInt(DeckCardDTO::quantity).sum());
+        assertTrue(response.cards().stream().noneMatch(card -> normalize(card.name()).equals("any commander")));
+        assertEquals("Any Commander", response.commander());
+    }
+
+    @Test
     void createDeck_requiresOwner() {
         DeckRequestDTO request = new DeckRequestDTO("My Deck", "Commander", List.of(new DeckCardDTO("Sol Ring",1)));
 

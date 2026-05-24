@@ -109,4 +109,40 @@ class DeckAnalysisServiceTest {
         assertTrue(analysis.probabilities().openingHandTwoPlusLands() > 0.9);
         assertTrue(analysis.score().bracketPressure() > 0);
     }
+
+    @Test
+    void excludesLandsFromRampAndCurveWhileCountingModalDoubleFacedFrontFace() {
+        Deck deck = new Deck();
+        deck.setId(3L);
+        deck.setCards(List.of(
+                new DeckCard("Swamp", 10),
+                new DeckCard("Cabal Coffers", 1),
+                new DeckCard("Agadeem's Awakening", 1),
+                new DeckCard("Dark Ritual", 1),
+                new DeckCard("Sign in Blood", 1)
+        ));
+
+        when(deckRepository.findById(3L)).thenReturn(deck);
+        when(cardService.findByNames(List.of("Swamp", "Cabal Coffers", "Agadeem's Awakening", "Dark Ritual", "Sign in Blood"))).thenReturn(Map.of(
+                "swamp", new CardResponseDTO("Swamp", "", "Basic Land - Swamp", "Add {B}.", 0.0, java.util.List.of("B"), java.util.List.of()),
+                "cabal coffers", new CardResponseDTO("Cabal Coffers", "", "Land", "{2}, {T}: Add {B} for each Swamp you control.", 0.0, java.util.List.of(), java.util.List.of()),
+                "agadeem's awakening", new CardResponseDTO("Agadeem's Awakening", "{X}{B}{B}{B}", "Sorcery // Land", "Return from your graveyard to the battlefield any number of target creature cards.", 3.0, java.util.List.of("B"), java.util.List.of(), "https://img.test/agadeem.jpg"),
+                "dark ritual", new CardResponseDTO("Dark Ritual", "{B}", "Instant", "Add {B}{B}{B}.", 1.0, java.util.List.of("B"), java.util.List.of()),
+                "sign in blood", new CardResponseDTO("Sign in Blood", "{B}{B}", "Sorcery", "Target player draws two cards and loses 2 life.", 2.0, java.util.List.of("B"), java.util.List.of())
+        ));
+        when(cardService.normalizeLookupName(org.mockito.ArgumentMatchers.anyString())).thenAnswer(invocation -> invocation.getArgument(0, String.class).toLowerCase());
+
+        var analysis = sut.analyzeDeck(3L);
+
+        assertEquals(14, analysis.totalCards());
+        assertEquals(11, analysis.manaBase().landCount());
+        assertEquals(1, analysis.rampCount());
+        assertEquals(3, analysis.manaCurve().values().stream().mapToInt(Integer::intValue).sum());
+        assertEquals(1, analysis.manaCurve().get(1));
+        assertEquals(1, analysis.manaCurve().get(2));
+        assertEquals(1, analysis.manaCurve().get(3));
+        assertEquals(2.0, analysis.averageCmc(), 0.0001);
+        assertEquals(11, analysis.roles().get("land"));
+        assertEquals(1, analysis.manaCurveByType().get("sorcery").get(3));
+    }
 }

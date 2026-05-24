@@ -1,7 +1,7 @@
 [
   {
     "version": "0.0.0-local",
-    "date": "2026-05-22",
+    "date": "2026-05-24",
     "title": "Decks publicos e curadoria da comunidade",
     "changes": {
       "added": [
@@ -12,18 +12,18 @@
         "Decks podem ser marcados como publicos ou privados, com vitrine publica, consulta em modo somente leitura e copia para a propria biblioteca."
       ],
       "changed": [
+        "Analise de curva e CMC medio agora ignora terrenos e classifica cartas dupla face pela face principal.",
+        "Recomendacoes estrategicas passam a mirar 10 trocas por padrao quando houver pares legais suficientes.",
         "Importacao de decks resolve cartas por edicao em lote no Scryfall e ignora sideboard/maybeboard em listas Commander.",
         "Recomendacoes passam a rastrear quando uma sugestao veio de recorrencia em top decks externos.",
-        "Listagem, edicao e analise de decks receberam previews de cartas, acoes flutuantes padronizadas e melhorias mobile para imagens, comandante e footer.",
-        "Ver deck agora tem filtro por nome, filtro por tipo, agrupamento por tipo e alternancia entre lista e imagens.",
-        "Vitrine publica exibe likes e permite curtir ou remover o proprio like em qualquer deck publico."
+        "Listagem, edicao e analise de decks receberam previews de cartas, acoes flutuantes padronizadas e melhorias mobile para imagens, comandante e footer."
       ],
       "fixed": [
+        "Preview de importacao desconta o comandante quando ele aparece dentro da lista, mantendo 99 cartas no main deck.",
+        "Terrenos que produzem mana deixam de ser classificados como ramp.",
+        "Cartas dupla face/MDFC usam nome, tipo, custo, texto e imagem da face principal ao resolver dados no Scryfall.",
         "Botao de login Google aguarda o script externo carregar, permite o estilo oficial do Google Identity e deixa de depender de F5 para aparecer.",
-        "Nomes de cartas em combos agora tambem abrem preview de imagem.",
-        "Preview de imagem das cartas deixa de ficar cortado em telas mobile e nao prende falhas temporarias como imagem indisponivel.",
-        "Tela mobile de edicao deixa de duplicar as acoes de analise e recomendacoes.",
-        "Editor deixa de manter o aviso de salvamento depois que o deck termina de salvar."
+        "Nomes de cartas em combos agora tambem abrem preview de imagem."
       ],
       "security": [
         "Tela Meta Admin e endpoints de top decks exigem Google autorizado por allowlist de e-mail, mantendo chave admin apenas para uso tecnico.",

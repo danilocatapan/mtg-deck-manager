@@ -36,7 +36,7 @@ public class RecommendationPairer {
             CommanderArchetypeProfile profile,
             DeckRoleSummary roles
     ) {
-        return pair(adds, cuts, profile, roles, 5);
+        return pair(adds, cuts, profile, roles, 10);
     }
 
     public List<StrategicRecommendation> pair(

@@ -16,7 +16,7 @@ public class CardRoleClassifier {
     public Set<String> rolesFor(CardResponseDTO card) {
         LinkedHashSet<String> roles = new LinkedHashSet<>();
         String oracle = text(card == null ? null : card.oracleText());
-        String type = text(card == null ? null : card.typeLine());
+        String type = primaryType(text(card == null ? null : card.typeLine()));
         Double cmc = card == null ? null : card.cmc();
 
         if (type.contains("land")) roles.add("land");
@@ -49,9 +49,13 @@ public class CardRoleClassifier {
     }
 
     private boolean isRamp(String oracle, String type) {
+        if (type.contains("land")) {
+            return false;
+        }
         return oracle.contains("add ")
                 || oracle.contains("search your library for a land")
-                || type.contains("land") && oracle.contains("add {");
+                || oracle.contains("put a land card")
+                || oracle.contains("cost") && oracle.contains("less to cast");
     }
 
     private boolean isTutor(String oracle) {
@@ -93,5 +97,9 @@ public class CardRoleClassifier {
 
     private String text(String value) {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
+    }
+
+    private String primaryType(String typeLine) {
+        return typeLine.split("\\s+//\\s+", 2)[0];
     }
 }

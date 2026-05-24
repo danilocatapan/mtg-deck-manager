@@ -57,11 +57,12 @@ function printingLabel(card) {
   return [edition, card.finish].filter(Boolean).join(' - ')
 }
 
-function parsePreview(content, sourceFormat) {
-  if (!content.trim()) return { cards: [], errors: [], total: 0, duplicates: [] }
+function parsePreview(content, sourceFormat, commander = '') {
+  if (!content.trim()) return { cards: [], errors: [], total: 0, rawTotal: 0, commanderInList: false, duplicates: [] }
 
   const cards = []
   const errors = []
+  const normalizedCommander = normalizeName(commander)
 
   content.split(/\r?\n/).forEach((rawLine, index) => {
     const line = rawLine.trim()
@@ -91,14 +92,25 @@ function parsePreview(content, sourceFormat) {
     cards.push({ quantity, ...parsed })
   })
 
-  const duplicates = cards.filter((card, index) => cards.findIndex((item) => item.name.toLowerCase() === card.name.toLowerCase()) !== index)
+  const mainDeckCards = normalizedCommander
+    ? cards.filter((card) => normalizeName(card.name) !== normalizedCommander)
+    : cards
+  const commanderInList = normalizedCommander && cards.some((card) => normalizeName(card.name) === normalizedCommander)
+  const duplicates = mainDeckCards.filter((card, index) => mainDeckCards.findIndex((item) => normalizeName(item.name) === normalizeName(card.name)) !== index)
 
   return {
-    cards,
+    cards: mainDeckCards,
+    allCards: cards,
     errors,
-    total: cards.reduce((sum, card) => sum + card.quantity, 0),
+    total: mainDeckCards.reduce((sum, card) => sum + card.quantity, 0),
+    rawTotal: cards.reduce((sum, card) => sum + card.quantity, 0),
+    commanderInList,
     duplicates,
   }
+}
+
+function normalizeName(value) {
+  return String(value || '').trim().toLowerCase()
 }
 
 export default function ImportDeckPage({ onDone }) {
@@ -112,12 +124,12 @@ export default function ImportDeckPage({ onDone }) {
   const [error, setError] = useState(null)
   const [previewExpanded, setPreviewExpanded] = useState(false)
 
-  const preview = useMemo(() => parsePreview(content, sourceFormat), [content, sourceFormat])
+  const preview = useMemo(() => parsePreview(content, sourceFormat, commander), [content, sourceFormat, commander])
   const isOverLimit = preview.total > 99
   const visiblePreviewCards = previewExpanded ? preview.cards : preview.cards.slice(0, PREVIEW_COLLAPSED_LIMIT)
   const hiddenPreviewCount = Math.max(0, preview.cards.length - visiblePreviewCards.length)
   const validationItems = [
-    { label: 'Total', value: `${preview.total}/99`, tone: isOverLimit ? 'bad' : preview.total === 99 ? 'good' : 'warning' },
+    { label: 'Total', value: `${preview.total}/99${preview.commanderInList ? ' + comandante' : ''}`, tone: isOverLimit ? 'bad' : preview.total === 99 ? 'good' : 'warning' },
     { label: 'Linhas invalidas', value: preview.errors.length, tone: preview.errors.length ? 'bad' : 'good' },
     { label: 'Duplicadas', value: preview.duplicates.length, tone: preview.duplicates.length ? 'warning' : 'good' },
     { label: 'Cores', value: 'Pendente', tone: 'warning' },
@@ -239,7 +251,9 @@ export default function ImportDeckPage({ onDone }) {
           <div className="section-heading">
             <div>
               <h2>Preview</h2>
-              <p className={isOverLimit ? 'is-invalid' : ''}>{preview.total}/99 cartas lidas</p>
+              <p className={isOverLimit ? 'is-invalid' : ''}>
+                {preview.total}/99 cartas lidas{preview.commanderInList ? ` + comandante (${preview.rawTotal} linhas)` : ''}
+              </p>
             </div>
           </div>
 

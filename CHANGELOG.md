@@ -4,7 +4,7 @@ Todas as mudancas notaveis deste projeto serao documentadas aqui.
 
 O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e atualizado a partir das tags Git e mensagens de commit da release.
 
-## [0.0.0-local] - 2026-05-22
+## [0.0.0-local] - 2026-05-24
 
 ### Added
 - Metadados de impressao nas cartas importadas (`scryfall_id`, edicao, numero de colecao, acabamento e imagem), preservando a arte correta quando listas Moxfield/MTG Arena/Archidekt trazem `(SET) numero` e foil.
@@ -28,6 +28,8 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Analise de curva e CMC medio passa a ignorar terrenos e classificar MDFCs pela face principal, evitando que cartas como Agadeem's Awakening sejam agrupadas como terreno.
+- Recomendacoes estrategicas passam a mirar 10 trocas por padrao quando houver pares legais suficientes, mantendo filtros de cor, duplicidade e cortes seguros.
 - Importacao de decks agora normaliza exportacoes com edicao/collector number, ignora sideboard/maybeboard em Commander e resolve cartas em lote pelo identificador de impressao antes de cair para nome.
 - Bootstraps de Codex e Copilot foram alinhados ao inventario `docs/codex-skills.md`, deixando claro que skills sao recurso do Codex e que Copilot pode usar o documento como checklist de orientacao.
 - Manual canonico de agentes passa a consultar `docs/codex-skills.md` em pedidos nao triviais para selecionar skills automaticamente, sem exigir que o usuario decore nomes ou adapte prompts manualmente.
@@ -55,6 +57,9 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Exclusao de decks no frontend passa a usar um dialogo proprio, mantendo a experiencia visual consistente.
 
 ### Fixed
+- Importacao e preview agora descontam o comandante quando ele aparece dentro da lista, preservando o formato Commander de 99 cartas no main deck mais comandante.
+- Terrenos que produzem mana deixam de ser classificados como ramp; ramp agora cobre apenas aceleracao alem do land drop normal.
+- Cartas dupla face/MDFC passam a usar nome, custo, tipo, texto e imagem da face principal quando resolvidas pelo Scryfall.
 - Botao de login Google passa a aguardar o carregamento assincrono do script do Google e a CSP permite o estilo oficial do Google Identity, evitando depender de F5 para aparecer.
 - Preview de carta deixa de manter falhas temporarias de imagem no cache da sessao e centraliza melhor o estado "Imagem indisponivel" no mobile.
 - Nomes de cartas na aba Combos da analise agora usam preview de imagem como nas demais listas.

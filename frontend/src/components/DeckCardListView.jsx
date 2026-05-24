@@ -46,7 +46,7 @@ function imageForName(cache, name) {
 }
 
 function typeGroupFor(typeLine) {
-  const normalizedType = normalizeCardName(typeLine)
+  const normalizedType = normalizeCardName(typeLine).split(/\s+\/\/\s+/, 1)[0]
   if (!normalizedType) return CARD_TYPE_GROUPS[CARD_TYPE_GROUPS.length - 1]
   return CARD_TYPE_GROUPS.find((group) => group.matcher && normalizedType.includes(group.matcher)) || CARD_TYPE_GROUPS[CARD_TYPE_GROUPS.length - 1]
 }
@@ -184,10 +184,11 @@ export default function DeckCardListView({
 
   const typedCards = useMemo(() => cards.map((card) => {
     const details = cardDetails[normalizeCardName(card.name)]
-    const typeGroup = typeGroupFor(details?.typeLine)
+    const resolvedTypeLine = details?.typeLine || card.typeLine
+    const typeGroup = typeGroupFor(resolvedTypeLine)
     return {
       ...card,
-      typeLine: details?.typeLine || 'Tipo pendente',
+      typeLine: resolvedTypeLine || 'Tipo pendente',
       typeGroupKey: typeGroup.key,
       typeGroupLabel: typeGroup.label,
     }

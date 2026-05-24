@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CardRoleClassifierTest {
@@ -21,6 +22,22 @@ class CardRoleClassifierTest {
         assertTrue(classifier.rolesFor(card("Rule of Law", "Enchantment", "Each player can't cast more than one spell each turn.", 3.0)).contains("stax"));
         assertTrue(classifier.rolesFor(card("Thassa's Oracle", "Creature", "If X is greater than or equal to the number of cards in your library, you win the game.", 2.0)).contains("combo-piece"));
         assertEquals("value", classifier.primaryRole(card("Grizzly Bears", "Creature", "", 2.0)));
+    }
+
+    @Test
+    void doesNotClassifyLandsOrNonLandFrontFaceMdfcAsRampOrLandByBackFace() {
+        assertEquals("land", classifier.primaryRole(card("Swamp", "Basic Land - Swamp", "Add {B}.", 0.0)));
+        assertTrue(classifier.rolesFor(card("Swamp", "Basic Land - Swamp", "Add {B}.", 0.0)).contains("land"));
+        assertFalse(classifier.rolesFor(card("Swamp", "Basic Land - Swamp", "Add {B}.", 0.0)).contains("ramp"));
+
+        var agadeemRoles = classifier.rolesFor(card(
+                "Agadeem's Awakening",
+                "Sorcery // Land",
+                "Return from your graveyard to the battlefield any number of target creature cards.",
+                3.0
+        ));
+        assertFalse(agadeemRoles.contains("land"));
+        assertFalse(agadeemRoles.contains("ramp"));
     }
 
     private CardResponseDTO card(String name, String type, String oracle, Double cmc) {

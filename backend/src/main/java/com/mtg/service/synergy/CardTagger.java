@@ -15,7 +15,7 @@ public class CardTagger {
         // normalize once: lowercase and remove punctuation to avoid inconsistent contains checks
         String raw = card.oracleText() != null ? card.oracleText() : "";
         String text = raw.toLowerCase().replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
-        String type = card.typeLine() != null ? card.typeLine().toLowerCase() : "";
+        String type = card.typeLine() != null ? card.typeLine().toLowerCase().split("\\s+//\\s+", 2)[0] : "";
 
         if (text.contains("draw")) tags.add("draw");
         if (text.contains("look at the top") || text.contains("exile the top") || text.contains("play that card") || text.contains("cast that card")) tags.add("impulse-draw");
@@ -32,7 +32,7 @@ public class CardTagger {
         if (text.contains("combat")) tags.add("combat");
         if (text.contains("additional combat") || text.contains("extra combat") || text.contains("untap all attacking creatures")) tags.add("combo-piece");
         if (text.contains("infect")) tags.add("infect");
-        if (text.contains("add ") || text.contains("addc")) tags.add("ramp");
+        if (!type.contains("land") && (text.contains("add ") || text.contains("addc"))) tags.add("ramp");
         if (text.contains("add one mana of any color") || text.contains("any color") || text.contains("mana of any one color")) tags.add("fixing");
         if (type.contains("artifact") && (text.contains("add ") || text.contains("mana"))) tags.add("mana-rock");
         if (type.contains("land") && (text.contains("search your library") || text.contains("sacrifice") && text.contains("basic land"))) tags.add("fetch-land");

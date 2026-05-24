@@ -58,6 +58,10 @@ public record ScryfallCardDTO(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record CardFaceDTO(
+            String name,
+            @JsonProperty("mana_cost") String manaCost,
+            @JsonProperty("type_line") String typeLine,
+            @JsonProperty("oracle_text") String oracleText,
             @JsonProperty("image_uris") ImageUris imageUris
     ) {
     }

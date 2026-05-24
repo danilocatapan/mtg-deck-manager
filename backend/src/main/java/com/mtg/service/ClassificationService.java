@@ -1,5 +1,6 @@
 package com.mtg.service;
 
+import com.mtg.dto.CardResponseDTO;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
@@ -10,6 +11,16 @@ public class ClassificationService {
 
     public enum CardCategory {
         RAMP, DRAW, REMOVAL, OTHER
+    }
+
+    public CardCategory classify(CardResponseDTO card) {
+        if (card == null) {
+            return CardCategory.OTHER;
+        }
+        if (isPrimaryLand(card.typeLine())) {
+            return CardCategory.OTHER;
+        }
+        return classify(card.oracleText());
     }
 
     public CardCategory classify(String oracleText) {
@@ -35,5 +46,13 @@ public class ClassificationService {
         }
 
         return CardCategory.OTHER;
+    }
+
+    private boolean isPrimaryLand(String typeLine) {
+        if (typeLine == null || typeLine.isBlank()) {
+            return false;
+        }
+        String primaryFaceType = typeLine.split("\\s+//\\s+", 2)[0].toLowerCase();
+        return primaryFaceType.contains("land");
     }
 }

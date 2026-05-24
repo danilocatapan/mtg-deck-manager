@@ -111,7 +111,8 @@ class StrategicRecommendationServiceTest {
 
         List<StrategicRecommendation> recommendations = sut.recommend(1L, new RecommendationParamsDTO(null, "casual", null, null));
 
-        assertEquals(3, recommendations.size());
+        assertFalse(recommendations.isEmpty());
+        assertTrue(recommendations.size() <= 10);
         Set<String> adds = recommendations.stream().map(StrategicRecommendation::add).collect(java.util.stream.Collectors.toSet());
         assertTrue(adds.stream().anyMatch(add -> Set.of("Greater Good", "Nature's Lore", "Heroic Intervention").contains(add)));
         assertFalse(adds.contains("Swords to Plowshares"));
@@ -278,7 +279,7 @@ class StrategicRecommendationServiceTest {
     }
 
     @Test
-    void shouldLimitRecommendationsToFive() {
+    void shouldClampLargeRecommendationRequestsWithoutInvalidPairs() {
         Deck deck = xenagosDeck();
         CommanderMetaProfile profile = profile("Xenagos, God of Revels", "mid", 4, List.of(
                 new MetaCard("Greater Good", 0.95, "draw", 4.0),
@@ -295,7 +296,7 @@ class StrategicRecommendationServiceTest {
 
         List<StrategicRecommendation> recommendations = sut.recommend(1L, new RecommendationParamsDTO(null, "mid", null, null, null, 99));
 
-        assertTrue(recommendations.size() <= 5);
+        assertTrue(recommendations.size() <= 20);
         recommendations.forEach(recommendation -> {
             assertFalse(recommendation.add().isBlank());
             assertFalse(recommendation.remove().isBlank());

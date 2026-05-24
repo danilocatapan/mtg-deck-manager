@@ -95,6 +95,7 @@ public class DeckAnalysisService {
         LOG.debugv("analysis.cardCount deckId={0} count={1}", id, cards.size());
 
         int totalCards = cards.stream().mapToInt(DeckCard::getQuantity).sum();
+        int curveCardCount = 0;
         double cmcSum = 0.0;
         int rampCount = 0;
         int drawCount = 0;
@@ -134,14 +135,18 @@ public class DeckAnalysisService {
 
             double cmc = card != null && card.cmc() != null ? card.cmc() : 0.0;
             String oracle = card != null ? nullToEmpty(card.oracleText()).toLowerCase() : "";
-            String type = card != null ? nullToEmpty(card.typeLine()).toLowerCase() : "";
+            String type = card != null ? primaryType(nullToEmpty(card.typeLine()).toLowerCase()) : "";
             String manaCost = card != null ? nullToEmpty(card.manaCost()) : "";
+            boolean land = type.contains("land");
 
-            cmcSum += cmc * qty;
+            if (!land) {
+                cmcSum += cmc * qty;
+                curveCardCount += qty;
 
-            int cmcKey = (int) Math.round(cmc);
-            manaCurve.merge(cmcKey, qty, Integer::sum);
-            manaCurveByType.computeIfAbsent(primaryType(type), ignored -> new HashMap<>()).merge(cmcKey, qty, Integer::sum);
+                int cmcKey = (int) Math.round(cmc);
+                manaCurve.merge(cmcKey, qty, Integer::sum);
+                manaCurveByType.computeIfAbsent(typeGroup(type), ignored -> new HashMap<>()).merge(cmcKey, qty, Integer::sum);
+            }
             addColorCosts(colorCosts, manaCost, qty);
             addPipDemand(pipDemand, manaCost, qty);
             addColorSources(colorSources, card, qty);
@@ -153,8 +158,8 @@ public class DeckAnalysisService {
             if (tags.contains("fetch-land")) fetchLandCount += qty;
             if (isConditionalManaSource(oracle)) conditionalSourceCount += qty;
 
-            if (cmc <= 2.0 && !type.contains("land")) earlyGameCount += qty;
-            if (type.contains("land")) {
+            if (cmc <= 2.0 && !land) earlyGameCount += qty;
+            if (land) {
                 landCount += qty;
                 if (entersTapped(oracle)) tappedLandCount += qty;
             }
@@ -162,7 +167,7 @@ public class DeckAnalysisService {
             if (isProtection(oracle)) protectionCount += qty;
             if (isWincon(type, oracle, cmc)) winconCount += qty;
 
-            ClassificationService.CardCategory cat = classificationService.classify(card != null ? card.oracleText() : null);
+            ClassificationService.CardCategory cat = classificationService.classify(card);
             switch (cat) {
                 case RAMP -> {
                     rampCount += qty;
@@ -193,13 +198,13 @@ public class DeckAnalysisService {
                 roles.merge("wincon", qty, Integer::sum);
                 addRoleCard(roleCards, "wincon", name, qty, card);
             }
-            if (type.contains("land")) {
+            if (land) {
                 roles.merge("land", qty, Integer::sum);
                 addRoleCard(roleCards, "land", name, qty, card);
             }
         }
 
-        double averageCmc = totalCards > 0 ? cmcSum / (double) totalCards : 0.0;
+        double averageCmc = curveCardCount > 0 ? cmcSum / (double) curveCardCount : 0.0;
         int untappedLandCount = Math.max(0, landCount - tappedLandCount);
         ManaBaseAnalysis manaBase = new ManaBaseAnalysis(
                 colorCosts,
@@ -289,7 +294,7 @@ public class DeckAnalysisService {
     private void addColorSources(Map<String, Integer> sources, CardResponseDTO card, int quantity) {
         if (card == null) return;
         String oracle = nullToEmpty(card.oracleText()).toLowerCase();
-        String type = nullToEmpty(card.typeLine()).toLowerCase();
+        String type = primaryType(nullToEmpty(card.typeLine()).toLowerCase());
         for (String color : COLORS) {
             if (oracle.contains("{" + color.toLowerCase() + "}") || producesByType(type, color)) {
                 sources.merge(color, quantity, Integer::sum);
@@ -311,7 +316,7 @@ public class DeckAnalysisService {
         };
     }
 
-    private String primaryType(String type) {
+    private String typeGroup(String type) {
         if (type.contains("land")) return "land";
         if (type.contains("creature")) return "creature";
         if (type.contains("artifact")) return "artifact";
@@ -320,6 +325,10 @@ public class DeckAnalysisService {
         if (type.contains("sorcery")) return "sorcery";
         if (type.contains("planeswalker")) return "planeswalker";
         return "other";
+    }
+
+    private String primaryType(String typeLine) {
+        return typeLine == null ? "" : typeLine.split("\\s+//\\s+", 2)[0];
     }
 
     private boolean entersTapped(String oracle) {
@@ -354,6 +363,7 @@ public class DeckAnalysisService {
             CardResponseDTO card = cardDetailsByName.get(cardService.normalizeLookupName(deckCard.getName()));
             if (card == null || card.cmc() == null || card.cmc() > maxCmc) continue;
             String type = nullToEmpty(card.typeLine()).toLowerCase();
+            type = primaryType(type);
             String oracle = nullToEmpty(card.oracleText()).toLowerCase();
             if (!type.contains("land") && (oracle.contains("add ") || oracle.contains("search your library for a land"))) {
                 count += deckCard.getQuantity();

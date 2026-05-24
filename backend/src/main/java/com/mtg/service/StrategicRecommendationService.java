@@ -239,9 +239,9 @@ public class StrategicRecommendationService {
     private int maxRecommendations(com.mtg.dto.RecommendationParamsDTO params) {
         Integer requested = params == null ? null : params.maxRecommendations();
         if (requested == null) {
-            return 5;
+            return 10;
         }
-        return Math.max(3, Math.min(10, requested));
+        return Math.max(10, Math.min(20, requested));
     }
 
     private StrategicDeckAnalyzer analyzer() {
