@@ -163,6 +163,39 @@ class CandidateAddSelectorArchetypeTest {
         assertFalse(oracle.addScoreBreakdown().reasons().contains("combo_completion"));
     }
 
+    @Test
+    void unknownMonoBlackCedhCommanderReceivesCuratedTurboComboStaplesWithoutRandomFill() {
+        List<StrategicCandidate> candidates = selector.select(
+                deck("Unknown Black Combo Commander", "B"),
+                List.of(),
+                new java.util.HashMap<>(),
+                profile("turbo-combo", "B"),
+                roles(Set.of("combo-piece", "tutor"), Map.of("tutor", 2, "ramp", 3, "draw", 2)),
+                "cedh",
+                false,
+                "competitive",
+                null,
+                Set.of(),
+                StrategicDeckAssessment.empty()
+        );
+
+        Set<String> adds = names(candidates);
+        assertTrue(adds.stream().filter(Set.of(
+                "Dark Ritual",
+                "Cabal Ritual",
+                "Demonic Tutor",
+                "Vampiric Tutor",
+                "Necropotence",
+                "Chrome Mox",
+                "Mana Vault",
+                "Lotus Petal",
+                "Demonic Consultation"
+        )::contains).count() >= 6);
+        assertFalse(adds.contains("Thassa's Oracle"));
+        assertFalse(adds.contains("Mystic Remora"));
+        assertFalse(adds.contains("Rhystic Study"));
+    }
+
     private Deck deck(String commander, String colors) {
         Deck deck = new Deck();
         deck.setCommander(commander);

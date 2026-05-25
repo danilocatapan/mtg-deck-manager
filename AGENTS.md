@@ -29,6 +29,8 @@ Este arquivo e o ponto de entrada do Codex neste repositorio.
 
 ## Validacao padrao
 
-- Backend: em `backend`, rode `./mvnw.cmd test` no Windows ou `./mvnw test` no Linux/macOS.
+- Backend: em `backend`, no Windows/PowerShell sempre rode Maven no mesmo comando que define o JDK 25:
+  `$env:JAVA_HOME="C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2"; $env:Path="$env:JAVA_HOME\bin;$env:Path"; ./mvnw.cmd test`.
+  No Linux/macOS, rode `./mvnw test`.
 - Frontend: em `frontend`, rode `npm run lint` e `npm run build`.
 - Quando a mudanca afetar recomendacoes, valide tambem um fluxo manual ou teste representativo que cubra color identity, duplicatas e tamanho do deck.

@@ -59,11 +59,18 @@ Validacao minima
 
 Executando Maven (Windows PowerShell)
 -------------------------------------
-Antes de executar `mvn`/`./mvnw.cmd` no PowerShell, exporte o `JAVA_HOME` e atualize o `Path` com o JDK adequado:
+Sempre execute `mvn`/`./mvnw.cmd` no mesmo bloco/comando que exporta `JAVA_HOME` e atualiza o `Path` com o JDK adequado. Nao rode `./mvnw.cmd test` cru no PowerShell, porque o ambiente pode usar Java 17 e falhar ao carregar classes compiladas para Java 25:
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2"
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
+./mvnw.cmd test
 ```
 
-Em seguida, em `backend`, execute `./mvnw.cmd test` ou `./mvnw.cmd clean test`.
+Para testes filtrados, preserve o mesmo preambulo:
+
+```powershell
+$env:JAVA_HOME = "C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+./mvnw.cmd "-Dtest=NomeDoTeste" test
+```

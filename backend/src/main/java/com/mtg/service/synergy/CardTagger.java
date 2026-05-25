@@ -21,6 +21,7 @@ public class CardTagger {
         if (text.contains("look at the top") || text.contains("exile the top") || text.contains("play that card") || text.contains("cast that card")) tags.add("impulse-draw");
         if (text.contains("create") || text.contains("token")) tags.add("token");
         if (text.contains("treasure")) tags.add("treasure");
+        if (text.contains("rather than pay") || text.contains("cost less to cast") || text.contains("spells you cast cost")) tags.add("cost-reduction");
         if (text.contains("sacrifice")) tags.add("sacrifice");
         if (text.contains("sacrifice a creature") || text.contains("sacrifice another") || text.contains("sacrifice an artifact")) tags.add("sacrifice-outlet");
         if (text.contains("graveyard") || text.contains("mill") || text.contains("recur")) tags.add("graveyard");
@@ -32,7 +33,7 @@ public class CardTagger {
         if (text.contains("combat")) tags.add("combat");
         if (text.contains("additional combat") || text.contains("extra combat") || text.contains("untap all attacking creatures")) tags.add("combo-piece");
         if (text.contains("infect")) tags.add("infect");
-        if (!type.contains("land") && (text.contains("add ") || text.contains("addc"))) tags.add("ramp");
+        if (!type.contains("land") && (text.contains("add ") || text.contains("addc") || tags.contains("cost-reduction"))) tags.add("ramp");
         if (text.contains("add one mana of any color") || text.contains("any color") || text.contains("mana of any one color")) tags.add("fixing");
         if (type.contains("artifact") && (text.contains("add ") || text.contains("mana"))) tags.add("mana-rock");
         if (type.contains("land") && (text.contains("search your library") || text.contains("sacrifice") && text.contains("basic land"))) tags.add("fetch-land");

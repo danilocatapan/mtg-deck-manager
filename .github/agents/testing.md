@@ -56,18 +56,25 @@ Checklist rapido
 
 Comandos atuais
 ---------------
-- Backend: em `backend`, rode `./mvnw.cmd test` no Windows ou `./mvnw test` no Linux/macOS.
+- Backend: em `backend`, no Windows/PowerShell rode Maven sempre com o preambulo do JDK 25 no mesmo comando; no Linux/macOS rode `./mvnw test`.
 - Backend com PostgreSQL local: suba `docker compose up -d postgres` e rode em `backend` com variaveis PostgreSQL/Flyway quando a mudanca tocar persistencia.
 - Frontend: em `frontend`, rode `npm run lint` e `npm run build`.
 - O frontend ainda nao possui script `test`; nao exigir `npm test` ate ele ser adicionado ao `package.json`.
 
 Executando Maven nos testes (Windows PowerShell)
 ------------------------------------------------
-No Windows, antes de chamar `mvn`/`./mvnw.cmd` no PowerShell, exporte o `JAVA_HOME` apontando para o JDK desejado:
+No Windows, chame `mvn`/`./mvnw.cmd` no mesmo bloco/comando que exporta `JAVA_HOME` apontando para o JDK 25. Nao rode `./mvnw.cmd test` cru no PowerShell, porque o ambiente pode usar Java 17 e falhar com `class file version 69.0`:
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2"
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
+./mvnw.cmd test
 ```
 
-Depois execute: `cd backend` seguido de `./mvnw.cmd test`.
+Para teste filtrado:
+
+```powershell
+$env:JAVA_HOME = "C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+./mvnw.cmd "-Dtest=NomeDoTeste" test
+```

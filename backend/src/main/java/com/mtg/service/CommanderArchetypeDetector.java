@@ -30,7 +30,8 @@ public class CommanderArchetypeDetector {
         if (allTags.contains("stax")) {
             archetype = "stax";
             plan = "limitar recursos dos oponentes e vencer com vantagem incremental protegida";
-        } else if (allTags.contains("combo-piece") && (allTags.contains("tutor") || roleSummary.averageCmc() <= 2.8)) {
+        } else if ((allTags.contains("combo-piece") || commanderTags.contains("cost-reduction"))
+                && (allTags.contains("tutor") || roleSummary.averageCmc() <= 2.8 || commanderTags.contains("cost-reduction"))) {
             archetype = "turbo-combo";
             plan = "montar uma condicao de vitoria compacta com velocidade e protecao";
         } else if (allTags.contains("token")) {
@@ -45,6 +46,9 @@ public class CommanderArchetypeDetector {
         } else if (allTags.contains("counterspell") && allTags.contains("selection")) {
             archetype = "spellslinger";
             plan = "encadear magicas baratas, selecao e interacao para manter ritmo";
+        } else if (isCommanderFocusedCombat(commanderCard, commanderTags)) {
+            archetype = "voltron";
+            plan = "converter o comandante em engine de pressao, haste e dano letal com uma ameaca por combate";
         } else if (allTags.contains("combat") || allTags.contains("trample") || allTags.contains("big-creature")) {
             archetype = "combat";
             plan = "acelerar ameacas relevantes e transformar combate em pressao letal";
@@ -70,8 +74,18 @@ public class CommanderArchetypeDetector {
 
     private List<String> signalTags(Set<String> tags) {
         return tags.stream()
-                .filter(tag -> Set.of("stax", "combo-piece", "tutor", "token", "sacrifice", "graveyard", "combat", "counterspell", "selection").contains(tag))
+                .filter(tag -> Set.of("stax", "combo-piece", "tutor", "token", "sacrifice", "graveyard", "combat", "counterspell", "selection", "cost-reduction").contains(tag))
                 .sorted()
                 .toList();
+    }
+
+    private boolean isCommanderFocusedCombat(CardResponseDTO commanderCard, Set<String> commanderTags) {
+        if (commanderCard == null || commanderTags == null) {
+            return false;
+        }
+        String oracle = commanderCard.oracleText() == null ? "" : commanderCard.oracleText().toLowerCase();
+        return (commanderTags.contains("combat") || commanderTags.contains("trample") || commanderTags.contains("haste"))
+                && (oracle.contains("target creature") || oracle.contains("equipped creature") || oracle.contains("enchanted creature"))
+                && (oracle.contains("+x/+x") || oracle.contains("gets +") || oracle.contains("double strike") || oracle.contains("infect"));
     }
 }

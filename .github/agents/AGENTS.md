@@ -194,14 +194,21 @@ Execucao local (desenvolvimento)
 --------------------------------
 - Frontend: em `frontend`, use `npm run dev` para desenvolvimento.
 - Frontend validation: em `frontend`, execute `npm run lint` e `npm run build`.
-- Backend (Windows / PowerShell): antes de executar comandos Maven locais, defina `JAVA_HOME` e atualize o `Path` com o JDK do desenvolvedor:
+- Backend (Windows / PowerShell): sempre execute comandos Maven locais no mesmo bloco/comando que define `JAVA_HOME` e atualiza o `Path` com o JDK do desenvolvedor. Nao rode `./mvnw.cmd test` cru no PowerShell, porque o shell pode cair no Java 17 do ambiente e falhar contra classes Java 25:
 
 ```powershell
 $env:JAVA_HOME = "C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2"
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
+./mvnw.cmd test
 ```
 
-Depois disso, em `backend`, execute `./mvnw.cmd test` ou `./mvnw.cmd clean install` conforme necessario.
+Para testes filtrados, mantenha o mesmo preambulo:
+
+```powershell
+$env:JAVA_HOME = "C:\Users\danilo.catapan\Documents\Java\jdk-25.0.2"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+./mvnw.cmd "-Dtest=DeckRecommendationIntegrationTest" test
+```
 
 Endpoints principais atuais
 ---------------------------

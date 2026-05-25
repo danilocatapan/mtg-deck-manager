@@ -151,6 +151,16 @@ public class CandidateAddSelector {
         }
 
         if (cards.size() < 12) {
+            for (CardResponseDTO card : stapleFallbackCards(profile, bracket)) {
+                knownCards.putIfAbsent(normalize(card.name()), card);
+                if (cards.size() >= 24) break;
+                if (addIfLegal(cards, card, existingNames, profile.colors(), filters, "color_staple_fallback")) {
+                    selectionOrigins.putIfAbsent(normalize(card.name()), "color_staple_fallback");
+                }
+            }
+        }
+
+        if (cards.size() < 12) {
             for (String role : prioritizedGapRoles(roles, profile)) {
                 for (CardResponseDTO card : fallbackCards(role, bracket)) {
                     knownCards.putIfAbsent(normalize(card.name()), card);
@@ -208,6 +218,9 @@ public class CandidateAddSelector {
             score += isCompetitiveBracket(bracket) ? 0.35 : 0.22;
             role = "combo-piece";
             LOG.infov("event=combo.recommendation.signal missingCard=\"{0}\" combo=\"{1}\"", card.name(), comboName);
+        }
+        if (gameChanger || !comboContexts.isEmpty()) {
+            score += isCompetitiveBracket(bracket) ? 0.18 : 0.10;
         }
         score = applyFilters(score, filters, card, role, commanderSynergy, archetypeFit);
         score *= assessment == null ? 1.0 : assessment.priorityFor(role);
@@ -347,7 +360,7 @@ public class CandidateAddSelector {
 
     private List<String> prioritizedGapRoles(DeckRoleSummary roles, CommanderArchetypeProfile profile) {
         List<String> result = new ArrayList<>(roles.gaps().keySet());
-        for (String role : List.of("draw", "ramp", "removal", "protection", "finisher")) {
+        for (String role : List.of("draw", "tutor", "ramp", "removal", "protection", "finisher")) {
             if (!result.contains(role)) {
                 result.add(role);
             }
@@ -430,9 +443,125 @@ public class CandidateAddSelector {
                     card("Flusterstorm", "{U}", "Instant", "Counter target instant or sorcery spell unless its controller pays {1}. Storm.", 1.0, "U"),
                     card("Swan Song", "{U}", "Instant", "Counter target enchantment, instant, or sorcery spell.", 1.0, "U"),
                     card("Dark Ritual", "{B}", "Instant", "Add {B}{B}{B}.", 1.0, "B"),
+                    card("Cabal Ritual", "{1}{B}", "Instant", "Add {B}{B}{B}. Threshold - Add {B}{B}{B}{B}{B} instead if seven or more cards are in your graveyard.", 2.0, "B"),
+                    card("Demonic Tutor", "{1}{B}", "Sorcery", "Search your library for a card, put that card into your hand, then shuffle.", 2.0, "B"),
+                    card("Vampiric Tutor", "{B}", "Instant", "Search your library for a card, then shuffle and put that card on top. You lose 2 life.", 1.0, "B"),
+                    card("Necropotence", "{B}{B}{B}", "Enchantment", "Skip your draw step. Pay 1 life: Exile the top card of your library face down. Put that card into your hand at the beginning of your next end step.", 3.0, "B"),
+                    card("Chrome Mox", "{0}", "Artifact", "Imprint. {T}: Add one mana of any of the exiled card's colors.", 0.0),
+                    card("Mana Vault", "{1}", "Artifact", "{T}: Add {C}{C}{C}. This artifact doesn't untap during your untap step.", 1.0),
+                    card("Lotus Petal", "{0}", "Artifact", "{T}, Sacrifice this artifact: Add one mana of any color.", 0.0),
                     card("Thassa's Oracle", "{U}{U}", "Creature - Merfolk Wizard", "When this creature enters, look at the top X cards of your library. If X is greater than or equal to the number of cards in your library, you win the game.", 2.0, "U"),
                     card("Demonic Consultation", "{B}", "Instant", "Name a card. Exile cards from the top of your library until you reveal the named card.", 1.0, "B")
             ));
+        }
+
+        return cards;
+    }
+
+    private List<CardResponseDTO> stapleFallbackCards(CommanderArchetypeProfile profile, String bracket) {
+        String normalizedBracket = bracket == null ? "casual" : bracket.toLowerCase(Locale.ROOT);
+        boolean competitive = "high-power".equals(normalizedBracket) || "cedh".equals(normalizedBracket);
+        Set<String> colors = profile == null || profile.colors() == null ? Set.of() : profile.colors();
+        List<CardResponseDTO> cards = new ArrayList<>();
+
+        cards.addAll(List.of(
+                card("Sol Ring", "{1}", "Artifact", "{T}: Add {C}{C}.", 1.0),
+                card("Arcane Signet", "{2}", "Artifact", "Add one mana of any color in your commander's color identity.", 2.0),
+                card("Fellwar Stone", "{2}", "Artifact", "Add one mana of any color that a land an opponent controls could produce.", 2.0)
+        ));
+        if (competitive) {
+            cards.addAll(List.of(
+                    card("Mana Vault", "{1}", "Artifact", "{T}: Add {C}{C}{C}. This artifact doesn't untap during your untap step.", 1.0),
+                    card("Chrome Mox", "{0}", "Artifact", "Imprint. {T}: Add one mana of any of the exiled card's colors.", 0.0),
+                    card("Mox Diamond", "{0}", "Artifact", "If this artifact would enter, discard a land card instead. {T}: Add one mana of any color.", 0.0),
+                    card("Lotus Petal", "{0}", "Artifact", "{T}, Sacrifice this artifact: Add one mana of any color.", 0.0),
+                    card("Grim Monolith", "{2}", "Artifact", "{T}: Add {C}{C}{C}. This artifact doesn't untap during your untap step.", 2.0)
+            ));
+        }
+
+        if (colors.contains("W")) {
+            cards.addAll(List.of(
+                    card("Swords to Plowshares", "{W}", "Instant", "Exile target creature. Its controller gains life equal to its power.", 1.0, "W"),
+                    card("Esper Sentinel", "{W}", "Artifact Creature - Human Soldier", "Whenever an opponent casts their first noncreature spell each turn, draw a card unless that player pays {X}.", 1.0, "W"),
+                    card("Enlightened Tutor", "{W}", "Instant", "Search your library for an artifact or enchantment card, reveal it, then shuffle and put that card on top.", 1.0, "W"),
+                    card("Silence", "{W}", "Instant", "Your opponents can't cast spells this turn.", 1.0, "W")
+            ));
+            if (competitive) {
+                cards.addAll(List.of(
+                        card("Drannith Magistrate", "{1}{W}", "Creature - Human Wizard", "Your opponents can't cast spells from anywhere other than their hands.", 2.0, "W"),
+                        card("Ranger-Captain of Eos", "{1}{W}{W}", "Creature - Human Soldier", "When this creature enters, search your library for a creature card with mana value 1 or less. Sacrifice it: Your opponents can't cast noncreature spells this turn.", 3.0, "W")
+                ));
+            }
+        }
+        if (colors.contains("U")) {
+            cards.addAll(List.of(
+                    card("Mystic Remora", "{U}", "Enchantment", "Whenever an opponent casts a noncreature spell, you may draw a card unless that player pays {4}.", 1.0, "U"),
+                    card("Rhystic Study", "{2}{U}", "Enchantment", "Whenever an opponent casts a spell, you may draw a card unless that player pays {1}.", 3.0, "U"),
+                    card("Swan Song", "{U}", "Instant", "Counter target enchantment, instant, or sorcery spell.", 1.0, "U"),
+                    card("Mystical Tutor", "{U}", "Instant", "Search your library for an instant or sorcery card, reveal it, then shuffle and put that card on top.", 1.0, "U"),
+                    card("Cyclonic Rift", "{1}{U}", "Instant", "Return target nonland permanent you don't control to its owner's hand. Overload {6}{U}.", 2.0, "U")
+            ));
+            if (competitive) {
+                cards.addAll(List.of(
+                        card("Flusterstorm", "{U}", "Instant", "Counter target instant or sorcery spell unless its controller pays {1}. Storm.", 1.0, "U"),
+                        card("Force of Will", "{3}{U}{U}", "Instant", "You may pay 1 life and exile a blue card from your hand rather than pay this spell's mana cost. Counter target spell.", 5.0, "U"),
+                        card("Fierce Guardianship", "{2}{U}", "Instant", "If you control a commander, you may cast this spell without paying its mana cost. Counter target noncreature spell.", 3.0, "U")
+                ));
+            }
+        }
+        if (colors.contains("B")) {
+            cards.addAll(List.of(
+                    card("Demonic Tutor", "{1}{B}", "Sorcery", "Search your library for a card, put that card into your hand, then shuffle.", 2.0, "B"),
+                    card("Vampiric Tutor", "{B}", "Instant", "Search your library for a card, then shuffle and put that card on top. You lose 2 life.", 1.0, "B"),
+                    card("Reanimate", "{B}", "Sorcery", "Put target creature card from a graveyard onto the battlefield under your control. You lose life equal to its mana value.", 1.0, "B"),
+                    card("Necropotence", "{B}{B}{B}", "Enchantment", "Skip your draw step. Pay 1 life: Exile the top card of your library face down. Put that card into your hand at the beginning of your next end step.", 3.0, "B"),
+                    card("Dark Ritual", "{B}", "Instant", "Add {B}{B}{B}.", 1.0, "B")
+            ));
+            if (competitive) {
+                cards.addAll(List.of(
+                        card("Imperial Seal", "{B}", "Sorcery", "Search your library for a card, then shuffle and put that card on top. You lose 2 life.", 1.0, "B"),
+                        card("Cabal Ritual", "{1}{B}", "Instant", "Add {B}{B}{B}. Threshold - Add {B}{B}{B}{B}{B} instead if seven or more cards are in your graveyard.", 2.0, "B"),
+                        card("Ad Nauseam", "{3}{B}{B}", "Instant", "Reveal the top card of your library and put that card into your hand. You lose life equal to its mana value. You may repeat this process any number of times.", 5.0, "B"),
+                        card("Opposition Agent", "{2}{B}", "Creature - Human Rogue", "Flash. You control your opponents while they're searching their libraries.", 3.0, "B"),
+                        card("Dauthi Voidwalker", "{B}{B}", "Creature - Dauthi Rogue", "Shadow. If a card would be put into an opponent's graveyard, exile it with a void counter instead.", 2.0, "B"),
+                        card("Toxic Deluge", "{2}{B}", "Sorcery", "As an additional cost to cast this spell, pay X life. All creatures get -X/-X until end of turn.", 3.0, "B"),
+                        card("Entomb", "{B}", "Instant", "Search your library for a card, put that card into your graveyard, then shuffle.", 1.0, "B")
+                ));
+            }
+        }
+        if (colors.contains("R")) {
+            cards.addAll(List.of(
+                    card("Chaos Warp", "{2}{R}", "Instant", "The owner of target permanent shuffles it into their library.", 3.0, "R"),
+                    card("Jeska's Will", "{2}{R}", "Sorcery", "Add red mana for each card in target opponent's hand. Exile the top three cards of your library. You may play them this turn.", 3.0, "R"),
+                    card("Gamble", "{R}", "Sorcery", "Search your library for a card, put that card into your hand, discard a card at random, then shuffle.", 1.0, "R")
+            ));
+            if (competitive) {
+                cards.addAll(List.of(
+                        card("Deflecting Swat", "{2}{R}", "Instant", "If you control a commander, you may cast this spell without paying its mana cost. You may choose new targets for target spell or ability.", 3.0, "R"),
+                        card("Pyroblast", "{R}", "Instant", "Choose one - Counter target spell if it's blue; or destroy target permanent if it's blue.", 1.0, "R"),
+                        card("Red Elemental Blast", "{R}", "Instant", "Choose one - Counter target blue spell; or destroy target blue permanent.", 1.0, "R"),
+                        card("Underworld Breach", "{1}{R}", "Enchantment", "Each nonland card in your graveyard has escape. The escape cost is equal to the card's mana cost plus exile three other cards from your graveyard.", 2.0, "R")
+                ));
+            }
+        }
+        if (colors.contains("G")) {
+            cards.addAll(List.of(
+                    card("Nature's Lore", "{1}{G}", "Sorcery", "Search your library for a Forest card and put it onto the battlefield.", 2.0, "G"),
+                    card("Three Visits", "{1}{G}", "Sorcery", "Search your library for a Forest card and put it onto the battlefield.", 2.0, "G"),
+                    card("Utopia Sprawl", "{G}", "Enchantment - Aura", "Enchant Forest. As this Aura enters, choose a color. Whenever enchanted Forest is tapped for mana, its controller adds one mana of the chosen color.", 1.0, "G"),
+                    card("Wild Growth", "{G}", "Enchantment - Aura", "Enchant land. Whenever enchanted land is tapped for mana, its controller adds an additional {G}.", 1.0, "G"),
+                    card("Worldly Tutor", "{G}", "Instant", "Search your library for a creature card, reveal it, then shuffle and put the card on top.", 1.0, "G"),
+                    card("Veil of Summer", "{G}", "Instant", "Draw a card if an opponent has cast a blue or black spell this turn. Spells you control can't be countered this turn.", 1.0, "G"),
+                    card("Nature's Claim", "{G}", "Instant", "Destroy target artifact or enchantment. Its controller gains 4 life.", 1.0, "G")
+            ));
+            if (competitive) {
+                cards.addAll(List.of(
+                        card("Crop Rotation", "{G}", "Instant", "As an additional cost to cast this spell, sacrifice a land. Search your library for a land card, put it onto the battlefield, then shuffle.", 1.0, "G"),
+                        card("Finale of Devastation", "{X}{G}{G}", "Sorcery", "Search your library and/or graveyard for a creature card with mana value X or less and put it onto the battlefield. If X is 10 or more, creatures you control get +X/+X and gain haste until end of turn.", 2.0, "G"),
+                        card("Sylvan Library", "{1}{G}", "Enchantment", "At the beginning of your draw step, you may draw two additional cards. If you do, choose two cards in your hand drawn this turn and pay 4 life for each or put them back on top.", 2.0, "G"),
+                        card("Delighted Halfling", "{G}", "Creature - Halfling Citizen", "{T}: Add {C}. {T}: Add one mana of any color. Spend this mana only to cast a legendary spell, and that spell can't be countered.", 1.0, "G")
+                ));
+            }
         }
 
         return cards;
@@ -469,9 +598,18 @@ public class CandidateAddSelector {
                     card("Greater Good", "{2}{G}{G}", "Enchantment", "Sacrifice a creature: Draw cards equal to the sacrificed creature's power, then discard three cards.", 4.0, "G"),
                     card("Harmonize", "{2}{G}{G}", "Sorcery", "Draw three cards.", 4.0, "G"),
                     card("Village Rites", "{B}", "Instant", "As an additional cost to cast this spell, sacrifice a creature. Draw two cards.", 1.0, "B"),
+                    card("Necropotence", "{B}{B}{B}", "Enchantment", "Skip your draw step. Pay 1 life: Exile the top card of your library face down. Put that card into your hand at the beginning of your next end step.", 3.0, "B"),
                     card("Fact or Fiction", "{3}{U}", "Instant", "Reveal the top five cards of your library. An opponent separates those cards into two piles. Put one pile into your hand.", 4.0, "U"),
                     card("Windfall", "{2}{U}", "Sorcery", "Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.", 3.0, "U"),
                     card("Archivist", "{2}{U}{U}", "Creature - Human Wizard", "{T}: Draw a card.", 4.0, "U")
+            );
+            case "tutor", "selection" -> List.of(
+                    card("Demonic Tutor", "{1}{B}", "Sorcery", "Search your library for a card, put that card into your hand, then shuffle.", 2.0, "B"),
+                    card("Vampiric Tutor", "{B}", "Instant", "Search your library for a card, then shuffle and put that card on top. You lose 2 life.", 1.0, "B"),
+                    card("Imperial Seal", "{B}", "Sorcery", "Search your library for a card, then shuffle and put that card on top. You lose 2 life.", 1.0, "B"),
+                    card("Worldly Tutor", "{G}", "Instant", "Search your library for a creature card, reveal it, then shuffle and put the card on top.", 1.0, "G"),
+                    card("Enlightened Tutor", "{W}", "Instant", "Search your library for an artifact or enchantment card, reveal it, then shuffle and put that card on top.", 1.0, "W"),
+                    card("Mystical Tutor", "{U}", "Instant", "Search your library for an instant or sorcery card, reveal it, then shuffle and put that card on top.", 1.0, "U")
             );
             case "removal" -> List.of(
                     card("Beast Within", "{2}{G}", "Instant", "Destroy target permanent.", 3.0, "G"),
@@ -513,11 +651,25 @@ public class CandidateAddSelector {
             case "ramp", "curve" -> List.of(
                     card("Sol Ring", "{1}", "Artifact", "{T}: Add {C}{C}.", 1.0),
                     card("Arcane Signet", "{2}", "Artifact", "Add one mana of any color in your commander's color identity.", 2.0),
-                    card("Dark Ritual", "{B}", "Instant", "Add {B}{B}{B}.", 1.0, "B")
+                    card("Dark Ritual", "{B}", "Instant", "Add {B}{B}{B}.", 1.0, "B"),
+                    card("Cabal Ritual", "{1}{B}", "Instant", "Add {B}{B}{B}. Threshold - Add {B}{B}{B}{B}{B} instead if seven or more cards are in your graveyard.", 2.0, "B"),
+                    card("Mana Vault", "{1}", "Artifact", "{T}: Add {C}{C}{C}. This artifact doesn't untap during your untap step.", 1.0),
+                    card("Chrome Mox", "{0}", "Artifact", "Imprint. {T}: Add one mana of any of the exiled card's colors.", 0.0),
+                    card("Lotus Petal", "{0}", "Artifact", "{T}, Sacrifice this artifact: Add one mana of any color.", 0.0)
             );
             case "draw" -> List.of(
                     card("Mystic Remora", "{U}", "Enchantment", "Whenever an opponent casts a noncreature spell, you may draw a card unless that player pays {4}.", 1.0, "U"),
-                    card("Rhystic Study", "{2}{U}", "Enchantment", "Whenever an opponent casts a spell, you may draw a card unless that player pays {1}.", 3.0, "U")
+                    card("Rhystic Study", "{2}{U}", "Enchantment", "Whenever an opponent casts a spell, you may draw a card unless that player pays {1}.", 3.0, "U"),
+                    card("Necropotence", "{B}{B}{B}", "Enchantment", "Skip your draw step. Pay 1 life: Exile the top card of your library face down. Put that card into your hand at the beginning of your next end step.", 3.0, "B"),
+                    card("Ad Nauseam", "{3}{B}{B}", "Instant", "Reveal the top card of your library and put that card into your hand. You lose life equal to its mana value. You may repeat this process any number of times.", 5.0, "B")
+            );
+            case "tutor", "selection" -> List.of(
+                    card("Demonic Tutor", "{1}{B}", "Sorcery", "Search your library for a card, put that card into your hand, then shuffle.", 2.0, "B"),
+                    card("Vampiric Tutor", "{B}", "Instant", "Search your library for a card, then shuffle and put that card on top. You lose 2 life.", 1.0, "B"),
+                    card("Imperial Seal", "{B}", "Sorcery", "Search your library for a card, then shuffle and put that card on top. You lose 2 life.", 1.0, "B"),
+                    card("Worldly Tutor", "{G}", "Instant", "Search your library for a creature card, reveal it, then shuffle and put the card on top.", 1.0, "G"),
+                    card("Mystical Tutor", "{U}", "Instant", "Search your library for an instant or sorcery card, reveal it, then shuffle and put that card on top.", 1.0, "U"),
+                    card("Enlightened Tutor", "{W}", "Instant", "Search your library for an artifact or enchantment card, reveal it, then shuffle and put that card on top.", 1.0, "W")
             );
             case "removal" -> List.of(
                     card("Flusterstorm", "{U}", "Instant", "Counter target instant or sorcery spell unless its controller pays {1}. Storm.", 1.0, "U"),

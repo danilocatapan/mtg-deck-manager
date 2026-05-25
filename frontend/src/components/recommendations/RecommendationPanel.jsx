@@ -97,7 +97,7 @@ export default function RecommendationPanel({
 
       {items.length > 0 && (
         <div className="recommendation-card-list">
-          {items.slice(0, 5).map((item, index) => (
+          {items.map((item, index) => (
             <RecommendationCard
               key={`${item.add}-${item.remove}-${index}`}
               item={item}

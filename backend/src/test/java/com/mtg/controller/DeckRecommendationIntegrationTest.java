@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -42,6 +43,7 @@ class DeckRecommendationIntegrationTest {
 
     private static final Set<String> GRAND_ARBITER_COLORS = Set.of("W", "U");
     private static final Set<String> XENAGOS_COLORS = Set.of("R", "G");
+    private static final Set<String> KRRRIK_COLORS = Set.of("B");
 
     @InjectMock
     CardService cardService;
@@ -188,6 +190,7 @@ class DeckRecommendationIntegrationTest {
         assertTrue(cutBreakdowns.stream().allMatch(breakdown -> breakdown != null && breakdown.containsKey("strategicKeepValue")));
 
         RecommendationAuditRun audit = auditRepository.listByDeckAndOwner(deckIdFromLocation(deckLocation), "google-user-1").getFirst();
+        assertTrue(Set.of("voltron", "combat").contains(audit.getArchetype()));
         assertTrue(audit.getRecommendationsJson().contains("addScoreBreakdown"));
         assertTrue(audit.getBlockedPairsJson().contains("reason") || audit.getBlockedPairsJson().equals("[]"));
         assertTrue(audit.getProtectedCutsJson().contains("Atarka, World Render") || audit.getProtectedCutsJson().contains("protected"));
@@ -198,6 +201,82 @@ class DeckRecommendationIntegrationTest {
                 .when().post("/recommendation-audits/" + audit.getId() + "/feedback")
                 .then()
                 .statusCode(204);
+    }
+
+    @Test
+    @TestSecurity(user = "google-user-1")
+    void seededKrrikCedhDeckReturnsBenchmarkAlignedRecommendations() {
+        String deckLocation = importFixtureDeck(
+                "Krrik cEDH benchmark fixture",
+                "K'rrik, Son of Yawgmoth",
+                "decklists/krrik-son-of-yawgmoth.txt"
+        );
+
+        io.restassured.path.json.JsonPath response = given()
+                .contentType(ContentType.JSON)
+                .body(Map.of(
+                        "bracket", "cedh",
+                        "strategy", "competitive",
+                        "maxRecommendations", 10
+                ))
+                .when().post(deckLocation + "/recommendations/strategic")
+                .then()
+                .statusCode(200)
+                .body("$", hasSize(10))
+                .body("add", everyItem(not(is("K'rrik, Son of Yawgmoth"))))
+                .body("remove", everyItem(not(is("K'rrik, Son of Yawgmoth"))))
+                .body("reasoning", everyItem(not(is(""))))
+                .extract()
+                .jsonPath();
+
+        List<String> adds = response.getList("add", String.class);
+        List<String> cuts = response.getList("remove", String.class);
+
+        Set<String> expectedAdds = Set.of(
+                "Cabal Ritual",
+                "Demonic Tutor",
+                "Vampiric Tutor",
+                "Mana Vault",
+                "Ancient Tomb",
+                "Necropotence",
+                "Chrome Mox",
+                "Imperial Seal",
+                "Grim Monolith",
+                "Mox Diamond",
+                "Buried Alive",
+                "Sacrifice",
+                "Rain of Filth",
+                "Shallow Grave",
+                "Snuff Out",
+                "Demonic Consultation",
+                "Lotus Petal",
+                "Lion's Eye Diamond"
+        );
+        Set<String> expectedCuts = Set.of(
+                "Temple of the False God",
+                "Memorial to Folly",
+                "Mortuary Mire",
+                "Charcoal Diamond",
+                "Coldsteel Heart",
+                "Phyrexian Arena",
+                "Underworld Dreams",
+                "Painful Quandary",
+                "Grave Titan",
+                "Massacre Wurm",
+                "Diabolic Tutor",
+                "The Sibsig Ceremony",
+                "Feed the Cycle"
+        );
+
+        assertTrue(adds.stream().filter(expectedAdds::contains).count() >= 6);
+        assertTrue(cuts.stream().filter(expectedCuts::contains).count() >= 4);
+        assertTrue(adds.stream().noneMatch(add -> Set.of("Thassa's Oracle", "Mystic Remora", "Rhystic Study", "Swan Song", "Flusterstorm").contains(add)));
+        assertTrue(adds.stream().noneMatch(cuts::contains));
+
+        RecommendationAuditRun audit = auditRepository.listByDeckAndOwner(deckIdFromLocation(deckLocation), "google-user-1").getFirst();
+        assertEquals("turbo-combo", audit.getArchetype());
+        assertTrue(audit.getRecommendationsJson().contains("addScoreBreakdown"));
+        assertTrue(audit.getBlockedPairsJson().contains("reason") || audit.getBlockedPairsJson().equals("[]"));
     }
 
     private String importFixtureDeck(String name, String commander, String fixturePath) {
@@ -259,6 +338,28 @@ class DeckRecommendationIntegrationTest {
         return switch (normalized) {
             case "grand arbiter augustin iv" -> card(name, "{2}{W}{U}", "Legendary Creature - Human Advisor", "White spells you cast cost {1} less to cast. Blue spells you cast cost {1} less to cast. Spells your opponents cast cost {1} more to cast.", 4.0, "W", "U");
             case "xenagos, god of revels" -> card(name, "{3}{R}{G}", "Legendary Enchantment Creature - God", "At the beginning of combat on your turn, another target creature you control gains haste and trample and gets +X/+X until end of turn.", 5.0, "R", "G");
+            case "k'rrik, son of yawgmoth" -> card(name, "{4}{B/P}{B/P}{B/P}", "Legendary Creature - Phyrexian Horror Minion", "For each {B} in a cost, you may pay 2 life rather than pay that mana. Whenever you cast a black spell, put a +1/+1 counter on K'rrik.", 7.0, "B");
+            case "cabal ritual" -> card(name, "{1}{B}", "Instant", "Add {B}{B}{B}. Threshold - Add {B}{B}{B}{B}{B} instead if seven or more cards are in your graveyard.", 2.0, "B");
+            case "demonic tutor" -> card(name, "{1}{B}", "Sorcery", "Search your library for a card, put that card into your hand, then shuffle.", 2.0, "B");
+            case "vampiric tutor" -> card(name, "{B}", "Instant", "Search your library for a card, then shuffle and put that card on top. You lose 2 life.", 1.0, "B");
+            case "mana vault" -> card(name, "{1}", "Artifact", "{T}: Add {C}{C}{C}. This artifact doesn't untap during your untap step.", 1.0);
+            case "ancient tomb" -> card(name, "", "Land", "{T}: Add {C}{C}. This land deals 2 damage to you.", 0.0);
+            case "necropotence" -> card(name, "{B}{B}{B}", "Enchantment", "Skip your draw step. Pay 1 life: Exile the top card of your library face down. Put that card into your hand at the beginning of your next end step.", 3.0, "B");
+            case "chrome mox" -> card(name, "{0}", "Artifact", "Imprint. {T}: Add one mana of any of the exiled card's colors.", 0.0);
+            case "imperial seal" -> card(name, "{B}", "Sorcery", "Search your library for a card, then shuffle and put that card on top. You lose 2 life.", 1.0, "B");
+            case "grim monolith" -> card(name, "{2}", "Artifact", "{T}: Add {C}{C}{C}. This artifact doesn't untap during your untap step.", 2.0);
+            case "mox diamond" -> card(name, "{0}", "Artifact", "If this artifact would enter, discard a land card instead. {T}: Add one mana of any color.", 0.0);
+            case "buried alive" -> card(name, "{2}{B}", "Sorcery", "Search your library for up to three creature cards, put them into your graveyard, then shuffle.", 3.0, "B");
+            case "sacrifice" -> card(name, "{B}", "Instant", "As an additional cost to cast this spell, sacrifice a creature. Add an amount of {B} equal to the sacrificed creature's mana value.", 1.0, "B");
+            case "vile entomber" -> card(name, "{2}{B}{B}", "Creature - Zombie Warlock", "Deathtouch. When this creature enters, search your library for a card, put that card into your graveyard, then shuffle.", 4.0, "B");
+            case "dauthi voidwalker" -> card(name, "{B}{B}", "Creature - Dauthi Rogue", "Shadow. If a card would be put into an opponent's graveyard, exile it with a void counter instead.", 2.0, "B");
+            case "rain of filth" -> card(name, "{B}", "Instant", "Until end of turn, lands you control gain Sacrifice this land: Add {B}.", 1.0, "B");
+            case "shallow grave" -> card(name, "{1}{B}", "Instant", "Return the top creature card of your graveyard to the battlefield. That creature gains haste. Exile it at the beginning of the next end step.", 2.0, "B");
+            case "snuff out" -> card(name, "{3}{B}", "Instant", "If you control a Swamp, you may pay 4 life rather than pay this spell's mana cost. Destroy target nonblack creature.", 4.0, "B");
+            case "ad nauseam" -> card(name, "{3}{B}{B}", "Instant", "Reveal the top card of your library and put that card into your hand. You lose life equal to its mana value. You may repeat this process any number of times.", 5.0, "B");
+            case "demonic consultation" -> card(name, "{B}", "Instant", "Name a card. Exile cards from the top of your library until you reveal the named card.", 1.0, "B");
+            case "lotus petal" -> card(name, "{0}", "Artifact", "{T}, Sacrifice this artifact: Add one mana of any color.", 0.0);
+            case "lion's eye diamond" -> card(name, "{0}", "Artifact", "Discard your hand, Sacrifice this artifact: Add three mana of any one color.", 0.0);
             case "nature's lore" -> card(name, "{1}{G}", "Sorcery", "Search your library for a Forest card and put it onto the battlefield.", 2.0, "G");
             case "farseek" -> card(name, "{1}{G}", "Sorcery", "Search your library for a Plains, Island, Swamp, or Mountain card and put it onto the battlefield tapped.", 2.0, "G");
             case "arcane signet" -> card(name, "{2}", "Artifact", "Add one mana of any color in your commander's color identity.", 2.0);
@@ -308,8 +409,20 @@ class DeckRecommendationIntegrationTest {
             case "soul's majesty" -> card(name, "{4}{G}", "Sorcery", "Draw cards equal to the power of target creature you control.", 5.0, "G");
             case "hunter's insight" -> card(name, "{2}{G}", "Instant", "Whenever target creature you control deals combat damage to a player or planeswalker this turn, draw that many cards.", 3.0, "G");
             case "temple of abandon" -> card(name, "", "Land", "This land enters tapped. When it enters, scry 1. Add {R} or {G}.", 0.0);
+            case "temple of the false god" -> card(name, "", "Land", "Add {C}{C}. Activate only if you control five or more lands.", 0.0);
+            case "memorial to folly", "mortuary mire" -> card(name, "", "Land", "This land enters tapped. Return a creature card from your graveyard to your hand.", 0.0);
             case "rugged highlands" -> card(name, "", "Land", "This land enters tapped. When it enters, you gain 1 life. Add {R} or {G}.", 0.0);
             case "gruul turf" -> card(name, "", "Land", "This land enters tapped. When it enters, return a land you control to its owner's hand. Add {R}{G}.", 0.0);
+            case "charcoal diamond" -> card(name, "{2}", "Artifact", "This artifact enters tapped. {T}: Add {B}.", 2.0);
+            case "coldsteel heart" -> card(name, "{2}", "Snow Artifact", "This artifact enters tapped. As it enters, choose a color. {T}: Add one mana of the chosen color.", 2.0);
+            case "phyrexian arena" -> card(name, "{1}{B}{B}", "Enchantment", "At the beginning of your upkeep, you draw a card and you lose 1 life.", 3.0, "B");
+            case "underworld dreams" -> card(name, "{B}{B}{B}", "Enchantment", "Whenever an opponent draws a card, this enchantment deals 1 damage to that player.", 3.0, "B");
+            case "painful quandary" -> card(name, "{3}{B}{B}", "Enchantment", "Whenever an opponent casts a spell, that player loses 5 life unless they discard a card.", 5.0, "B");
+            case "grave titan" -> card(name, "{4}{B}{B}", "Creature - Giant", "Deathtouch. Whenever this creature enters or attacks, create two 2/2 Zombie creature tokens.", 6.0, "B");
+            case "massacre wurm" -> card(name, "{3}{B}{B}{B}", "Creature - Phyrexian Wurm", "When this creature enters, creatures your opponents control get -2/-2 until end of turn.", 6.0, "B");
+            case "diabolic tutor" -> card(name, "{2}{B}{B}", "Sorcery", "Search your library for a card, put that card into your hand, then shuffle.", 4.0, "B");
+            case "the sibsig ceremony" -> card(name, "{2}{B}{B}", "Sorcery", "Mill cards, then return a creature card from your graveyard to your hand.", 4.0, "B");
+            case "feed the cycle" -> card(name, "{1}{B}", "Instant", "Destroy target creature or planeswalker. You lose 2 life.", 2.0, "B");
             case "path of ancestry", "evolving wilds", "terramorphic expanse" -> card(name, "", "Land", "Add one mana of any color in your commander's color identity.", 0.0);
             default -> inferredCard(name);
         };
@@ -349,6 +462,11 @@ class DeckRecommendationIntegrationTest {
         if (normalized.contains("xenagos") || normalized.contains("gruul") || normalized.contains("rhythm")
                 || normalized.contains("anger") || normalized.contains("dragon") || normalized.contains("blasphemous")) {
             return XENAGOS_COLORS.toArray(String[]::new);
+        }
+        if (normalized.contains("k'rrik") || normalized.contains("yawgmoth") || normalized.contains("phyrexian")
+                || normalized.contains("swamp") || normalized.contains("black") || normalized.contains("blood")
+                || normalized.contains("necrotic") || normalized.contains("demonic") || normalized.contains("vampiric")) {
+            return KRRRIK_COLORS.toArray(String[]::new);
         }
         if (normalized.contains("azorius") || normalized.contains("teferi") || normalized.contains("narset")
                 || normalized.contains("counter") || normalized.contains("swan") || normalized.contains("hanna")) {

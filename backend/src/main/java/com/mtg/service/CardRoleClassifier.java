@@ -55,7 +55,8 @@ public class CardRoleClassifier {
         return oracle.contains("add ")
                 || oracle.contains("search your library for a land")
                 || oracle.contains("put a land card")
-                || oracle.contains("cost") && oracle.contains("less to cast");
+                || oracle.contains("cost") && oracle.contains("less to cast")
+                || oracle.contains("rather than pay");
     }
 
     private boolean isTutor(String oracle) {

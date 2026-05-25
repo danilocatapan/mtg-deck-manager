@@ -1,0 +1,29 @@
+{
+  "commander": "K'rrik, Son of Yawgmoth",
+  "colors": ["B"],
+  "bracket": "cedh",
+  "sources": ["EDHREC", "Moxfield", "benchmark-gpt"],
+  "cards": [
+    { "name": "Cabal Ritual", "inclusion": 0.86, "role": "ramp", "avgCmc": 2.0 },
+    { "name": "Demonic Tutor", "inclusion": 0.84, "role": "tutor", "avgCmc": 2.0 },
+    { "name": "Vampiric Tutor", "inclusion": 0.82, "role": "tutor", "avgCmc": 1.0 },
+    { "name": "Mana Vault", "inclusion": 0.80, "role": "ramp", "avgCmc": 1.0 },
+    { "name": "Ancient Tomb", "inclusion": 0.78, "role": "land", "avgCmc": 0.0 },
+    { "name": "Necropotence", "inclusion": 0.77, "role": "draw", "avgCmc": 3.0 },
+    { "name": "Chrome Mox", "inclusion": 0.76, "role": "ramp", "avgCmc": 0.0 },
+    { "name": "Imperial Seal", "inclusion": 0.74, "role": "tutor", "avgCmc": 1.0 },
+    { "name": "Grim Monolith", "inclusion": 0.72, "role": "ramp", "avgCmc": 2.0 },
+    { "name": "Mox Diamond", "inclusion": 0.70, "role": "ramp", "avgCmc": 0.0 },
+    { "name": "Buried Alive", "inclusion": 0.68, "role": "tutor", "avgCmc": 3.0 },
+    { "name": "Sacrifice", "inclusion": 0.66, "role": "ramp", "avgCmc": 1.0 },
+    { "name": "Vile Entomber", "inclusion": 0.64, "role": "tutor", "avgCmc": 4.0 },
+    { "name": "Dauthi Voidwalker", "inclusion": 0.62, "role": "stax", "avgCmc": 2.0 },
+    { "name": "Rain of Filth", "inclusion": 0.60, "role": "ramp", "avgCmc": 1.0 },
+    { "name": "Shallow Grave", "inclusion": 0.58, "role": "recursion", "avgCmc": 2.0 },
+    { "name": "Snuff Out", "inclusion": 0.56, "role": "removal", "avgCmc": 4.0 },
+    { "name": "Ad Nauseam", "inclusion": 0.54, "role": "draw", "avgCmc": 5.0 },
+    { "name": "Demonic Consultation", "inclusion": 0.52, "role": "combo-piece", "avgCmc": 1.0 },
+    { "name": "Lotus Petal", "inclusion": 0.50, "role": "ramp", "avgCmc": 0.0 },
+    { "name": "Lion's Eye Diamond", "inclusion": 0.48, "role": "ramp", "avgCmc": 0.0 }
+  ]
+}

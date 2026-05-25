@@ -7,6 +7,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 ## [0.0.0-local] - 2026-05-24
 
 ### Added
+- Benchmark local para K'rrik, Son of Yawgmoth em cEDH, alinhando recomendacoes offline com sinais de EDHREC/Moxfield/GPT para rituais, tutors, fast mana, Necropotence, reanimacao e protecao.
 - Metadados de impressao nas cartas importadas (`scryfall_id`, edicao, numero de colecao, acabamento e imagem), preservando a arte correta quando listas Moxfield/MTG Arena/Archidekt trazem `(SET) numero` e foil.
 - Inventario `docs/codex-skills.md` documentando skills Codex instaladas, ganhos esperados, exemplos de uso e candidatos avaliados para backend, frontend, UX, seguranca, documentacao e recomendacoes.
 - Configuracao compartilhada `.codex/config.toml` para padronizar approvals conservadores, sandbox de workspace, busca cacheada, snapshot de shell e multi-agent em sessoes confiaveis do Codex.
@@ -28,6 +29,9 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Fallback generico de recomendacoes passa a usar staples por cor, papel e bracket quando nao ha perfil meta suficiente do comandante, sem substituir candidatos meta/arquetipo ja confiaveis.
+- Deteccao de arquetipo reconhece melhor Turbo/Combo por reducao de custo phyrexiana e Voltron por comandante focado em combate.
+- Tela de recomendacoes deixa de limitar visualmente a lista a 5 cards e passa a renderizar todas as trocas retornadas pelo backend.
 - Analise de curva e CMC medio passa a ignorar terrenos e classificar MDFCs pela face principal, evitando que cartas como Agadeem's Awakening sejam agrupadas como terreno.
 - Recomendacoes estrategicas passam a mirar 10 trocas por padrao quando houver pares legais suficientes, mantendo filtros de cor, duplicidade e cortes seguros.
 - Importacao de decks agora normaliza exportacoes com edicao/collector number, ignora sideboard/maybeboard em Commander e resolve cartas em lote pelo identificador de impressao antes de cair para nome.
