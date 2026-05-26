@@ -170,6 +170,13 @@ Invoke-WebRequest -UseBasicParsing http://localhost:5173/mtg-deck-manager/
 5. Se a porta `5173` estiver ocupada, use outra porta e mantenha o path `/mtg-deck-manager/`.
 6. Para encerrar servidor local iniciado pelo agente, use `Stop-Process -Id [PID]` somente no PID retornado pelo `Start-Process`.
 
+Execucao Playwright no Windows/PowerShell:
+- Antes de tentar automacao, confirme `npx.cmd -y playwright --version` ou `npx.cmd -y @playwright/test --version`. Nao perca tempo tentando `python -c "import playwright"` se o pacote Python nao estiver instalado neste ambiente.
+- Quando usar `webapp-testing/scripts/with_server.py`, passe executaveis Windows explicitamente: `npm.cmd` para subir Vite e `npx.cmd` para rodar Playwright. O helper pode nao resolver `npm`/`npx` sem `.cmd`.
+- Para specs temporarias sem `playwright.config.*`, rode `npx.cmd -y @playwright/test test [spec] --browser=chromium --reporter=line`. Nao use `--project=chromium` sem config, porque nao existe projeto nomeado por padrao.
+- Para scripts avulsos em Node, nao dependa de `npx -p playwright node -e "import ... from 'playwright'"`; neste ambiente o pacote pode ficar disponivel como CLI, mas nao como modulo resolvivel pelo `node` do repositorio.
+- Para fluxos autenticados com mocks, prefira uma spec temporaria do `@playwright/test` com `page.route`, `page.addInitScript` e `sessionStorage`, mantendo a URL real `http://127.0.0.1:[porta]/mtg-deck-manager/`.
+
 Estrategia de validacao com login/API:
 - Primeiro valide o estado real anonimo sem mocks: carregamento, chamada de login, tela publica, mensagens de API indisponivel/iniciando e layout.
 - Nao tente completar login Google real no Playwright sem token/credencial fornecida explicitamente. O login depende de Google Identity Services e normalmente bloqueia automacao/local sem configuracao real.
@@ -219,7 +226,7 @@ Endpoints principais atuais
 - `POST /decks/{id}/recommendations`, `POST /decks/{id}/recommendations/strategic`, `POST /decks/{id}/recommendations/apply-swap`, `POST /decks/{id}/recommendations/undo-swap`.
 - `GET /public/decks`, `GET /public/decks/top`, `GET /public/decks/{id}`, `POST /public/decks/{id}/copy`, `POST /public/decks/{id}/like`, `DELETE /public/decks/{id}/like`.
 - `GET /meta/sources`, `POST /meta/sync`, `GET /meta/decks`, `POST /meta/rebuild-profiles`, `GET /meta/commanders/{commander}`.
-- `POST /meta/external-decks/import`, `POST /meta/top-decks/import`, `GET /meta/top-decks`, `GET /meta/top-decks/{id}`, `POST /meta/top-decks/sync`.
+- `POST /meta/external-decks/import`, `POST /meta/top-decks/import`, `GET /meta/top-decks`, `GET /meta/top-decks/{id}`, `POST /meta/top-decks/sync`, `POST /meta/combos/sync`.
 - `POST /recommendation-audits/{id}/feedback`.
 - `GET /users/me/export` e `DELETE /users/me`.
 - `POST /security/status/check` para diagnostico read-only de seguranca; exige usuario autenticado com role `admin` ou subject configurado em `SECURITY_ADMIN_SUBJECTS`, nao deve expor secrets/dados pessoais e deve manter logs sem valores sensiveis.

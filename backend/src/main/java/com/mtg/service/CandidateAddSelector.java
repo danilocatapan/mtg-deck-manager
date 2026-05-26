@@ -117,9 +117,7 @@ public class CandidateAddSelector {
         List<CardResponseDTO> cards = new ArrayList<>();
         Map<String, String> comboSignals = comboSignals(deck);
         Map<String, String> selectionOrigins = new java.util.HashMap<>();
-        Set<String> deckCardNames = deck.getCards().stream()
-                .map(DeckCard::getName)
-                .collect(java.util.stream.Collectors.toSet());
+        Set<String> deckCardNames = deckNamesWithCommander(deck);
 
         for (MetaCard metaCard : metaCards.stream().limit(50).toList()) {
             CardResponseDTO card = knownCards.get(normalize(metaCard.getName()));
@@ -271,7 +269,7 @@ public class CandidateAddSelector {
 
     private Map<String, String> comboSignals(Deck deck) {
         ComboDetectionService service = comboDetectionService == null ? new ComboDetectionService() : comboDetectionService;
-        return service.completionSignals(deck.getCards().stream().map(DeckCard::getName).collect(java.util.stream.Collectors.toSet()))
+        return service.completionSignals(deckNamesWithCommander(deck))
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
                         signal -> normalize(signal.missingCard()),
@@ -284,6 +282,16 @@ public class CandidateAddSelector {
         ComboDetectionService service = comboDetectionService == null ? new ComboDetectionService() : comboDetectionService;
         List<ComboDetectionService.ComboRecommendationContext> contexts = service.recommendationContexts(candidateName, deckCardNames);
         return contexts == null ? List.of() : contexts;
+    }
+
+    private Set<String> deckNamesWithCommander(Deck deck) {
+        Set<String> names = deck.getCards().stream()
+                .map(DeckCard::getName)
+                .collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
+        if (deck.getCommander() != null && !deck.getCommander().isBlank()) {
+            names.add(deck.getCommander());
+        }
+        return names;
     }
 
     private void logComboDiagnostic(

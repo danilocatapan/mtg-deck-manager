@@ -1,7 +1,7 @@
 # MTG Deck Manager - Contexto do Projeto
 
-Versao: context-2026-05-21
-Ultima atualizacao: 2026-05-21
+Versao: context-2026-05-26
+Ultima atualizacao: 2026-05-26
 
 ## Objetivo
 
@@ -18,7 +18,7 @@ MTG Deck Manager e uma aplicacao para gerenciar, importar, consultar, analisar e
 - Backend: Java 25, Quarkus 3.35.2, RESTEasy Reactive/Quarkus REST, Jackson, SmallRye OpenAPI.
 - Persistencia: Hibernate ORM + Panache; H2 em `%dev`/`%test`; PostgreSQL 16+ em `%pg`/`%prod`; Flyway em `backend/src/main/resources/db/migration`.
 - Auth: Google OIDC via ID token Bearer. A API nao usa cookie de sessao.
-- Integracoes: Scryfall, Spicerack, TopDeck.gg, dataset local de meta e regras Commander em resources.
+- Integracoes: Scryfall, Spicerack, TopDeck.gg, Commander Spellbook para cache local de combos, dataset local de meta e regras Commander em resources.
 - Frontend: React 19.2, Vite 8, ESLint 10, estado local React, sem router dedicado.
 - CI/CD: GitHub Actions com backend H2, backend PostgreSQL, lint/build frontend, versionamento por tag, imagem backend GHCR, deploy backend por hook, smoke manual e GitHub Pages.
 
@@ -54,9 +54,9 @@ Controllers devem ficar finos. Regra de negocio deve viver em services/component
 - CRUD autenticado de decks privados/publicos.
 - Importacao e exportacao de decklists.
 - Vitrine publica com consulta read-only, filtro por comandante, copia de deck, likes e ranking.
-- Analise de deck: curva, CMC, roles, combos, probabilidade, mana base, comparacao e legalidade Commander.
+- Analise de deck: curva auditavel por cartas, CMC, roles, combos, probabilidade, mana base, comparacao e legalidade Commander.
 - Recomendacoes heuristicas e estrategicas com justificativas, score detalhado, adds/cuts, apply/undo swap e feedback/auditoria.
-- Ingestao de meta local, decks externos e top decks rankeados para grounding deterministico.
+- Ingestao de meta local, decks externos, top decks rankeados e combos conhecidos cacheados para grounding deterministico.
 - Admin de meta top decks no frontend para usuario Google autorizado.
 - Exportacao e exclusao de dados do usuario autenticado.
 - Diagnostico administrativo read-only de postura de seguranca.
@@ -114,6 +114,7 @@ Controllers devem ficar finos. Regra de negocio deve viver em services/component
 - `GET /meta/top-decks`
 - `GET /meta/top-decks/{id}`
 - `POST /meta/top-decks/sync`
+- `POST /meta/combos/sync`
 
 ### Auditoria, LGPD e Seguranca
 
@@ -146,7 +147,7 @@ Invariantes:
 
 ## Persistencia e Dados
 
-- Migrations Flyway vivem em `backend/src/main/resources/db/migration` e hoje cobrem schema de decks, historico, auditoria, visibilidade, decks externos, likes e meta top decks.
+- Migrations Flyway vivem em `backend/src/main/resources/db/migration` e hoje cobrem schema de decks, historico, auditoria, visibilidade, decks externos, likes, meta top decks e cache local de combos.
 - Dados locais de meta:
   - `backend/src/main/resources/meta_dataset.json`
   - `backend/src/main/resources/meta/commanders/`
@@ -155,6 +156,7 @@ Invariantes:
   - `backend/src/main/resources/rules/commander-game-changers.json`
 - Combos conhecidos:
   - `backend/src/main/resources/analysis/known-combos.json`
+  - tabelas `meta_combos` e `meta_combo_cards`, sincronizadas por `POST /meta/combos/sync` e usadas antes do JSON embarcado quando houver dados.
 
 ## Privacidade e Seguranca
 

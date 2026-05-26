@@ -24,6 +24,7 @@ public record DeckAnalysis(
         ProbabilityAnalysis probabilities,
         ExplainableScore score,
         Map<String, Integer> cardTags,
+        Map<Integer, List<RoleCard>> manaCurveCards,
         Map<String, List<RoleCard>> roleCards
 ) {
     public DeckAnalysis {
@@ -31,7 +32,8 @@ public record DeckAnalysis(
         roles = roles == null ? Map.of() : Map.copyOf(roles);
         manaCurveByType = manaCurveByType == null ? Map.of() : Map.copyOf(manaCurveByType);
         cardTags = cardTags == null ? Map.of() : Map.copyOf(cardTags);
-        roleCards = roleCards == null ? Map.of() : Map.copyOf(roleCards);
+        manaCurveCards = copyCardMap(manaCurveCards);
+        roleCards = copyCardMap(roleCards);
     }
 
     public DeckAnalysis(
@@ -72,6 +74,7 @@ public record DeckAnalysis(
                 probabilities,
                 score,
                 Map.of(),
+                Map.of(),
                 Map.of()
         );
     }
@@ -101,7 +104,21 @@ public record DeckAnalysis(
                 0,
                 ComboAnalysis.empty(),
                 ProbabilityAnalysis.empty(),
-                ExplainableScore.empty()
+                ExplainableScore.empty(),
+                Map.of(),
+                Map.of(),
+                Map.of()
         );
+    }
+
+    private static <K> Map<K, List<RoleCard>> copyCardMap(Map<K, List<RoleCard>> cardsByGroup) {
+        if (cardsByGroup == null || cardsByGroup.isEmpty()) {
+            return Map.of();
+        }
+        return cardsByGroup.entrySet().stream()
+                .collect(java.util.stream.Collectors.toUnmodifiableMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue() == null ? List.of() : List.copyOf(entry.getValue())
+                ));
     }
 }

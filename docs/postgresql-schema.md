@@ -1,7 +1,7 @@
 # PostgreSQL Schema Mapping
 
-Versao docs: 2026-05-21
-Ultima atualizacao: 2026-05-21
+Versao docs: 2026-05-26
+Ultima atualizacao: 2026-05-26
 
 ## Objetivo
 
@@ -24,6 +24,8 @@ Este documento resume o schema PostgreSQL atual do MTG Deck Manager e como ele s
 - `V7__add_deck_visibility_and_author.sql`: visibilidade e autor publico.
 - `V8__add_external_decks_and_likes.sql`: decks externos/publicos e likes.
 - `V9__create_meta_top_decks.sql`: top decks de meta e lotes de importacao.
+- `V10__add_card_printing_metadata.sql`: metadados de impressao de cartas.
+- `V11__create_meta_combos.sql`: cache local de combos e cartas de combo.
 
 ## Entidades Persistidas
 
@@ -34,6 +36,8 @@ Este documento resume o schema PostgreSQL atual do MTG Deck Manager e como ele s
 - `MetaTopDeck`: snapshot persistido de top deck externo/rankeado.
 - `MetaTopDeckCard`: cartas do top deck por secao/quantidade.
 - `MetaTopDeckImportBatch`: lote/status de importacao de top decks.
+- `MetaCombo`: definicao persistida de combo conhecida por fonte externa/local.
+- `MetaComboCard`: cartas normalizadas que compoem cada combo, incluindo slot de comandante quando aplicavel.
 
 Registros auxiliares em `service/meta` como `MetaDeck`, `MetaCard`, `CommanderMetaProfile` e similares podem ser dados transitorios ou derivados; so viram tabela quando houver entidade JPA e migration correspondente.
 
@@ -45,6 +49,7 @@ Registros auxiliares em `service/meta` como `MetaDeck`, `MetaCard`, `CommanderMe
 - Nomes de cartas por deck devem evitar duplicidade indevida; multiplas copias legitimas continuam representadas por `quantity`.
 - Auditorias devem guardar rastreabilidade suficiente sem exigir tokens, e-mail ou payload sensivel.
 - Top decks devem preservar origem, periodo, formato, bracket/arquetipo quando disponivel, rank e cartas para recalculo de sinais de meta.
+- Combos persistidos devem manter unicidade por `source` + `external_id` e indice por nome normalizado de carta para deteccao rapida.
 
 ## Regras para Alterar Schema
 

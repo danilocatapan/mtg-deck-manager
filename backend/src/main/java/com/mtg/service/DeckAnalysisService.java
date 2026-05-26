@@ -107,6 +107,7 @@ public class DeckAnalysisService {
         int winconCount = 0;
         int earlyGameCount = 0;
         Map<Integer, Integer> manaCurve = new HashMap<>();
+        Map<Integer, List<RoleCard>> manaCurveCards = new LinkedHashMap<>();
         Map<String, Integer> roles = new LinkedHashMap<>();
         Map<String, List<RoleCard>> roleCards = new LinkedHashMap<>();
         Map<String, Map<Integer, Integer>> manaCurveByType = new LinkedHashMap<>();
@@ -145,6 +146,7 @@ public class DeckAnalysisService {
 
                 int cmcKey = (int) Math.round(cmc);
                 manaCurve.merge(cmcKey, qty, Integer::sum);
+                addCurveCard(manaCurveCards, cmcKey, name, qty, card);
                 manaCurveByType.computeIfAbsent(typeGroup(type), ignored -> new HashMap<>()).merge(cmcKey, qty, Integer::sum);
             }
             addColorCosts(colorCosts, manaCost, qty);
@@ -203,6 +205,9 @@ public class DeckAnalysisService {
                 addRoleCard(roleCards, "land", name, qty, card);
             }
         }
+        if (deck.getCommander() != null && !deck.getCommander().isBlank()) {
+            deckNames.add(deck.getCommander());
+        }
 
         double averageCmc = curveCardCount > 0 ? cmcSum / (double) curveCardCount : 0.0;
         int untappedLandCount = Math.max(0, landCount - tappedLandCount);
@@ -256,6 +261,7 @@ public class DeckAnalysisService {
                 probabilities,
                 score,
                 cardTags,
+                manaCurveCards,
                 roleCards
         );
         LOG.debugv("analysis.result deckId={0} {1}", id, analysis);
@@ -288,6 +294,12 @@ public class DeckAnalysisService {
     private void addRoleCard(Map<String, List<RoleCard>> roleCards, String role, String name, int quantity, CardResponseDTO card) {
         if (name == null || name.isBlank() || quantity <= 0) return;
         roleCards.computeIfAbsent(role, ignored -> new ArrayList<>())
+                .add(new RoleCard(name, quantity, card == null ? null : card.imageUrl()));
+    }
+
+    private void addCurveCard(Map<Integer, List<RoleCard>> manaCurveCards, int cmc, String name, int quantity, CardResponseDTO card) {
+        if (name == null || name.isBlank() || quantity <= 0) return;
+        manaCurveCards.computeIfAbsent(cmc, ignored -> new ArrayList<>())
                 .add(new RoleCard(name, quantity, card == null ? null : card.imageUrl()));
     }
 

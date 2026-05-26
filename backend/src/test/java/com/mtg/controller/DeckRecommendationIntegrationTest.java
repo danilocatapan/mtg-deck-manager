@@ -272,6 +272,7 @@ class DeckRecommendationIntegrationTest {
         assertTrue(cuts.stream().filter(expectedCuts::contains).count() >= 4);
         assertTrue(adds.stream().noneMatch(add -> Set.of("Thassa's Oracle", "Mystic Remora", "Rhystic Study", "Swan Song", "Flusterstorm").contains(add)));
         assertTrue(adds.stream().noneMatch(cuts::contains));
+        assertTrue(cuts.stream().noneMatch(cut -> cut.equals("Vilis, Broker of Blood")));
 
         RecommendationAuditRun audit = auditRepository.listByDeckAndOwner(deckIdFromLocation(deckLocation), "google-user-1").getFirst();
         assertEquals("turbo-combo", audit.getArchetype());
@@ -421,6 +422,7 @@ class DeckRecommendationIntegrationTest {
             case "grave titan" -> card(name, "{4}{B}{B}", "Creature - Giant", "Deathtouch. Whenever this creature enters or attacks, create two 2/2 Zombie creature tokens.", 6.0, "B");
             case "massacre wurm" -> card(name, "{3}{B}{B}{B}", "Creature - Phyrexian Wurm", "When this creature enters, creatures your opponents control get -2/-2 until end of turn.", 6.0, "B");
             case "diabolic tutor" -> card(name, "{2}{B}{B}", "Sorcery", "Search your library for a card, put that card into your hand, then shuffle.", 4.0, "B");
+            case "vilis, broker of blood" -> card(name, "{5}{B}{B}{B}", "Legendary Creature - Demon", "Flying. Pay {B}, Pay 2 life: Target creature gets -1/-1 until end of turn. Whenever you lose life, draw that many cards.", 8.0, "B");
             case "the sibsig ceremony" -> card(name, "{2}{B}{B}", "Sorcery", "Mill cards, then return a creature card from your graveyard to your hand.", 4.0, "B");
             case "feed the cycle" -> card(name, "{1}{B}", "Instant", "Destroy target creature or planeswalker. You lose 2 life.", 2.0, "B");
             case "path of ancestry", "evolving wilds", "terramorphic expanse" -> card(name, "", "Land", "Add one mana of any color in your commander's color identity.", 0.0);

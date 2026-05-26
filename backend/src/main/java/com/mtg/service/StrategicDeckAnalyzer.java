@@ -79,9 +79,7 @@ public class StrategicDeckAnalyzer {
         if (genericThreats > 1 || roles.finishers() < finisherTarget(profile)) {
             builder.issue("low-inevitability").priority("finisher", 1.20).priority("combo-piece", 1.22);
         }
-        if (comboService().completionSignals(deck.getCards().stream()
-                .map(DeckCard::getName)
-                .collect(java.util.stream.Collectors.toSet())).size() > 0) {
+        if (comboService().completionSignals(deckNamesWithCommander(deck)).size() > 0) {
             builder.issue("low-combo-redundancy").priority("combo-piece", 1.30);
         }
         if (isOptimizedBracket(normalizedBracket)) {
@@ -191,6 +189,16 @@ public class StrategicDeckAnalyzer {
 
     private ComboDetectionService comboService() {
         return comboDetectionService == null ? new ComboDetectionService() : comboDetectionService;
+    }
+
+    private Set<String> deckNamesWithCommander(Deck deck) {
+        Set<String> names = deck.getCards().stream()
+                .map(DeckCard::getName)
+                .collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
+        if (deck.getCommander() != null && !deck.getCommander().isBlank()) {
+            names.add(deck.getCommander());
+        }
+        return names;
     }
 
     private CardRoleClassifier classifier() {

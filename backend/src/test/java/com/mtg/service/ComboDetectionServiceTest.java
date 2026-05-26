@@ -1,7 +1,13 @@
 package com.mtg.service;
 
+import com.mtg.model.MetaCombo;
+import com.mtg.model.MetaComboCard;
+import com.mtg.repository.MetaComboRepository;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,5 +58,46 @@ class ComboDetectionServiceTest {
                 .findFirst()
                 .orElseThrow()
                 .missingCard());
+    }
+
+    @Test
+    void usesPersistedCombosAndCommanderNamesWhenAvailable() {
+        ComboDetectionService persistedService = new ComboDetectionService();
+        MetaComboRepository repository = Mockito.mock(MetaComboRepository.class);
+        persistedService.comboRepository = repository;
+
+        MetaCombo combo = combo("K'rrik + Vilis + Aetherflux Reservoir",
+                "K'rrik, Son of Yawgmoth",
+                "Vilis, Broker of Blood",
+                "Aetherflux Reservoir");
+        Mockito.when(repository.listUsableCombos()).thenReturn(List.of(combo));
+
+        Set<String> deckNames = Set.of("K'rrik, Son of Yawgmoth", "Vilis, Broker of Blood", "Swamp");
+        var signals = persistedService.completionSignals(deckNames);
+        var protectedPieces = persistedService.protectedPieces(deckNames);
+
+        assertEquals("Aetherflux Reservoir", signals.getFirst().missingCard());
+        assertTrue(protectedPieces.contains("k'rrik, son of yawgmoth"));
+        assertTrue(protectedPieces.contains("vilis, broker of blood"));
+    }
+
+    private MetaCombo combo(String name, String... cards) {
+        MetaCombo combo = new MetaCombo();
+        combo.setSource("Commander Spellbook");
+        combo.setExternalId(name.toLowerCase());
+        combo.setName(name);
+        combo.setResultText("combo test");
+        combo.setSyncedAt(OffsetDateTime.now());
+        combo.setCards(java.util.Arrays.stream(cards)
+                .map(this::comboCard)
+                .toList());
+        return combo;
+    }
+
+    private MetaComboCard comboCard(String name) {
+        MetaComboCard card = new MetaComboCard();
+        card.setCardName(name);
+        card.setCardNormalized(name.toLowerCase());
+        return card;
     }
 }

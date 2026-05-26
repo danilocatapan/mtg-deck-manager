@@ -6,7 +6,10 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.mtg.domain.ComboAnalysis;
 import com.mtg.domain.ComboHit;
 import com.mtg.domain.ComboNearMiss;
+import com.mtg.model.MetaCombo;
+import com.mtg.repository.MetaComboRepository;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.io.InputStream;
@@ -25,6 +28,9 @@ public class ComboDetectionService {
 
     private final ObjectMapper mapper = JsonMapper.builder().build();
     private final AtomicReference<List<ComboDefinition>> combos = new AtomicReference<>();
+
+    @Inject
+    MetaComboRepository comboRepository;
 
     public ComboAnalysis analyze(Set<String> deckCardNames) {
         if (deckCardNames == null || deckCardNames.isEmpty()) {
@@ -96,14 +102,55 @@ public class ComboDetectionService {
         return protectedNames;
     }
 
+    public void clearCache() {
+        combos.set(null);
+    }
+
     private ComboSnapshot load() {
         List<ComboDefinition> current = combos.get();
         if (current != null) {
             return readMetadata(current);
         }
-        ComboSnapshot loaded = readSnapshot();
+        ComboSnapshot loaded = readPersistedSnapshot();
+        if (loaded.combos().isEmpty()) {
+            loaded = readSnapshot();
+        }
         combos.compareAndSet(null, loaded.combos());
         return loaded;
+    }
+
+    private ComboSnapshot readPersistedSnapshot() {
+        if (comboRepository == null) {
+            return ComboSnapshot.empty();
+        }
+        try {
+            List<MetaCombo> persisted = comboRepository.listUsableCombos();
+            if (persisted == null || persisted.isEmpty()) {
+                return ComboSnapshot.empty();
+            }
+            List<ComboDefinition> definitions = persisted.stream()
+                    .map(this::toDefinition)
+                    .filter(definition -> !definition.cards().isEmpty())
+                    .toList();
+            if (definitions.isEmpty()) {
+                return ComboSnapshot.empty();
+            }
+            return new ComboSnapshot("Commander Spellbook persisted cache", "db", "local", definitions);
+        } catch (Exception exception) {
+            LOG.warnv(exception, "event=combo.persisted_cache.load_failed");
+            return ComboSnapshot.empty();
+        }
+    }
+
+    private ComboDefinition toDefinition(MetaCombo combo) {
+        List<String> cards = combo.getCards().stream()
+                .map(card -> card.getCardName())
+                .filter(name -> name != null && !name.isBlank())
+                .toList();
+        String source = combo.getSourceUrl() == null || combo.getSourceUrl().isBlank()
+                ? combo.getSource()
+                : combo.getSource() + " " + combo.getSourceUrl();
+        return new ComboDefinition(combo.getName(), cards, combo.getResultText(), source);
     }
 
     private ComboSnapshot readSnapshot() {

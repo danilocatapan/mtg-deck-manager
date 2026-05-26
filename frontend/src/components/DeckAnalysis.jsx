@@ -7,7 +7,10 @@ export default function DeckAnalysis({ analysis }) {
   const [activeTab, setActiveTab] = useState('status')
   const vitals = useMemo(() => buildVitals(analysis), [analysis])
   const roleEntries = useMemo(() => buildRoleEntries(analysis?.roles, analysis?.roleCards), [analysis?.roles, analysis?.roleCards])
-  const curveEntries = useMemo(() => buildCurveEntries(analysis?.manaCurve), [analysis?.manaCurve])
+  const curveEntries = useMemo(
+    () => buildCurveEntries(analysis?.manaCurve, analysis?.manaCurveCards),
+    [analysis?.manaCurve, analysis?.manaCurveCards],
+  )
   const comboAlert = comboSummary(analysis?.combos)
 
   if (!analysis) return null
@@ -57,12 +60,25 @@ export default function DeckAnalysis({ analysis }) {
       {activeTab === 'curve' && (
         <section className="analysis-tab-panel" role="tabpanel">
           <div className="curve-chart" aria-label="Curva de mana">
-            {curveEntries.map((entry) => (
-              <div key={entry.label} className="curve-chart-row">
-                <span>{entry.label}</span>
-                <div><i style={{ width: `${entry.percent}%` }} /></div>
-                <strong>{entry.value}</strong>
-              </div>
+            {curveEntries.map((entry, index) => (
+              <details key={entry.label} className="curve-detail-card" open={index === 0 && entry.cards.length > 0}>
+                <summary>
+                  <span>{entry.label}</span>
+                  <div><i style={{ width: `${entry.percent}%` }} /></div>
+                  <strong>{entry.value}</strong>
+                </summary>
+                {entry.cards.length ? (
+                  <div className="curve-card-list">
+                    {entry.cards.map((card) => (
+                      <div key={`${entry.label}-${card.name}`} className="role-card-row">
+                        <CardNamePreview name={card.name} prefix={`${card.quantity || 1}x `} imageUrl={card.imageUrl} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-inline">A analise atual nao trouxe cartas detalhadas para este custo.</div>
+                )}
+              </details>
             ))}
           </div>
         </section>
@@ -194,15 +210,26 @@ function buildRoleEntries(roles = {}, roleCards = {}) {
     }))
 }
 
-function buildCurveEntries(manaCurve = {}) {
+function buildCurveEntries(manaCurve = {}, manaCurveCards = {}) {
   const grouped = Object.entries(manaCurve).reduce((acc, [key, value]) => {
     const numericKey = Number(key)
     const bucket = numericKey >= 7 ? 7 : numericKey
     acc.set(bucket, (acc.get(bucket) || 0) + (Number(value) || 0))
     return acc
   }, new Map())
+  const cardsByBucket = Object.entries(manaCurveCards || {}).reduce((acc, [key, cards]) => {
+    const numericKey = Number(key)
+    const bucket = numericKey >= 7 ? 7 : numericKey
+    acc.set(bucket, [...(acc.get(bucket) || []), ...(cards || [])])
+    return acc
+  }, new Map())
   const entries = [...grouped.entries()]
-    .map(([key, value]) => ({ label: key >= 7 ? '7+' : String(key), value, order: key }))
+    .map(([key, value]) => ({
+      label: key >= 7 ? '7+' : String(key),
+      value,
+      order: key,
+      cards: [...(cardsByBucket.get(key) || [])].sort((left, right) => String(left.name).localeCompare(String(right.name))),
+    }))
     .sort((left, right) => left.order - right.order)
   const max = Math.max(1, ...entries.map((entry) => entry.value))
   return entries.map((entry) => ({ ...entry, percent: Math.max(4, Math.round((entry.value / max) * 100)) }))

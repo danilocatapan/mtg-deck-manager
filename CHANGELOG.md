@@ -4,9 +4,11 @@ Todas as mudancas notaveis deste projeto serao documentadas aqui.
 
 O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e atualizado a partir das tags Git e mensagens de commit da release.
 
-## [0.0.0-local] - 2026-05-24
+## [0.0.0-local] - 2026-05-26
 
 ### Added
+- Cache local de combos conhecidos com tabelas `meta_combos`/`meta_combo_cards`, adapter Commander Spellbook e endpoint administrativo `POST /meta/combos/sync`.
+- Contrato de analise passa a expor `manaCurveCards`, permitindo auditar quais cartas compoem cada ponto da curva de mana.
 - Benchmark local para K'rrik, Son of Yawgmoth em cEDH, alinhando recomendacoes offline com sinais de EDHREC/Moxfield/GPT para rituais, tutors, fast mana, Necropotence, reanimacao e protecao.
 - Metadados de impressao nas cartas importadas (`scryfall_id`, edicao, numero de colecao, acabamento e imagem), preservando a arte correta quando listas Moxfield/MTG Arena/Archidekt trazem `(SET) numero` e foil.
 - Inventario `docs/codex-skills.md` documentando skills Codex instaladas, ganhos esperados, exemplos de uso e candidatos avaliados para backend, frontend, UX, seguranca, documentacao e recomendacoes.
@@ -29,6 +31,8 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Aba Curva da analise passa a listar as cartas por custo de mana, com agrupamento visual `7+`, mantendo a mesma soma exibida no grafico.
+- Detector de combos inclui o comandante no contexto de analise, recomendacao e protecao de pecas-chave.
 - Fallback generico de recomendacoes passa a usar staples por cor, papel e bracket quando nao ha perfil meta suficiente do comandante, sem substituir candidatos meta/arquetipo ja confiaveis.
 - Deteccao de arquetipo reconhece melhor Turbo/Combo por reducao de custo phyrexiana e Voltron por comandante focado em combate.
 - Tela de recomendacoes deixa de limitar visualmente a lista a 5 cards e passa a renderizar todas as trocas retornadas pelo backend.
@@ -61,6 +65,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Exclusao de decks no frontend passa a usar um dialogo proprio, mantendo a experiencia visual consistente.
 
 ### Fixed
+- Recomendacoes de K'rrik deixam de sugerir remover `Vilis, Broker of Blood` quando ele atua como engine de compra por perda de vida no plano turbo-combo.
 - Importacao e preview agora descontam o comandante quando ele aparece dentro da lista, preservando o formato Commander de 99 cartas no main deck mais comandante.
 - Terrenos que produzem mana deixam de ser classificados como ramp; ramp agora cobre apenas aceleracao alem do land drop normal.
 - Cartas dupla face/MDFC passam a usar nome, custo, tipo, texto e imagem da face principal quando resolvidas pelo Scryfall.

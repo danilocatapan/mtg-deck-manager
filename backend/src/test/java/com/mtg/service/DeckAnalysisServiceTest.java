@@ -54,6 +54,7 @@ class DeckAnalysisServiceTest {
         assertEquals(1.0, analysis.averageCmc(), 0.0001);
         assertEquals(1, analysis.rampCount());
         assertEquals(2, analysis.drawCount());
+        assertEquals(3, analysis.manaCurveCards().get(1).stream().mapToInt(com.mtg.domain.RoleCard::quantity).sum());
         assertEquals("Sol Ring", analysis.roleCards().get("ramp").getFirst().name());
         assertEquals(1, analysis.roleCards().get("ramp").getFirst().quantity());
         assertEquals("https://img.test/sol-ring.jpg", analysis.roleCards().get("ramp").getFirst().imageUrl());
@@ -141,6 +142,13 @@ class DeckAnalysisServiceTest {
         assertEquals(1, analysis.manaCurve().get(1));
         assertEquals(1, analysis.manaCurve().get(2));
         assertEquals(1, analysis.manaCurve().get(3));
+        assertEquals(analysis.manaCurve().values().stream().mapToInt(Integer::intValue).sum(),
+                analysis.manaCurveCards().values().stream()
+                        .flatMap(List::stream)
+                        .mapToInt(com.mtg.domain.RoleCard::quantity)
+                        .sum());
+        assertEquals("Agadeem's Awakening", analysis.manaCurveCards().get(3).getFirst().name());
+        assertEquals("https://img.test/agadeem.jpg", analysis.manaCurveCards().get(3).getFirst().imageUrl());
         assertEquals(2.0, analysis.averageCmc(), 0.0001);
         assertEquals(11, analysis.roles().get("land"));
         assertEquals(1, analysis.manaCurveByType().get("sorcery").get(3));

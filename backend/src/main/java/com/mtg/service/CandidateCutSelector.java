@@ -315,6 +315,7 @@ public class CandidateCutSelector {
         if ("finisher".equals(role)) value += 0.38;
         if ("draw".equals(role) && (oracle.contains("whenever") || oracle.contains("sacrifice"))) value += 0.18;
         if ("protection".equals(role) && (oracle.contains("indestructible") || oracle.contains("hexproof"))) value += 0.18;
+        if (isLifeLossDrawEngine(oracle) && ("turbo-combo".equals(archetype) || oracle.contains("pay life"))) value += 0.78;
 
         if (isCombat(archetype) || "voltron".equals(archetype)) {
             if (hasCombatLethality(card)) value += 0.38;
@@ -337,6 +338,10 @@ public class CandidateCutSelector {
         if (type.contains("legendary") && value >= 0.45) value += 0.06;
 
         return Math.min(1.0, value);
+    }
+
+    private boolean isLifeLossDrawEngine(String oracle) {
+        return oracle.contains("whenever you lose life") && oracle.contains("draw");
     }
 
     private boolean isGenericExpensiveThreat(CardResponseDTO card) {
@@ -396,9 +401,13 @@ public class CandidateCutSelector {
 
     private Set<String> protectedComboPieces(Deck deck) {
         ComboDetectionService service = comboDetectionService == null ? new ComboDetectionService() : comboDetectionService;
-        return service.protectedPieces(deck.getCards().stream()
+        Set<String> names = deck.getCards().stream()
                 .map(DeckCard::getName)
-                .collect(java.util.stream.Collectors.toSet()));
+                .collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
+        if (deck.getCommander() != null && !deck.getCommander().isBlank()) {
+            names.add(deck.getCommander());
+        }
+        return service.protectedPieces(names);
     }
 
     private boolean canCutComboPiece(DeckCard deckCard, Set<String> protectedComboPieces) {

@@ -6,6 +6,7 @@ import com.mtg.dto.MetaTopDeckImportRequestDTO;
 import com.mtg.dto.MetaTopDeckImportResponseDTO;
 import com.mtg.dto.MetaTopDeckSyncRequestDTO;
 import com.mtg.service.AuthenticatedUserService;
+import com.mtg.service.CommanderSpellbookComboSyncService;
 import com.mtg.service.ExternalDeckImportService;
 import com.mtg.service.MetaTopDeckService;
 import com.mtg.service.meta.CommanderMetaProfile;
@@ -59,6 +60,9 @@ public class MetaController {
 
     @Inject
     MetaTopDeckService metaTopDeckService;
+
+    @Inject
+    CommanderSpellbookComboSyncService comboSyncService;
 
     @Inject
     AuthenticatedUserService authenticatedUserService;
@@ -177,6 +181,20 @@ public class MetaController {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         return Response.ok(metaTopDeckService.sync(request)).build();
+    }
+
+    @POST
+    @Path("/combos/sync")
+    public Response syncCombos(
+            @HeaderParam("X-Admin-Key") String adminKey,
+            @QueryParam("query") String query,
+            @QueryParam("limit") Integer limit
+    ) {
+        if (!isTopDeckAdminAuthorized(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        int imported = comboSyncService.sync(query == null || query.isBlank() ? "legal:commander" : query, limit == null ? 500 : limit);
+        return Response.ok(Map.of("source", "Commander Spellbook", "imported", imported)).build();
     }
 
     @GET
