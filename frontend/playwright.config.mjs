@@ -15,6 +15,10 @@ export default defineConfig({
       name: 'chromium-desktop',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } },
     },
+    {
+      name: 'chromium-mobile',
+      use: { ...devices['Pixel 5'], viewport: { width: 390, height: 844 } },
+    },
   ],
   webServer: {
     command: 'npm run dev -- --host 127.0.0.1 --port 5173',
@@ -24,6 +28,7 @@ export default defineConfig({
     env: {
       ...process.env,
       VITE_GOOGLE_CLIENT_ID: 'test-client',
+      VITE_CONTACT_FORM_ENDPOINT: 'http://127.0.0.1:8080/contact-test',
     },
   },
 })

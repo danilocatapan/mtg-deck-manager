@@ -4898,6 +4898,10 @@ button:disabled {
   color: var(--color-text);
 }
 
+.swap-confirm-route {
+  pointer-events: none;
+}
+
 .status.error,
 .field-error {
   color: var(--color-on-danger);

@@ -209,6 +209,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
       - name: Lint frontend
         run: npm run lint
 
@@ -221,6 +224,18 @@ jobs:
           VITE_BRANCH: ${{ needs.version.outputs.branch }}
           VITE_BUILD_TIME: ${{ needs.version.outputs.build_time }}
           VITE_APP_ENVIRONMENT: ci
+
+      - name: Test frontend e2e
+        run: npm run test:e2e
+        env:
+          VITE_GOOGLE_CLIENT_ID: test-client
+          VITE_CONTACT_FORM_ENDPOINT: http://127.0.0.1:8080/contact-test
+
+      - name: Test frontend accessibility
+        run: npm run test:a11y
+        env:
+          VITE_GOOGLE_CLIENT_ID: test-client
+          VITE_CONTACT_FORM_ENDPOINT: http://127.0.0.1:8080/contact-test
 
   release-tag:
     name: Create release tag

@@ -62,6 +62,7 @@ Comandos atuais
 - Frontend: em `frontend`, rode `npm run lint` e `npm run build`.
 - Frontend e2e: em `frontend`, rode `npm run test:e2e` para fluxos anonimos/autenticados com mocks.
 - Frontend a11y: em `frontend`, rode `npm run test:a11y` para axe em desktop/mobile e checagem de contraste semantico.
+- CI frontend executa lint, build, e2e e a11y; se Playwright falhar, priorize corrigir o comportamento ou o mock em vez de remover cobertura.
 - Os testes Playwright autenticados devem simular `sessionStorage` com token fake e interceptar REST pelos contratos existentes; nao usar login Google real.
 - Violacoes axe so podem ser aceitas com comentario explicito no teste explicando o motivo, o escopo e o plano de remocao.
 

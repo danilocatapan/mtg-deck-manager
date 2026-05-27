@@ -1,5 +1,9 @@
 const CONTACT_FORM_ENDPOINT = import.meta.env.VITE_CONTACT_FORM_ENDPOINT || ''
 
+function contactFormEndpoint() {
+  return window.__MTG_CONTACT_FORM_ENDPOINT__ || CONTACT_FORM_ENDPOINT
+}
+
 export class ContactConfigError extends Error {
   constructor(message = 'Canal de contato indisponivel.') {
     super(message)
@@ -9,7 +13,8 @@ export class ContactConfigError extends Error {
 }
 
 export async function sendContactMessage(message) {
-  if (!CONTACT_FORM_ENDPOINT) {
+  const endpoint = contactFormEndpoint()
+  if (!endpoint) {
     throw new ContactConfigError()
   }
 
@@ -23,7 +28,7 @@ export async function sendContactMessage(message) {
   formData.append('relatedDeck', message.relatedDeck)
   formData.append('_gotcha', message.honeypot)
 
-  const response = await fetch(CONTACT_FORM_ENDPOINT, {
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       Accept: 'application/json',

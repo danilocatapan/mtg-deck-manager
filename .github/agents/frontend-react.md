@@ -40,6 +40,8 @@ Baseline UX/Acessibilidade
 - Elementos coloridos precisam de texto, icone, padrao ou legenda alem da cor. Validar contraste AA nos pares semanticos principais e preferir AAA em texto normal quando barato.
 - Loading labels devem preservar contexto da tarefa, como "Salvando deck...", "Aplicando troca..." e "Copiando deck...".
 - Hash routes compartilhaveis seguem a convencao `#/contact`, `#/release-notes`, `#/meta-admin`, `#/import` e `#/public/:id` ate uma futura migracao para router dedicado.
+- Estados internos essenciais de deck podem usar hash routes sem router runtime, como `#/deck/:id/edit`, `#/deck/:id/analysis` e `#/deck/:id/recommendations`.
+- Migrar para React Router somente quando houver necessidade concreta de rotas aninhadas, historico complexo, data loaders ou preservacao de estado que o helper de hash nao consiga manter com clareza.
 
 Guardrails de refatoracao segura
 --------------------------------

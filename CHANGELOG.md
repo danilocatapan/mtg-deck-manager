@@ -34,6 +34,8 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Frontend agora documenta baseline WCAG 2.2 AA com AAA oportunista, checklist de teclado/foco/contraste e governanca Playwright/axe para mudancas de UI.
 - Testes frontend ganharam scripts `test:e2e` e `test:a11y`, mocks de REST/login Google, validacao axe desktop/mobile e checagem de contraste dos tokens semanticos principais.
 - Navegacao por hash foi centralizada em helper local, com rotas compartilhaveis `#/contact`, `#/release-notes`, `#/meta-admin`, `#/import` e `#/public/:id`.
+- CI frontend passa a rodar Playwright e axe, e a SPA aceita hash routes internas para editar, analisar e abrir recomendacoes de decks salvos sem adicionar router runtime.
+- Cobertura Playwright foi ampliada para mobile e para estados de API iniciando, contato, release notes vazias, Meta Admin, popovers e dialogs por teclado.
 - Criacao e importacao exibem uma previa publica quando a visibilidade e `Publico`, explicando vitrine, likes, copia e dados privados que nao sao expostos.
 - Acessibilidade do frontend reforcada com dialogs focados, tabs com teclado, disclosures em recomendacoes, popovers de carta acionaveis por foco e labels de carregamento contextuais.
 - Importacao e edicao de decks passam a exibir validacao de campos, motivos para a acao desabilitada e microcopy de privacidade para decks publicos.

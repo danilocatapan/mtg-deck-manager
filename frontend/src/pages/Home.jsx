@@ -152,6 +152,12 @@ export default function Home({ route = { name: HASH_ROUTES.HOME }, onNavigate })
     }
 
     if (route.name === HASH_ROUTES.PUBLIC_DECK && route.deckId) {
+      if (route.commander) {
+        queueMicrotask(() => {
+          setPublicCommanderFilter(route.commander)
+          setDebouncedPublicCommanderFilter(route.commander)
+        })
+      }
       let cancelled = false
       async function loadSharedDeck() {
         try {
@@ -170,6 +176,46 @@ export default function Home({ route = { name: HASH_ROUTES.HOME }, onNavigate })
         }
       }
       queueMicrotask(loadSharedDeck)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    if (route.name === HASH_ROUTES.DECK_EDITOR && route.deckId) {
+      if (!isAuthenticated) {
+        queueMicrotask(() => {
+          setMessage('Entre com Google antes de editar decks.')
+          setView('home')
+        })
+        return
+      }
+
+      let cancelled = false
+      async function loadSharedEditorDeck() {
+        try {
+          setMessage(null)
+          const loadedDecks = await fetchDecks({ throwOnError: true })
+          if (cancelled) return
+          const deck = loadedDecks.find((item) => String(item.id) === String(route.deckId))
+          if (!deck) {
+            setMessage('Deck nao encontrado na sua biblioteca.')
+            setView('home')
+            return
+          }
+          setDecks(loadedDecks)
+          setEditingDeck(deck)
+          setEditorNotice(null)
+          setView('edit')
+        } catch (error) {
+          console.error('load route deck failed')
+          if (!cancelled) {
+            setApiStatus(error instanceof ApiStartingError ? 'starting' : 'unavailable')
+            setMessage('Nao foi possivel abrir este deck.')
+            setView('home')
+          }
+        }
+      }
+      queueMicrotask(loadSharedEditorDeck)
       return () => {
         cancelled = true
       }
@@ -217,11 +263,12 @@ export default function Home({ route = { name: HASH_ROUTES.HOME }, onNavigate })
     setMessage(null)
     setEditorNotice(null)
     setEditingDeck(deck)
+    onNavigate?.({ name: HASH_ROUTES.DECK_EDITOR, deckId: deck.id, panel: 'edit' })
     setView('edit')
   }
 
   async function handleConsult(deck) {
-    onNavigate?.({ name: HASH_ROUTES.PUBLIC_DECK, deckId: deck.id })
+    onNavigate?.({ name: HASH_ROUTES.PUBLIC_DECK, deckId: deck.id, commander: debouncedPublicCommanderFilter })
     try {
       setMessage(null)
       const loadedDeck = await getPublicDeck(deck.id)
@@ -246,6 +293,7 @@ export default function Home({ route = { name: HASH_ROUTES.HOME }, onNavigate })
       const copiedDeck = await copyPublicDeck(deck.id)
       setEditingDeck(copiedDeck)
       setEditorNotice('Deck copiado para sua biblioteca como privado.')
+      onNavigate?.({ name: HASH_ROUTES.DECK_EDITOR, deckId: copiedDeck.id, panel: 'edit' })
       setView('edit')
       await load()
     } catch (error) {
@@ -319,11 +367,12 @@ export default function Home({ route = { name: HASH_ROUTES.HOME }, onNavigate })
   }
 
   function handleDone(nextMessage, nextDeck = null) {
-    onNavigate?.({ name: HASH_ROUTES.HOME })
     if (nextDeck) {
       setEditingDeck(nextDeck)
+      onNavigate?.({ name: HASH_ROUTES.DECK_EDITOR, deckId: nextDeck.id, panel: 'edit' })
       setView('edit')
     } else {
+      onNavigate?.({ name: HASH_ROUTES.HOME })
       setView('home')
     }
     setEditorNotice(null)
@@ -346,7 +395,20 @@ export default function Home({ route = { name: HASH_ROUTES.HOME }, onNavigate })
   }
 
   if (view === 'create' || view === 'edit') {
-    return <DeckEditorPage mode={view === 'create' ? 'create' : 'edit'} deck={editingDeck} initialMessage={editorNotice} onDone={handleDone} />
+    return (
+      <DeckEditorPage
+        mode={view === 'create' ? 'create' : 'edit'}
+        deck={editingDeck}
+        initialMessage={editorNotice}
+        initialPanel={route.name === HASH_ROUTES.DECK_EDITOR ? route.panel : 'edit'}
+        onPanelChange={(panel) => {
+          if (view === 'edit' && editingDeck?.id) {
+            onNavigate?.({ name: HASH_ROUTES.DECK_EDITOR, deckId: editingDeck.id, panel })
+          }
+        }}
+        onDone={handleDone}
+      />
+    )
   }
 
   if (view === 'import') {

@@ -29,6 +29,7 @@ export default defineConfig({
     env: {
       ...process.env,
       VITE_GOOGLE_CLIENT_ID: 'test-client',
+      VITE_CONTACT_FORM_ENDPOINT: 'http://127.0.0.1:8080/contact-test',
     },
   },
 })

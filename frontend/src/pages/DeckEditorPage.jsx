@@ -22,7 +22,7 @@ import ModalDialog from '../components/ui/ModalDialog'
 import analyzeIcon from '../assets/icons/analyze.png'
 import recommendIcon from '../assets/icons/recommend.png'
 
-export default function DeckEditorPage({ mode = 'create', deck = null, initialMessage = null, onDone }) {
+export default function DeckEditorPage({ mode = 'create', deck = null, initialMessage = null, initialPanel = 'edit', onPanelChange, onDone }) {
   const [analysis, setAnalysis] = useState(null)
   const [legality, setLegality] = useState(null)
   const [rec, setRec] = useState(null)
@@ -37,7 +37,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
   const [recommendationError, setRecommendationError] = useState(null)
   const [message, setMessage] = useState(initialMessage)
   const [error, setError] = useState(null)
-  const [activePanel, setActivePanel] = useState('editor')
+  const [activePanel, setActivePanel] = useState(panelToActiveKey(initialPanel))
   const [currentDeck, setCurrentDeck] = useState(deck)
   const [applyingSwapKey, setApplyingSwapKey] = useState(null)
   const [appliedSwapKeys, setAppliedSwapKeys] = useState(() => new Set())
@@ -47,6 +47,12 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
   const savedCardCount = useMemo(() => currentDeck?.cards
     .reduce((sum, card) => sum + Number(card.quantity || 0), 0) ?? 0, [currentDeck])
   const canAnalyze = mode === 'edit' && currentDeck?.id && savedCardCount > 0 && savedCardCount <= 99
+
+  useEffect(() => {
+    const nextPanel = panelToActiveKey(initialPanel)
+    if (nextPanel === activePanel) return
+    queueMicrotask(() => setActivePanel(nextPanel))
+  }, [activePanel, initialPanel])
 
   const refreshLegality = useCallback(async function refreshDeckLegality(deckId = currentDeck?.id) {
     if (!deckId) return
@@ -112,7 +118,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
       const deckAnalysis = await getDeckAnalysis(currentDeck.id)
       await refreshLegality(currentDeck.id)
       setAnalysis(deckAnalysis)
-      setActivePanel('analysis')
+      changePanel('analysis')
       setMessage('Análise atualizada.')
     } catch (e) {
       console.error('analysis error')
@@ -142,7 +148,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
       setRec(recommendations)
       setMetaProfile(profile)
       setComparison(deckComparison)
-      setActivePanel('recommendations')
+      changePanel('recommendations')
       setMessage(`${Array.isArray(recommendations) ? recommendations.length : 0} recomendações estratégicas geradas.`)
     } catch (e) {
       console.error('recommendations error')
@@ -226,6 +232,11 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
     window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
   }
 
+  function changePanel(panel) {
+    setActivePanel(panel)
+    onPanelChange?.(activeKeyToRoutePanel(panel))
+  }
+
   return (
     <section>
       <div className="zone zone-command page-heading deck-editor-heading">
@@ -249,7 +260,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
             className="step"
             data-state={step.state}
             aria-current={step.state === 'active' ? 'step' : undefined}
-            onClick={() => setActivePanel(step.key)}
+            onClick={() => changePanel(step.key)}
             disabled={step.state === 'locked'}
           >
             <strong>{index + 1}</strong>
@@ -332,7 +343,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
             <img className="btn-icon" src={analyzeIcon} alt="" aria-hidden="true" />
             {loadingAnalysis ? 'Analisando...' : 'Analisar Deck'}
           </Button>
-          <Button variant="secondary" onClick={() => setActivePanel('recommendations')} disabled={!canAnalyze}>
+          <Button variant="secondary" onClick={() => changePanel('recommendations')} disabled={!canAnalyze}>
             <img className="btn-icon" src={recommendIcon} alt="" aria-hidden="true" />
             Abrir recomendações
           </Button>
@@ -343,7 +354,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
           label="Acoes do deck"
           actions={[
             { label: 'Analisar', onClick: handleAnalyze, disabled: !canAnalyze || loadingAnalysis, icon: analyzeIcon },
-            { label: 'Recomendacoes', onClick: () => setActivePanel('recommendations'), disabled: !canAnalyze, icon: recommendIcon },
+            { label: 'Recomendacoes', onClick: () => changePanel('recommendations'), disabled: !canAnalyze, icon: recommendIcon },
             { label: 'Topo', onClick: scrollToTop },
           ]}
         />
@@ -383,6 +394,16 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
 
 function recommendationKey(item) {
   return item?.id || `${item?.add || ''}|||${item?.remove || ''}`.toLowerCase()
+}
+
+function panelToActiveKey(panel) {
+  if (panel === 'analysis' || panel === 'recommendations') return panel
+  return 'editor'
+}
+
+function activeKeyToRoutePanel(panel) {
+  if (panel === 'analysis' || panel === 'recommendations') return panel
+  return 'edit'
 }
 
 function impactSummary(item) {

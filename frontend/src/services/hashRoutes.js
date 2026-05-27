@@ -5,6 +5,7 @@ export const HASH_ROUTES = {
   META_ADMIN: 'meta-admin',
   IMPORT: 'import',
   PUBLIC_DECK: 'public-deck',
+  DECK_EDITOR: 'deck-editor',
 }
 
 const LEGACY_HASHES = {
@@ -17,14 +18,28 @@ const LEGACY_HASHES = {
 export function parseHashRoute(hash = '') {
   const value = String(hash || '').replace(/^#\/?/, '').trim()
   if (!value) return { name: HASH_ROUTES.HOME }
+  const [path, queryString = ''] = value.split('?')
+  const query = new URLSearchParams(queryString)
 
-  const [routeName, routeParam] = value.split('/').filter(Boolean)
+  const [routeName, routeParam, routePanel] = path.split('/').filter(Boolean)
   if (routeName === 'public' && routeParam) {
-    return { name: HASH_ROUTES.PUBLIC_DECK, deckId: decodeURIComponent(routeParam) }
+    return {
+      name: HASH_ROUTES.PUBLIC_DECK,
+      deckId: decodeURIComponent(routeParam),
+      commander: query.get('commander') || '',
+    }
   }
 
-  if (LEGACY_HASHES[value]) {
-    return { name: LEGACY_HASHES[value] }
+  if (routeName === 'deck' && routeParam) {
+    return {
+      name: HASH_ROUTES.DECK_EDITOR,
+      deckId: decodeURIComponent(routeParam),
+      panel: normalizeDeckPanel(routePanel),
+    }
+  }
+
+  if (LEGACY_HASHES[path]) {
+    return { name: LEGACY_HASHES[path] }
   }
 
   return { name: HASH_ROUTES.HOME }
@@ -41,7 +56,11 @@ export function routeToHash(route = {}) {
     case HASH_ROUTES.IMPORT:
       return '#/import'
     case HASH_ROUTES.PUBLIC_DECK:
-      return route.deckId ? `#/public/${encodeURIComponent(route.deckId)}` : ''
+      if (!route.deckId) return ''
+      return appendQuery(`#/public/${encodeURIComponent(route.deckId)}`, { commander: route.commander })
+    case HASH_ROUTES.DECK_EDITOR:
+      if (!route.deckId) return ''
+      return `#/deck/${encodeURIComponent(route.deckId)}/${normalizeDeckPanel(route.panel)}`
     default:
       return ''
   }
@@ -66,7 +85,27 @@ export function titleForRoute(route = {}) {
       return 'Importar Deck - MTG Deck Manager'
     case HASH_ROUTES.PUBLIC_DECK:
       return 'Consultar Deck Publico - MTG Deck Manager'
+    case HASH_ROUTES.DECK_EDITOR:
+      if (route.panel === 'analysis') return 'Analise do Deck - MTG Deck Manager'
+      if (route.panel === 'recommendations') return 'Recomendacoes do Deck - MTG Deck Manager'
+      return 'Editar Deck - MTG Deck Manager'
     default:
       return 'Biblioteca de Decks - MTG Deck Manager'
   }
+}
+
+function normalizeDeckPanel(panel) {
+  if (panel === 'analysis' || panel === 'recommendations') return panel
+  return 'edit'
+}
+
+function appendQuery(hash, params) {
+  const query = new URLSearchParams()
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim()) {
+      query.set(key, String(value).trim())
+    }
+  })
+  const queryString = query.toString()
+  return queryString ? `${hash}?${queryString}` : hash
 }

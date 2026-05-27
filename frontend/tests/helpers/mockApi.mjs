@@ -86,7 +86,7 @@ export const recommendation = {
   },
 }
 
-export function fakeGoogleToken() {
+export function fakeGoogleToken({ email = 'tester@example.com' } = {}) {
   const encode = (value) => Buffer.from(JSON.stringify(value), 'utf8').toString('base64url')
   const now = Math.floor(Date.now() / 1000)
   return [
@@ -95,7 +95,7 @@ export function fakeGoogleToken() {
       iss: 'accounts.google.com',
       aud: 'test-client',
       sub: 'test-user',
-      email: 'tester@example.com',
+      email,
       name: 'Tester',
       exp: now + 3600,
       iat: now,
@@ -104,13 +104,22 @@ export function fakeGoogleToken() {
   ].join('.')
 }
 
-export async function installAuth(page) {
-  await page.addInitScript((token) => {
+export async function installAuth(page, { email = 'tester@example.com' } = {}) {
+  const token = fakeGoogleToken({ email })
+  const profile = {
+    sub: 'test-user',
+    email,
+    name: 'Tester',
+    picture: '',
+    iss: 'accounts.google.com',
+    aud: 'test-client',
+  }
+  await page.addInitScript(({ token, emailAddress }) => {
     const now = Math.floor(Date.now() / 1000)
     window.sessionStorage.setItem('mtg_google_id_token', token)
     window.sessionStorage.setItem('mtg_google_profile', JSON.stringify({
       sub: 'test-user',
-      email: 'tester@example.com',
+      email: emailAddress,
       name: 'Tester',
       picture: '',
       iss: 'accounts.google.com',
@@ -118,18 +127,55 @@ export async function installAuth(page) {
       exp: now + 3600,
       iat: now,
     }))
-  }, fakeGoogleToken())
+  }, { token, emailAddress: email })
+
+  if (page.url() !== 'about:blank') {
+    await page.evaluate(({ token: currentToken, profile: currentProfile }) => {
+      const now = Math.floor(Date.now() / 1000)
+      window.sessionStorage.setItem('mtg_google_id_token', currentToken)
+      window.sessionStorage.setItem('mtg_google_profile', JSON.stringify({
+        ...currentProfile,
+        exp: now + 3600,
+        iat: now,
+      }))
+      window.dispatchEvent(new Event('mtg-auth-change'))
+    }, { token, profile })
+  }
 }
 
-export async function mockApi(page) {
+export async function mockApi(page, { apiFailure = null, contactStatus = 200 } = {}) {
   let currentUserDeck = structuredClone(userDeck)
   let publicDeckState = structuredClone(publicDeck)
+  const topDeck = {
+    id: 501,
+    rank: 1,
+    name: 'Top Xenagos Pressure',
+    commander: 'Xenagos, God of Revels',
+    source: 'MOXFIELD',
+    rankingDate: '2026-05-01',
+    bracket: 'BRACKET_4',
+    archetype: 'AGGRO',
+    cardsCount: 3,
+    cards: [
+      { name: 'Xenagos, God of Revels', quantity: 1, section: 'COMMANDER' },
+      { name: 'Sol Ring', quantity: 1, section: 'MAIN' },
+      { name: 'Beast Whisperer', quantity: 1, section: 'MAIN' },
+    ],
+  }
 
   await page.route(/http:\/\/(localhost|127\.0\.0\.1):8080\/.*/, async (route) => {
     const request = route.request()
     const url = new URL(request.url())
     const path = url.pathname
     const method = request.method()
+
+    if (apiFailure === 'startup' && (path === '/public/decks' || path === '/decks')) {
+      return route.abort('failed')
+    }
+
+    if (path === '/contact-test' && method === 'POST') {
+      return json(route, { ok: contactStatus < 400 }, contactStatus)
+    }
 
     if (path === '/app/info') {
       return json(route, { name: 'MTG Deck Manager API', version: 'test', objective: 'API mockada para UX.' })
@@ -229,6 +275,22 @@ export async function mockApi(page) {
 
     if (path === '/meta/sources') {
       return json(route, { sources: [{ name: 'top_decks', enabled: true }] })
+    }
+
+    if (path === '/meta/top-decks' && method === 'GET') {
+      return json(route, [topDeck])
+    }
+
+    if (path === '/meta/top-decks/501' && method === 'GET') {
+      return json(route, topDeck)
+    }
+
+    if (path === '/meta/top-decks/sync' && method === 'POST') {
+      return json(route, { message: 'Sincronizacao registrada com sucesso.' })
+    }
+
+    if (path === '/meta/top-decks/import' && method === 'POST') {
+      return json(route, { status: 'OK', importedDecks: 1, updatedDecks: 0, ignoredDecks: 0, warnings: [] })
     }
 
     if (path.startsWith('/meta/commanders/')) {
