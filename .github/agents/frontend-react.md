@@ -63,14 +63,16 @@ Hotspots do repositorio (onde revisar primeiro)
 
 Validacao minima
 ----------------
-- O projeto ainda nao define script de teste frontend; nao assumir `npm test`.
+- O projeto define scripts Playwright especificos; nao assumir `npm test`.
 - Rodar `npm run lint` e corrigir falhas.
 - Rodar `npm run build` e verificar warnings relevantes.
+- Rodar `npm run test:e2e` quando a mudanca afetar fluxo de UI, navegacao, autenticacao mockada ou estado assincrono.
+- Rodar `npm run test:a11y` quando a mudanca afetar componente, pagina, landmark, contraste, dialog, tab, popover ou conteudo publico.
 - Executar um caso manual quando a mudanca afetar fluxo principal: criar/editar deck, importar lista, analisar deck ou chamar recommendations.
 
 Notas operacionais rapidas
 --------------------------
 - Centralize chamadas externas e feature flags em `src/services`.
 - Preserve `credentials: omit`, `Authorization: Bearer <id-token>` e limpeza de sessao em 401.
-- Prefira testes automaticos quando um harness frontend for adicionado; ate la, combine lint/build com validacao manual focada.
+- Use os testes Playwright/axe existentes como gate automatizado e mantenha uma validacao manual focada para fluxos de alto risco.
 - Em duvidas contratuais, volte para `AGENTS.md` e siga a regra: nao alterar regra negocial sem solicitacao explicita.
