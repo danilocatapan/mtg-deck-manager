@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getAppInfo } from '../services/api'
 import { FRONTEND_INFO } from '../services/appBuildInfo'
+import ModalDialog from './ui/ModalDialog'
 
 export default function AboutDialog({ open, onClose, onOpenReleaseNotes }) {
   const [apiInfo, setApiInfo] = useState(null)
@@ -33,14 +34,12 @@ export default function AboutDialog({ open, onClose, onOpenReleaseNotes }) {
   const creator = apiInfo?.creator || 'Danilo Catapan'
 
   return (
-    <div className="about-backdrop" role="presentation" onMouseDown={onClose}>
-      <section
-        className="about-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="about-title"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
+    <ModalDialog
+      open={open}
+      onClose={onClose}
+      labelledBy="about-title"
+      className="about-dialog"
+    >
         <div className="about-header">
           <div>
             <p className="eyebrow">Sobre</p>
@@ -80,8 +79,7 @@ export default function AboutDialog({ open, onClose, onOpenReleaseNotes }) {
           />
           <InfoBlock title="API" rows={apiRows(apiInfo, status === 'idle' ? 'loading' : status)} />
         </div>
-      </section>
-    </div>
+    </ModalDialog>
   )
 }
 

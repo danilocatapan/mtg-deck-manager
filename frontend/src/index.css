@@ -5,6 +5,10 @@
   --border: #3a4a3f;
   --code-bg: #efe6cf;
   --accent: #a33b22;
+  --color-danger-surface: rgba(184, 92, 69, 0.16);
+  --color-on-danger: #ffe1d8;
+  --color-on-warning: #1b1307;
+  --focus-ring: rgba(255, 231, 163, 0.92);
   --accent-bg: rgba(163, 59, 34, 0.14);
   --accent-border: rgba(217, 175, 86, 0.72);
   --social-bg: rgba(247, 238, 212, 0.58);
@@ -4685,5 +4689,209 @@ button:disabled {
   .floating-action-bar button span {
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+}
+
+/* Accessibility 2026 pass: native dialogs, semantic disclosures and clearer validation. */
+.modal-dialog {
+  margin: auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100svh - 24px);
+}
+
+.modal-dialog::backdrop {
+  background: rgba(2, 6, 4, 0.74);
+  backdrop-filter: blur(2px);
+}
+
+.modal-dialog.about-dialog,
+.modal-dialog.confirm-dialog {
+  border: 1px solid rgba(214, 168, 79, 0.52);
+}
+
+.modal-dialog:focus {
+  outline: none;
+}
+
+.page-heading h1[tabindex="-1"]:focus {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.disclosure-card-trigger {
+  appearance: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  text-align: left;
+  text-shadow: none;
+  transform: none;
+}
+
+.disclosure-card-trigger:hover,
+.disclosure-card-trigger:active {
+  filter: none;
+  transform: none;
+  box-shadow: none;
+}
+
+.disclosure-card-trigger:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.disclosure-card-title,
+.disclosure-card-title > span,
+.recommendation-title-line,
+.recommendation-title-muted {
+  display: grid;
+  min-width: 0;
+}
+
+.recommendation-title-line {
+  margin-top: 2px;
+  color: var(--color-text);
+  font-family: var(--heading);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.recommendation-title-muted,
+.disclosure-card-summary {
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.disclosure-card-summary {
+  grid-column: 1;
+}
+
+.disclosure-card-indicator {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid rgba(214, 168, 79, 0.42);
+  border-radius: 999px;
+  color: var(--color-value);
+}
+
+.disclosure-card-content {
+  display: grid;
+  gap: 12px;
+}
+
+.recommendation-safety {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(143, 203, 107, 0.42);
+  border-radius: 8px;
+  background: rgba(143, 203, 107, 0.08);
+}
+
+.recommendation-safety ul {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--color-text);
+}
+
+.recommendation-safety li {
+  margin-bottom: 4px;
+}
+
+.validation-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.validation-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(214, 168, 79, 0.3);
+  border-radius: 8px;
+  background: rgba(8, 17, 12, 0.38);
+}
+
+.validation-group > strong {
+  color: var(--color-value);
+  font-size: 14px;
+}
+
+.privacy-microcopy {
+  color: var(--color-text);
+}
+
+.status.error,
+.field-error {
+  color: var(--color-on-danger);
+}
+
+.status.error,
+.recommendation-risk {
+  background: var(--color-danger-surface);
+}
+
+.metric-warning strong,
+.validation-item.warning strong {
+  color: var(--color-value);
+}
+
+.impact-pill.positive::before,
+.summary-tile.metric-good::before,
+.validation-item.good::before {
+  content: "OK ";
+  font-weight: 900;
+}
+
+.impact-pill.negative::before,
+.summary-tile.metric-bad::before,
+.validation-item.bad::before {
+  content: "Atenção ";
+  font-weight: 900;
+}
+
+.summary-tile.metric-warning::before,
+.validation-item.warning::before {
+  content: "Revisar ";
+  font-weight: 900;
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --color-bg: #020503;
+    --color-surface: #07110c;
+    --color-surface-elevated: #0f1d14;
+    --color-text: #fff8df;
+    --color-muted: #f0dfb1;
+    --color-border: rgba(255, 231, 163, 0.78);
+    --focus-ring: #ffffff;
+  }
+}
+
+@media (max-width: 720px) {
+  .validation-summary,
+  .recommendation-swap-route {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-dialog {
+    max-width: calc(100vw - 18px);
   }
 }

@@ -78,15 +78,15 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
         <legend>Filtros</legend>
         <label>
           <input type="checkbox" checked={filters.ownedOnly} onChange={() => toggleFilter('ownedOnly')} />
-          Owned-only
+          Apenas cartas que possuo
         </label>
         <label>
           <input type="checkbox" checked={filters.avoidSalt} onChange={() => toggleFilter('avoidSalt')} />
-          Evitar salt
+          Evitar cartas frustrantes
         </label>
         <label>
           <input type="checkbox" checked={filters.avoidTutors} onChange={() => toggleFilter('avoidTutors')} />
-          Evitar tutors
+          Evitar tutores
         </label>
         <label>
           <input type="checkbox" checked={filters.improveMana} onChange={() => toggleFilter('improveMana')} />
@@ -106,7 +106,7 @@ export default function RecommendationSettings({ onSubmit, disabled = false, loa
         </label>
       </fieldset>
 
-      <Button type="submit" loading={loading} disabled={disabled}>
+      <Button type="submit" loading={loading} loadingLabel="Gerando trocas..." disabled={disabled}>
         Gerar trocas
       </Button>
 

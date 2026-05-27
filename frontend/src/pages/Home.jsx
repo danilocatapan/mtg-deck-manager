@@ -8,6 +8,7 @@ import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import FloatingActionBar from '../components/FloatingActionBar'
 import StateMessage from '../components/ui/StateMessage'
+import ModalDialog from '../components/ui/ModalDialog'
 import { getAuthToken, subscribeAuth } from '../services/auth'
 import { ApiStartingError } from '../services/api'
 import createIcon from '../assets/icons/create.png'
@@ -271,6 +272,11 @@ export default function Home() {
     setDebouncedPublicCommanderFilter('')
   }
 
+  function scrollToTop() {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
+  }
+
   if (view === 'create' || view === 'edit') {
     return <DeckEditorPage mode={view === 'create' ? 'create' : 'edit'} deck={editingDeck} initialMessage={editorNotice} onDone={handleDone} />
   }
@@ -302,7 +308,7 @@ export default function Home() {
     : 'Quando um deck for marcado como público, ele aparecerá aqui para consulta.'
 
   return (
-    <main>
+    <section className="home-page">
       <section className="zone zone-command page-heading">
         <div>
           <p className="eyebrow">Command Zone</p>
@@ -322,7 +328,7 @@ export default function Home() {
       </section>
 
       <Card className="zone zone-battlefield">
-        <div className="workflow-steps" aria-label="Main workflow">
+        <div className="workflow-steps" aria-label="Fluxo principal">
           <div data-state="active"><strong>1</strong><span>Consultar públicos</span></div>
           <div><strong>2</strong><span>Criar ou importar</span></div>
           <div><strong>3</strong><span>Validar e analisar</span></div>
@@ -424,20 +430,20 @@ export default function Home() {
           actions={[
             { label: 'Criar', onClick: handleCreate, icon: createIcon },
             { label: 'Importar', onClick: handleImport, icon: importIcon },
-            { label: 'Topo', onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+            { label: 'Topo', onClick: scrollToTop },
           ]}
         />
       )}
-      {pendingDeleteDeck && (
-        <div className="about-backdrop" role="presentation" onMouseDown={() => !deletingDeck && setPendingDeleteDeck(null)}>
-          <section
-            className="confirm-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-deck-title"
-            aria-describedby="delete-deck-description"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
+      <ModalDialog
+        open={Boolean(pendingDeleteDeck)}
+        onClose={() => !deletingDeck && setPendingDeleteDeck(null)}
+        labelledBy="delete-deck-title"
+        describedBy="delete-deck-description"
+        className="confirm-dialog"
+        closeOnBackdrop={!deletingDeck}
+      >
+        {pendingDeleteDeck && (
+          <>
             <div>
               <p className="eyebrow">Exclusão</p>
               <h2 id="delete-deck-title">Excluir deck?</h2>
@@ -446,15 +452,15 @@ export default function Home() {
               Esta ação remove <strong>{pendingDeleteDeck.name}</strong> da sua biblioteca. A lista não poderá ser recuperada por aqui.
             </p>
             <div className="confirm-dialog-actions">
-              <Button variant="secondary" onClick={() => setPendingDeleteDeck(null)} disabled={deletingDeck}>Cancelar</Button>
-              <Button variant="danger" onClick={confirmDeleteDeck} disabled={deletingDeck}>
+              <Button variant="secondary" onClick={() => setPendingDeleteDeck(null)} disabled={deletingDeck} data-autofocus>Cancelar</Button>
+              <Button variant="danger" onClick={confirmDeleteDeck} disabled={deletingDeck} loading={deletingDeck} loadingLabel="Excluindo deck...">
                 {deletingDeck ? 'Excluindo...' : 'Excluir deck'}
               </Button>
             </div>
-          </section>
-        </div>
-      )}
-    </main>
+          </>
+        )}
+      </ModalDialog>
+    </section>
   )
 }
 

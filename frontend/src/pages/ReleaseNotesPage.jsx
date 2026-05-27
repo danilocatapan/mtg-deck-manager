@@ -29,7 +29,7 @@ export default function ReleaseNotesPage({ onBack }) {
   }, [])
 
   return (
-    <main>
+    <section className="release-notes-page">
       <section className="zone zone-command page-heading">
         <div>
           <p className="eyebrow">Release Notes</p>
@@ -64,6 +64,6 @@ export default function ReleaseNotesPage({ onBack }) {
           ))}
         </div>
       )}
-    </main>
+    </section>
   )
 }

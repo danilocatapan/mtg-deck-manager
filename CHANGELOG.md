@@ -4,7 +4,7 @@ Todas as mudancas notaveis deste projeto serao documentadas aqui.
 
 O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e atualizado a partir das tags Git e mensagens de commit da release.
 
-## [0.0.0-local] - 2026-05-26
+## [0.0.0-local] - 2026-05-27
 
 ### Added
 - Cache local de combos conhecidos com tabelas `meta_combos`/`meta_combo_cards`, adapter Commander Spellbook e endpoint administrativo `POST /meta/combos/sync`.
@@ -31,6 +31,9 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Acessibilidade do frontend reforcada com dialogs focados, tabs com teclado, disclosures em recomendacoes, popovers de carta acionaveis por foco e labels de carregamento contextuais.
+- Importacao e edicao de decks passam a exibir validacao de campos, motivos para a acao desabilitada e microcopy de privacidade para decks publicos.
+- Recomendacoes exibem um bloco "Por que esta troca e segura" com invariantes de cor, duplicidade, comandante, bracket, fonte e amostra.
 - Aba Curva da analise passa a listar as cartas por custo de mana, com agrupamento visual `7+`, mantendo a mesma soma exibida no grafico.
 - Detector de combos inclui o comandante no contexto de analise, recomendacao e protecao de pecas-chave.
 - Fallback generico de recomendacoes passa a usar staples por cor, papel e bracket quando nao ha perfil meta suficiente do comandante, sem substituir candidatos meta/arquetipo ja confiaveis.

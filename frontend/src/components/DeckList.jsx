@@ -181,7 +181,7 @@ export default function DeckList({
                 </Button>
               )}
               {canCopy && (
-                <Button onClick={() => onCopy(deck)} loading={copyLoadingId === deck.id}>
+                <Button onClick={() => onCopy(deck)} loading={copyLoadingId === deck.id} loadingLabel="Copiando deck...">
                   Copiar
                 </Button>
               )}

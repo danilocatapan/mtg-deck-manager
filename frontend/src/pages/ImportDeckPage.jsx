@@ -85,7 +85,7 @@ function parsePreview(content, sourceFormat, commander = '') {
     const parsed = parseCardText(match[2], sourceFormat)
     const name = parsed.name
     if (quantity < 1 || !name) {
-      errors.push({ line: index + 1, message: `Linha ${index + 1}: a quantidade deve ser maior que zero e o nome da carta é obrigatório.` })
+      errors.push({ line: index + 1, message: `Linha ${index + 1}: a quantidade deve ser maior que zero e o nome da carta e obrigatorio.` })
       return
     }
 
@@ -128,13 +128,29 @@ export default function ImportDeckPage({ onDone }) {
   const isOverLimit = preview.total > 99
   const visiblePreviewCards = previewExpanded ? preview.cards : preview.cards.slice(0, PREVIEW_COLLAPSED_LIMIT)
   const hiddenPreviewCount = Math.max(0, preview.cards.length - visiblePreviewCards.length)
-  const validationItems = [
+  const localValidationItems = [
     { label: 'Total', value: `${preview.total}/99${preview.commanderInList ? ' + comandante' : ''}`, tone: isOverLimit ? 'bad' : preview.total === 99 ? 'good' : 'warning' },
     { label: 'Linhas invalidas', value: preview.errors.length, tone: preview.errors.length ? 'bad' : 'good' },
     { label: 'Duplicadas', value: preview.duplicates.length, tone: preview.duplicates.length ? 'warning' : 'good' },
-    { label: 'Cores', value: 'Pendente', tone: 'warning' },
   ]
-  const canImport = name.trim() && commander.trim() && preview.cards.length > 0 && preview.errors.length === 0 && !isOverLimit
+  const backendValidationItems = [
+    { label: 'Cores', value: 'Apos salvar', tone: 'warning' },
+    { label: 'Singleton', value: 'Apos resolver', tone: 'warning' },
+    { label: 'Banlist', value: 'Backend', tone: 'warning' },
+  ]
+  const fieldErrors = useMemo(() => {
+    const nextErrors = {}
+    if (!name.trim()) nextErrors.name = 'Informe o nome do deck.'
+    if (!commander.trim()) nextErrors.commander = 'Informe o comandante.'
+    if (!content.trim()) nextErrors.content = 'Cole uma lista ou envie um arquivo .txt.'
+    if (preview.errors.length > 0) nextErrors.content = 'Corrija as linhas invalidas antes de salvar.'
+    if (isOverLimit) nextErrors.content = `O deck importado tem ${preview.total} cartas; o maximo e 99.`
+    if (content.trim() && preview.cards.length === 0) nextErrors.content = 'Nenhuma carta valida foi lida da lista.'
+    return nextErrors
+  }, [commander, content, isOverLimit, name, preview.cards.length, preview.errors.length, preview.total])
+  const visibleFieldErrors = fieldErrors
+  const canImport = Object.keys(fieldErrors).length === 0
+  const disabledReason = !canImport ? Object.values(fieldErrors)[0] : ''
 
   const handleFile = async (file) => {
     if (!file) return
@@ -146,20 +162,8 @@ export default function ImportDeckPage({ onDone }) {
     try {
       setError(null)
       setMessage(null)
-      if (!name.trim() || !commander.trim()) {
-        setError('Nome do deck e comandante são obrigatórios.')
-        return
-      }
-      if (preview.errors.length > 0) {
-        setError('Corrija as linhas destacadas antes de salvar.')
-        return
-      }
-      if (isOverLimit) {
-        setError(`O deck importado tem ${preview.total} cartas; o máximo é 99.`)
-        return
-      }
-      if (preview.cards.length === 0) {
-        setError('Cole ou envie uma lista antes de importar.')
+      if (!canImport) {
+        setError('Revise a pre-validacao local antes de importar.')
         return
       }
 
@@ -168,19 +172,19 @@ export default function ImportDeckPage({ onDone }) {
       setMessage(`${created.name} importado.`)
       onDone && onDone(`${created.name} importado.`, created)
     } catch (e) {
-      setError(e.message || 'Falha na importação.')
+      setError(e.message || 'Falha na importacao.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <main>
+    <section className="import-deck-page">
       <section className="zone zone-command page-heading">
         <div>
           <p className="eyebrow">Command Zone</p>
           <h1>Importar Deck</h1>
-          <p className="page-description">Cole uma lista Commander com uma carta por linha. O preview roda antes de salvar; cores são validadas após resolver as cartas no backend.</p>
+          <p className="page-description">Cole uma lista Commander com uma carta por linha. O preview roda antes de salvar; cores sao validadas apos resolver as cartas no backend.</p>
         </div>
         <Button variant="secondary" onClick={() => onDone && onDone()}>Voltar aos Decks</Button>
       </section>
@@ -190,23 +194,49 @@ export default function ImportDeckPage({ onDone }) {
 
       <div className="split-layout">
         <Card className="zone zone-library">
-          <div className="validation-summary" aria-label="Import validation summary">
-            {validationItems.map((item) => (
-              <div key={item.label} className={`validation-item ${item.tone}`}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
+          <div className="validation-summary" aria-label="Resumo da validacao de importacao">
+            <div className="validation-group" aria-label="Pre-validacao local">
+              <strong>Pre-validacao local</strong>
+              {localValidationItems.map((item) => (
+                <div key={item.label} className={`validation-item ${item.tone}`}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+            <div className="validation-group" aria-label="Validacao apos salvar">
+              <strong>Validacao apos salvar</strong>
+              {backendValidationItems.map((item) => (
+                <div key={item.label} className={`validation-item ${item.tone}`}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="form-grid">
             <label>
               Nome do deck
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Gruul Revels" />
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Gruul Revels"
+                aria-invalid={Boolean(visibleFieldErrors.name)}
+                aria-describedby={visibleFieldErrors.name ? 'import-name-error' : undefined}
+              />
+              {visibleFieldErrors.name && <span id="import-name-error" className="field-error">{visibleFieldErrors.name}</span>}
             </label>
             <label>
               Comandante
-              <input value={commander} onChange={(e) => setCommander(e.target.value)} placeholder="Xenagos, God of Revels" />
+              <input
+                value={commander}
+                onChange={(e) => setCommander(e.target.value)}
+                placeholder="Xenagos, God of Revels"
+                aria-invalid={Boolean(visibleFieldErrors.commander)}
+                aria-describedby={visibleFieldErrors.commander ? 'import-commander-error' : undefined}
+              />
+              {visibleFieldErrors.commander && <span id="import-commander-error" className="field-error">{visibleFieldErrors.commander}</span>}
             </label>
             <label>
               Origem da exportacao
@@ -219,18 +249,27 @@ export default function ImportDeckPage({ onDone }) {
             </label>
             <label>
               Visibilidade
-              <small>Decks públicos aparecem na vitrine e podem ser copiados por outros usuários.</small>
+              <small>Decks publicos aparecem na vitrine e podem ser copiados por outros usuarios.</small>
               <select value={visibility} onChange={(e) => setVisibility(e.target.value)}>
                 <option value="private">Privado</option>
-                <option value="public">Público</option>
+                <option value="public">Publico</option>
               </select>
+              <small className="privacy-microcopy">Privado e o padrao. Publico entra na vitrine e pode ser copiado, sem expor e-mail, dono tecnico ou historico.</small>
             </label>
           </div>
 
           <label>
             Colar lista do deck
             <small>Formato: quantidade seguida pelo nome exato da carta.</small>
-            <textarea rows={14} value={content} onChange={(e) => setContent(e.target.value)} placeholder={SAMPLE_DECK} />
+            <textarea
+              rows={14}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={SAMPLE_DECK}
+              aria-invalid={Boolean(visibleFieldErrors.content)}
+              aria-describedby={visibleFieldErrors.content ? 'import-content-error' : undefined}
+            />
+            {visibleFieldErrors.content && <span id="import-content-error" className="field-error">{visibleFieldErrors.content}</span>}
           </label>
 
           <label>
@@ -239,9 +278,10 @@ export default function ImportDeckPage({ onDone }) {
           </label>
 
           <div className="form-actions">
-            <Button onClick={handleSubmit} disabled={loading || !canImport}>
+            {disabledReason && <span id="import-disabled-reason" className="empty-action-hint">{disabledReason}</span>}
+            <Button onClick={handleSubmit} disabled={loading || !canImport} loading={loading} loadingLabel="Importando deck..." aria-describedby={disabledReason ? 'import-disabled-reason' : undefined}>
               <img className="btn-icon" src={importIcon} alt="" aria-hidden="true" />
-              {loading ? 'Importando...' : 'Importar Deck'}
+              Importar Deck
             </Button>
             <Button variant="secondary" onClick={() => setContent(SAMPLE_DECK)}>Usar exemplo</Button>
           </div>
@@ -292,6 +332,6 @@ export default function ImportDeckPage({ onDone }) {
           )}
         </Card>
       </div>
-    </main>
+    </section>
   )
 }

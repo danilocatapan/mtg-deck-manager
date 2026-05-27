@@ -145,7 +145,7 @@ export default function MetaTopDeckAdminPage({ onBack }) {
 
   if (!canAdmin) {
     return (
-      <main>
+      <section className="meta-admin-page">
         <section className="zone zone-command page-heading">
           <div>
             <p className="eyebrow">Meta Admin</p>
@@ -159,12 +159,12 @@ export default function MetaTopDeckAdminPage({ onBack }) {
         <StateMessage tone="error" title="Permissao necessaria">
           Entre com o usuario Google dcatapan@gmail.com para liberar estes controles.
         </StateMessage>
-      </main>
+      </section>
     )
   }
 
   return (
-    <main className="meta-admin-page">
+    <section className="meta-admin-page">
       <section className="zone zone-command page-heading">
         <div>
           <p className="eyebrow">Meta Admin</p>
@@ -174,7 +174,7 @@ export default function MetaTopDeckAdminPage({ onBack }) {
           </p>
         </div>
         <div className="actions-row">
-          <Button variant="secondary" onClick={handleSync} loading={syncing}>Registrar sync</Button>
+          <Button variant="secondary" onClick={handleSync} loading={syncing} loadingLabel="Registrando sync...">Registrar sync</Button>
           <Button variant="secondary" onClick={onBack}>Voltar</Button>
         </div>
       </section>
@@ -266,7 +266,7 @@ export default function MetaTopDeckAdminPage({ onBack }) {
               <input type="number" min="1" max="50" value={filters.limit} onChange={(event) => updateFilter('limit', event.target.value)} />
             </label>
             <div className="form-actions meta-admin-filter-actions">
-              <Button type="submit" loading={loadingList}>Atualizar lista</Button>
+              <Button type="submit" loading={loadingList} loadingLabel="Atualizando lista...">Atualizar lista</Button>
             </div>
           </form>
 
@@ -336,12 +336,12 @@ export default function MetaTopDeckAdminPage({ onBack }) {
             <textarea rows={18} value={payload} onChange={(event) => setPayload(event.target.value)} spellCheck="false" />
           </label>
           <div className="form-actions">
-            <Button type="submit" loading={importing}>Importar top decks</Button>
+            <Button type="submit" loading={importing} loadingLabel="Importando top decks...">Importar top decks</Button>
             <Button type="button" variant="secondary" onClick={() => setPayload(SAMPLE_IMPORT)}>Usar exemplo</Button>
           </div>
         </form>
       </Card>
-    </main>
+    </section>
   )
 }
 

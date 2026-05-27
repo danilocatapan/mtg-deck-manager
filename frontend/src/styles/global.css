@@ -7,12 +7,16 @@
   --color-primary-hover: #F0C86A;
   --color-accent-green: #5E8F46;
   --color-danger: #B85C45;
+  --color-danger-surface: rgba(184,92,69,.16);
+  --color-on-danger: #FFE1D8;
   --color-border: rgba(214,168,79,.35);
   --color-text: #F2E6C8;
   --color-muted: #B8AA8A;
   --color-value: #FFE7A3;
   --color-warning: #D6A84F;
+  --color-on-warning: #1B1307;
   --color-good: #8FCB6B;
+  --focus-ring: rgba(255,231,163,.92);
   --color-gold: var(--color-primary);
   --color-gold-soft: var(--color-value);
   --color-green: var(--color-accent-green);

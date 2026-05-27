@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Home from './pages/Home'
 import Layout from './components/Layout'
 import ContactPage from './pages/ContactPage'
@@ -7,6 +7,29 @@ import MetaTopDeckAdminPage from './pages/MetaTopDeckAdminPage'
 
 function App() {
   const [view, setView] = useState(() => viewFromHash(window.location.hash))
+  const firstViewSync = useRef(true)
+
+  useEffect(() => {
+    const titles = {
+      home: 'Biblioteca de Decks - MTG Deck Manager',
+      'release-notes': 'Novidades - MTG Deck Manager',
+      contact: 'Contato - MTG Deck Manager',
+      'meta-admin': 'Meta Admin - MTG Deck Manager',
+    }
+    document.title = titles[view] || titles.home
+    if (firstViewSync.current && view === 'home') {
+      firstViewSync.current = false
+      return
+    }
+    firstViewSync.current = false
+    queueMicrotask(() => {
+      const heading = document.querySelector('.app-main h1')
+      if (heading instanceof HTMLElement) {
+        heading.setAttribute('tabindex', '-1')
+        heading.focus({ preventScroll: true })
+      }
+    })
+  }, [view])
 
   useEffect(() => {
     function syncHashView() {
@@ -32,8 +55,8 @@ function App() {
     setView('meta-admin')
   }
 
-  function backHome() {
-    history.pushState('', document.title, window.location.pathname + window.location.search)
+function backHome() {
+    window.history.pushState('', document.title, window.location.pathname + window.location.search)
     setView('home')
   }
 

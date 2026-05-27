@@ -11,7 +11,7 @@ export default function DeckConsultPage({ deck, isAuthenticated = false, onBack,
   const sourceLabel = deck?.sourceType === 'external' && deck?.externalSource ? ` - ${deck.externalSource}` : ''
 
   return (
-    <main>
+    <section className="deck-consult-page">
       <section className="zone zone-command page-heading deck-editor-heading">
         <div>
           <p className="eyebrow">Consulta{sourceLabel}</p>
@@ -53,6 +53,6 @@ export default function DeckConsultPage({ deck, isAuthenticated = false, onBack,
           emptyMessage="Este deck nao possui cartas cadastradas."
         />
       </Card>
-    </main>
+    </section>
   )
 }

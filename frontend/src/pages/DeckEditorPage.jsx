@@ -18,6 +18,7 @@ import {
   updateDeck,
 } from '../services/api'
 import Button from '../components/ui/Button'
+import ModalDialog from '../components/ui/ModalDialog'
 import analyzeIcon from '../assets/icons/analyze.png'
 import recommendIcon from '../assets/icons/recommend.png'
 
@@ -220,6 +221,11 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
     }
   }
 
+  function scrollToTop() {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
+  }
+
   return (
     <section>
       <div className="zone zone-command page-heading deck-editor-heading">
@@ -338,20 +344,19 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
           actions={[
             { label: 'Analisar', onClick: handleAnalyze, disabled: !canAnalyze || loadingAnalysis, icon: analyzeIcon },
             { label: 'Recomendacoes', onClick: () => setActivePanel('recommendations'), disabled: !canAnalyze, icon: recommendIcon },
-            { label: 'Topo', onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+            { label: 'Topo', onClick: scrollToTop },
           ]}
         />
       )}
-      {pendingRecommendation && (
-        <div className="about-backdrop" role="presentation" onMouseDown={() => setPendingRecommendation(null)}>
-          <section
-            className="confirm-dialog swap-confirm-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="swap-confirm-title"
-            aria-describedby="swap-confirm-description"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
+      <ModalDialog
+        open={Boolean(pendingRecommendation)}
+        onClose={() => setPendingRecommendation(null)}
+        labelledBy="swap-confirm-title"
+        describedBy="swap-confirm-description"
+        className="confirm-dialog swap-confirm-dialog"
+      >
+        {pendingRecommendation && (
+          <>
             <div>
               <p className="eyebrow">Recomendação</p>
               <h2 id="swap-confirm-title">Aplicar troca?</h2>
@@ -366,12 +371,12 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
               <span className="swap-card add"><small>Entra</small><strong>{pendingRecommendation.add}</strong></span>
             </div>
             <div className="confirm-dialog-actions">
-              <Button variant="secondary" onClick={() => setPendingRecommendation(null)}>Cancelar</Button>
-              <Button onClick={confirmApplyRecommendation}>Aplicar troca</Button>
+              <Button variant="secondary" onClick={() => setPendingRecommendation(null)} data-autofocus>Cancelar</Button>
+              <Button onClick={confirmApplyRecommendation} loading={Boolean(applyingSwapKey)} loadingLabel="Aplicando troca...">Aplicar troca</Button>
             </div>
-          </section>
-        </div>
-      )}
+          </>
+        )}
+      </ModalDialog>
     </section>
   )
 }

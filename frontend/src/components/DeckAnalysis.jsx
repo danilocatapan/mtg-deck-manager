@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import CardNamePreview from './CardNamePreview'
+import Tabs from './ui/Tabs'
 
 const ROLE_COLORS = ['#d6a84f', '#b85c45', '#5aa7c8', '#8fcb6b', '#c59bff', '#f0c86a', '#d98d72']
 
@@ -22,25 +23,10 @@ export default function DeckAnalysis({ analysis }) {
     { key: 'combos', label: 'Combos' },
   ]
 
-  return (
-    <div className="analysis-panel compact-analysis">
-      <div className="analysis-tabs" role="tablist" aria-label="Seções da análise">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.key}
-            className={activeTab === tab.key ? 'active' : ''}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === 'status' && (
-        <section className="analysis-tab-panel" role="tabpanel">
+  function renderPanel(tab) {
+    if (tab.key === 'status') {
+      return (
+        <>
           <div className="deck-health-summary">
             {vitals.slice(0, 6).map((item) => (
               <article key={item.label} className={`summary-tile metric-${item.tone}`}>
@@ -54,42 +40,45 @@ export default function DeckAnalysis({ analysis }) {
             <VerdictBlock title="O que esta bom" items={vitals.filter((item) => item.tone === 'good').slice(0, 3)} kind="good" />
             <VerdictBlock title="Ajustar primeiro" items={vitals.filter((item) => item.tone !== 'good').slice(0, 3)} kind="fix" />
           </div>
-        </section>
-      )}
+        </>
+      )
+    }
 
-      {activeTab === 'curve' && (
-        <section className="analysis-tab-panel" role="tabpanel">
-          <div className="curve-chart" aria-label="Curva de mana">
-            {curveEntries.map((entry, index) => (
-              <details key={entry.label} className="curve-detail-card" open={index === 0 && entry.cards.length > 0}>
-                <summary>
-                  <span>{entry.label}</span>
-                  <div><i style={{ width: `${entry.percent}%` }} /></div>
-                  <strong>{entry.value}</strong>
-                </summary>
-                {entry.cards.length ? (
-                  <div className="curve-card-list">
-                    {entry.cards.map((card) => (
-                      <div key={`${entry.label}-${card.name}`} className="role-card-row">
-                        <CardNamePreview name={card.name} prefix={`${card.quantity || 1}x `} imageUrl={card.imageUrl} />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty-inline">A analise atual nao trouxe cartas detalhadas para este custo.</div>
-                )}
-              </details>
-            ))}
-          </div>
-        </section>
-      )}
+    if (tab.key === 'curve') {
+      return (
+        <div className="curve-chart" aria-label="Curva de mana">
+          {curveEntries.map((entry, index) => (
+            <details key={entry.label} className="curve-detail-card" open={index === 0 && entry.cards.length > 0}>
+              <summary>
+                <span>{entry.label}</span>
+                <div><i style={{ width: `${entry.percent}%` }} /></div>
+                <strong>{entry.value}</strong>
+              </summary>
+              {entry.cards.length ? (
+                <div className="curve-card-list">
+                  {entry.cards.map((card) => (
+                    <div key={`${entry.label}-${card.name}`} className="role-card-row">
+                      <CardNamePreview name={card.name} prefix={`${card.quantity || 1}x `} imageUrl={card.imageUrl} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-inline">A analise atual nao trouxe cartas detalhadas para este custo.</div>
+              )}
+            </details>
+          ))}
+        </div>
+      )
+    }
 
-      {activeTab === 'roles' && (
-        <section className="analysis-tab-panel roles-visual-grid" role="tabpanel">
+    if (tab.key === 'roles') {
+      const roleSummary = roleEntries.map((entry) => `${entry.label} ${entry.value}`).join(', ') || 'sem sinais'
+      return (
+        <div className="roles-visual-grid">
           <div
             className="role-donut"
             style={{ background: roleDonutGradient(roleEntries) }}
-            aria-label="Distribuição dos papéis do deck"
+            aria-label={`Distribuicao dos papeis do deck: ${roleSummary}`}
           >
             <strong>{roleEntries.reduce((sum, entry) => sum + entry.value, 0)}</strong>
             <span>sinais</span>
@@ -98,7 +87,7 @@ export default function DeckAnalysis({ analysis }) {
             {roleEntries.length ? roleEntries.map((entry, index) => (
               <details key={entry.key} className="role-detail-card" open={index === 0}>
                 <summary>
-                  <i style={{ background: entry.color }} />
+                  <i style={{ background: entry.color }} aria-hidden="true" />
                   <span>{entry.label}</span>
                   <strong>{entry.value}</strong>
                   <span className="role-help">
@@ -118,26 +107,39 @@ export default function DeckAnalysis({ analysis }) {
                   <div className="empty-inline">A analise atual nao trouxe cartas detalhadas para este papel.</div>
                 )}
               </details>
-            )) : <div className="empty-inline">Rode a análise para ver os papéis classificados.</div>}
+            )) : <div className="empty-inline">Rode a analise para ver os papeis classificados.</div>}
           </div>
-        </section>
-      )}
+        </div>
+      )
+    }
 
-      {activeTab === 'combos' && (
-        <section className="analysis-tab-panel" role="tabpanel">
-          {comboAlert ? (
-            <section className={`combo-callout ${comboAlert.tone}`}>
-              <span>Combos</span>
-              <strong>{comboAlert.title}</strong>
-              <p>{comboAlert.text}</p>
-            </section>
-          ) : (
-            <div className="empty-inline">Nenhum combo conhecido ou linha a uma carta foi detectado neste snapshot.</div>
-          )}
-          <ComboList title="Presentes" items={analysis.combos?.present || []} />
-          <ComboList title="A uma carta" items={analysis.combos?.oneCardAway || []} nearMiss />
-        </section>
-      )}
+    return (
+      <>
+        {comboAlert ? (
+          <section className={`combo-callout ${comboAlert.tone}`}>
+            <span>Combos</span>
+            <strong>{comboAlert.title}</strong>
+            <p>{comboAlert.text}</p>
+          </section>
+        ) : (
+          <div className="empty-inline">Nenhum combo conhecido ou linha a uma carta foi detectado neste snapshot.</div>
+        )}
+        <ComboList title="Presentes" items={analysis.combos?.present || []} />
+        <ComboList title="A uma carta" items={analysis.combos?.oneCardAway || []} nearMiss />
+      </>
+    )
+  }
+
+  return (
+    <div className="analysis-panel compact-analysis">
+      <Tabs
+        tabs={tabs}
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        label="Secoes da analise"
+        panelClassName="analysis-tab-panel"
+        renderPanel={renderPanel}
+      />
     </div>
   )
 }

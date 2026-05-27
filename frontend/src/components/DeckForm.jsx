@@ -59,7 +59,17 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   const mainDeckTotal = useMemo(() => cards
     .reduce((sum, card) => sum + Number(card.quantity || 0), 0), [cards])
   const isOverLimit = mainDeckTotal > 99
-  const isValid = Boolean(name.trim() && commander.trim() && mainDeckTotal > 0 && !isOverLimit)
+  const fieldErrors = useMemo(() => {
+    const nextErrors = {}
+    if (!name.trim()) nextErrors.name = 'Informe o nome do deck.'
+    if (!commander.trim()) nextErrors.commander = 'Informe o comandante.'
+    if (mainDeckTotal === 0) nextErrors.cards = 'Adicione pelo menos uma carta ao deck.'
+    if (isOverLimit) nextErrors.cards = `Decks Commander podem ter ate 99 cartas fora do comandante. A lista principal tem ${mainDeckTotal}.`
+    return nextErrors
+  }, [commander, isOverLimit, mainDeckTotal, name])
+  const visibleFieldErrors = fieldErrors
+  const isValid = Object.keys(fieldErrors).length === 0
+  const disabledReason = !isValid ? Object.values(fieldErrors)[0] : ''
   const commanderName = commander.trim()
   const commanderImageUrl = useMemo(() => imageForName(cardImages, commanderName), [cardImages, commanderName])
   const commanderInitials = commander
@@ -136,16 +146,8 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
   }
 
   function validate() {
-    if (!name.trim() || !commander.trim()) {
-      setError('Nome do deck e comandante sao obrigatorios.')
-      return false
-    }
-    if (mainDeckTotal === 0) {
-      setError('Adicione pelo menos uma carta ao deck antes de salvar.')
-      return false
-    }
-    if (isOverLimit) {
-      setError(`Decks Commander podem ter ate 99 cartas fora do comandante. A lista principal tem ${mainDeckTotal}.`)
+    if (!isValid) {
+      setError('Revise os campos destacados antes de salvar.')
       return false
     }
     setError(null)
@@ -190,12 +192,28 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
         <div className="form-grid">
           <label>
             Nome do deck
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Gruul Revels" />
+            <input
+              id="deck-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Gruul Revels"
+              aria-invalid={Boolean(visibleFieldErrors.name)}
+              aria-describedby={visibleFieldErrors.name ? 'deck-name-error' : undefined}
+            />
+            {visibleFieldErrors.name && <span id="deck-name-error" className="field-error">{visibleFieldErrors.name}</span>}
           </label>
 
           <label>
             Comandante
-            <input value={commander} onChange={(e) => setCommander(e.target.value)} placeholder="Xenagos, God of Revels" />
+            <input
+              id="deck-commander"
+              value={commander}
+              onChange={(e) => setCommander(e.target.value)}
+              placeholder="Xenagos, God of Revels"
+              aria-invalid={Boolean(visibleFieldErrors.commander)}
+              aria-describedby={visibleFieldErrors.commander ? 'deck-commander-error' : undefined}
+            />
+            {visibleFieldErrors.commander && <span id="deck-commander-error" className="field-error">{visibleFieldErrors.commander}</span>}
           </label>
           <label>
             Visibilidade
@@ -204,6 +222,9 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
               <option value="private">Privado</option>
               <option value="public">Publico</option>
             </select>
+            <small className="privacy-microcopy">
+              Privado fica visivel so para voce. Publico aparece na vitrine, pode receber likes e ser copiado; e-mail, dono tecnico e historico nao sao exibidos.
+            </small>
           </label>
         </div>
 
@@ -228,6 +249,7 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
             {isValid ? 'Pronto para salvar' : isOverLimit ? 'Acima do limite Commander' : 'Faltam nome, comandante e cartas'}
           </div>
         </div>
+        {visibleFieldErrors.cards && <div id="deck-cards-error" className="field-error">{visibleFieldErrors.cards}</div>}
       </section>
 
       <section className="editor-section compact-add">
@@ -254,7 +276,16 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
       {savedMessage && <div className="status">{savedMessage}</div>}
 
       <div className="form-actions">
-        <Button type="submit" disabled={!isValid || saving}>{saving ? 'Salvando...' : 'Salvar Deck'}</Button>
+        {disabledReason && <span id="deck-save-disabled-reason" className="empty-action-hint">{disabledReason}</span>}
+        <Button
+          type="submit"
+          disabled={!isValid || saving}
+          loading={saving}
+          loadingLabel="Salvando deck..."
+          aria-describedby={disabledReason ? 'deck-save-disabled-reason' : undefined}
+        >
+          Salvar Deck
+        </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>Voltar</Button>
       </div>
     </form>

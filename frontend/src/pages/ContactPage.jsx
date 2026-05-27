@@ -86,7 +86,7 @@ export default function ContactPage({ onBack }) {
   const submitting = status === 'submitting'
 
   return (
-    <main>
+    <section className="contact-page">
       <section className="zone zone-command page-heading">
         <div>
           <p className="eyebrow">Contato</p>
@@ -221,12 +221,12 @@ export default function ContactPage({ onBack }) {
           </div>
 
           <div className="form-actions contact-actions">
-            <Button type="submit" loading={submitting}>Enviar mensagem</Button>
+            <Button type="submit" loading={submitting} loadingLabel="Enviando mensagem...">Enviar mensagem</Button>
             <Button type="button" variant="secondary" onClick={onBack} disabled={submitting}>Voltar para biblioteca</Button>
           </div>
         </form>
       </Card>
-    </main>
+    </section>
   )
 }
 
