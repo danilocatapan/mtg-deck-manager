@@ -31,6 +31,16 @@ Checklists por tipo de mudanca
 - Styles: usar variaveis globais; evitar regras CSS globais que quebrem outras paginas.
 - Assets: confirmar import/path e build final.
 
+Baseline UX/Acessibilidade
+--------------------------
+- O frontend mira WCAG 2.2 AA como baseline formal, com AAA oportunista quando couber sem degradar clareza, performance ou identidade visual.
+- Cada mudanca visual deve revisar teclado, ordem de foco, foco visivel, foco nao encoberto no mobile, labels persistentes, mensagens de erro por campo e estados vazio/loading/erro.
+- Dialogs, tabs, popovers, disclosures e componentes compostos devem usar primitivos acessiveis locais ou equivalentes testados, com Escape, retorno de foco e relacoes ARIA conectadas.
+- Manter um unico `<main>` no layout; paginas internas devem usar `section`/`article` e foco no heading principal ao trocar view/hash.
+- Elementos coloridos precisam de texto, icone, padrao ou legenda alem da cor. Validar contraste AA nos pares semanticos principais e preferir AAA em texto normal quando barato.
+- Loading labels devem preservar contexto da tarefa, como "Salvando deck...", "Aplicando troca..." e "Copiando deck...".
+- Hash routes compartilhaveis seguem a convencao `#/contact`, `#/release-notes`, `#/meta-admin`, `#/import` e `#/public/:id` ate uma futura migracao para router dedicado.
+
 Guardrails de refatoracao segura
 --------------------------------
 - Nao alterar o contrato REST esperado pelo backend sem coordenacao e teste.

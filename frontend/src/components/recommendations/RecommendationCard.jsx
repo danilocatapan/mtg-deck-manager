@@ -40,8 +40,8 @@ export default function RecommendationCard({ item, index, bracket, onApply, onUn
       title={(
         <span>
           <span className="rec-label">Troca #{index + 1}</span>
-          <span className="recommendation-title-line"><CardNamePreview prefix="+ " name={item.add} /></span>
-          <span className="recommendation-title-muted">Remover: <CardNamePreview name={item.remove} /></span>
+          <span className="recommendation-title-line">+ {item.add}</span>
+          <span className="recommendation-title-muted">Remover: {item.remove}</span>
         </span>
       )}
       summary="Abrir ou recolher detalhes da troca"

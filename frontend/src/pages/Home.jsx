@@ -11,13 +11,14 @@ import StateMessage from '../components/ui/StateMessage'
 import ModalDialog from '../components/ui/ModalDialog'
 import { getAuthToken, subscribeAuth } from '../services/auth'
 import { ApiStartingError } from '../services/api'
+import { HASH_ROUTES } from '../services/hashRoutes'
 import createIcon from '../assets/icons/create.png'
 import importIcon from '../assets/icons/import.png'
 
 const PUBLIC_DECK_LIMIT = 24
 const PUBLIC_COMMANDER_FILTER_DEBOUNCE_MS = 350
 
-export default function Home() {
+export default function Home({ route = { name: HASH_ROUTES.HOME }, onNavigate }) {
   const [decks, setDecks] = useState([])
   const [publicDecks, setPublicDecks] = useState([])
   const [publicDecksLoading, setPublicDecksLoading] = useState(true)
@@ -121,6 +122,70 @@ export default function Home() {
     setIsAuthenticated(Boolean(getAuthToken()))
   }), [])
 
+  useEffect(() => {
+    if (view === 'home') return
+    queueMicrotask(() => {
+      const heading = document.querySelector('.app-main h1')
+      if (heading instanceof HTMLElement) {
+        heading.setAttribute('tabindex', '-1')
+        heading.focus({ preventScroll: true })
+      }
+    })
+  }, [view])
+
+  useEffect(() => {
+    if (route.name === HASH_ROUTES.IMPORT) {
+      if (!isAuthenticated) {
+        queueMicrotask(() => {
+          setMessage('Entre com Google antes de importar decks.')
+          setView('home')
+        })
+        return
+      }
+      queueMicrotask(() => {
+        setMessage(null)
+        setEditorNotice(null)
+        setEditingDeck(null)
+        setView('import')
+      })
+      return
+    }
+
+    if (route.name === HASH_ROUTES.PUBLIC_DECK && route.deckId) {
+      let cancelled = false
+      async function loadSharedDeck() {
+        try {
+          setMessage(null)
+          const loadedDeck = await getPublicDeck(route.deckId)
+          if (!cancelled) {
+            setConsultingDeck(loadedDeck)
+            setView('consult')
+          }
+        } catch {
+          console.error('consult deck failed')
+          if (!cancelled) {
+            setMessage('Nao foi possivel consultar este deck.')
+            setView('home')
+          }
+        }
+      }
+      queueMicrotask(loadSharedDeck)
+      return () => {
+        cancelled = true
+      }
+    }
+
+  }, [isAuthenticated, route])
+
+  useEffect(() => {
+    if (route.name === HASH_ROUTES.HOME && (view === 'import' || view === 'consult')) {
+      queueMicrotask(() => {
+        setView('home')
+        setConsultingDeck(null)
+      })
+    }
+  }, [route.name, view])
+
   function handleCreate() {
     if (!isAuthenticated) {
       setMessage('Entre com Google antes de criar decks.')
@@ -137,6 +202,7 @@ export default function Home() {
       setMessage('Entre com Google antes de importar decks.')
       return
     }
+    onNavigate?.({ name: HASH_ROUTES.IMPORT })
     setMessage(null)
     setEditorNotice(null)
     setEditingDeck(null)
@@ -155,6 +221,7 @@ export default function Home() {
   }
 
   async function handleConsult(deck) {
+    onNavigate?.({ name: HASH_ROUTES.PUBLIC_DECK, deckId: deck.id })
     try {
       setMessage(null)
       const loadedDeck = await getPublicDeck(deck.id)
@@ -252,6 +319,7 @@ export default function Home() {
   }
 
   function handleDone(nextMessage, nextDeck = null) {
+    onNavigate?.({ name: HASH_ROUTES.HOME })
     if (nextDeck) {
       setEditingDeck(nextDeck)
       setView('edit')
@@ -296,7 +364,11 @@ export default function Home() {
           focusLogin()
           setMessage('Entre com Google para copiar ou curtir este deck.')
         }}
-        onBack={() => setView('home')}
+        onBack={() => {
+          setView('home')
+          setConsultingDeck(null)
+          onNavigate?.({ name: HASH_ROUTES.HOME })
+        }}
       />
     )
   }
@@ -328,7 +400,7 @@ export default function Home() {
       </section>
 
       <Card className="zone zone-battlefield">
-        <div className="workflow-steps" aria-label="Fluxo principal">
+        <div className="workflow-steps" aria-label="Fluxo principal" tabIndex={0}>
           <div data-state="active"><strong>1</strong><span>Consultar públicos</span></div>
           <div><strong>2</strong><span>Criar ou importar</span></div>
           <div><strong>3</strong><span>Validar e analisar</span></div>

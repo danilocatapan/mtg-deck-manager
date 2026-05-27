@@ -14,7 +14,7 @@
       "changed": [
         "Analise de combos agora considera o comandante junto com o main deck para detectar linhas e proteger pecas presentes.",
         "Fallback de recomendacoes usa staples por cor, papel e bracket quando nao ha perfil meta suficiente, mantendo filtros de legalidade.",
-        "Telas de importacao, edicao, analise e recomendacoes receberam melhorias de acessibilidade, teclado, validacao clara e explicacoes de seguranca das trocas.",
+        "Telas de importacao, edicao, analise e recomendacoes receberam baseline WCAG 2.2 AA, testes Playwright/axe, previa publica, teclado melhorado e explicacoes de seguranca das trocas.",
         "Analise de curva e CMC medio agora ignora terrenos e classifica cartas dupla face pela face principal.",
         "Recomendacoes estrategicas passam a mirar 10 trocas por padrao quando houver pares legais suficientes."
       ],

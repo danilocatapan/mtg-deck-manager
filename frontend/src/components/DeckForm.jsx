@@ -4,6 +4,7 @@ import CardSearch from './CardSearch'
 import DeckCardListView from './DeckCardListView'
 import Button from './ui/Button'
 import { fetchCardsByNames } from '../services/api'
+import PublicDeckPreview from './PublicDeckPreview'
 
 const CARD_IMAGE_CACHE_KEY = 'mtg-card-image-cache-v2'
 
@@ -227,6 +228,10 @@ export default function DeckForm({ initial = null, onCancel, onSave }) {
             </small>
           </label>
         </div>
+
+        {visibility === 'public' && (
+          <PublicDeckPreview name={name} commander={commander} total={mainDeckTotal} />
+        )}
 
         <div className="commander-card">
           <div className={commanderImageUrl ? 'commander-art' : 'commander-sigil'} aria-hidden="true">

@@ -12,14 +12,14 @@ Escolha em 30 segundos
 - Mudanca de regra de negocio ou algoritmo -> unit tests + regression test com casos representativos.
 - Mudanca de integracao/DB/schema -> integration tests e fixtures.
 - Mudanca de contrato REST -> tests de controller/contrato e validacao dos DTOs/status HTTP.
-- Mudanca de frontend -> lint/build e validacao manual; adicionar testes quando houver harness configurado.
+- Mudanca de frontend -> lint/build, Playwright/axe quando afetar UI, e validacao manual focada nos fluxos tocados.
 
 Matriz rapida de decisao
 ------------------------
 - Unit tests: logica pura (scorers, taggers, helpers, normalizers).
 - Integration tests: servicos que usam DB, cache ou RestClient.
 - Controller/contract: validacao de rota completa e formatos JSON.
-- Frontend validation: ESLint, Vite build e fluxo manual focado.
+- Frontend validation: ESLint, Vite build, Playwright e axe para fluxos principais.
 
 Regras de fixture e ambiente
 ----------------------------
@@ -37,6 +37,7 @@ Cobertura que merece atencao explicita
 - Persistencia PostgreSQL/Flyway quando entidade, indice, constraint ou query mudar.
 - Auth/OIDC, CORS, headers e logs sanitizados quando seguranca for afetada.
 - Erros de contrato REST e respostas HTTP.
+- Acessibilidade frontend: WCAG 2.2 AA + AAA oportunista, teclado, foco, contraste, landmarks, dialogs, tabs, popovers, live regions e estados vazio/loading/erro.
 
 Exemplos uteis do projeto
 -------------------------
@@ -59,7 +60,10 @@ Comandos atuais
 - Backend: em `backend`, no Windows/PowerShell rode Maven sempre com o preambulo do JDK 25 no mesmo comando; no Linux/macOS rode `./mvnw test`.
 - Backend com PostgreSQL local: suba `docker compose up -d postgres` e rode em `backend` com variaveis PostgreSQL/Flyway quando a mudanca tocar persistencia.
 - Frontend: em `frontend`, rode `npm run lint` e `npm run build`.
-- O frontend ainda nao possui script `test`; nao exigir `npm test` ate ele ser adicionado ao `package.json`.
+- Frontend e2e: em `frontend`, rode `npm run test:e2e` para fluxos anonimos/autenticados com mocks.
+- Frontend a11y: em `frontend`, rode `npm run test:a11y` para axe em desktop/mobile e checagem de contraste semantico.
+- Os testes Playwright autenticados devem simular `sessionStorage` com token fake e interceptar REST pelos contratos existentes; nao usar login Google real.
+- Violacoes axe so podem ser aceitas com comentario explicito no teste explicando o motivo, o escopo e o plano de remocao.
 
 Executando Maven nos testes (Windows PowerShell)
 ------------------------------------------------

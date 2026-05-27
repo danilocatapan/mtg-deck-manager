@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { importDeck } from '../services/api'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
+import PublicDeckPreview from '../components/PublicDeckPreview'
 import importIcon from '../assets/icons/import.png'
 
 const SAMPLE_DECK = `1 Sol Ring
@@ -257,6 +258,10 @@ export default function ImportDeckPage({ onDone }) {
               <small className="privacy-microcopy">Privado e o padrao. Publico entra na vitrine e pode ser copiado, sem expor e-mail, dono tecnico ou historico.</small>
             </label>
           </div>
+
+          {visibility === 'public' && (
+            <PublicDeckPreview name={name} commander={commander} total={preview.total} />
+          )}
 
           <label>
             Colar lista do deck

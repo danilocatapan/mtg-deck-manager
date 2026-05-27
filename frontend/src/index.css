@@ -4838,6 +4838,66 @@ button:disabled {
   color: var(--color-text);
 }
 
+.workflow-steps:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.public-deck-preview {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(214, 168, 79, 0.42);
+  border-radius: 8px;
+  background: rgba(214, 168, 79, 0.08);
+}
+
+.public-deck-preview-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.public-deck-preview-card h2 {
+  margin: 0;
+  color: var(--color-value);
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.public-deck-preview-card p,
+.public-deck-preview-list {
+  margin: 0;
+}
+
+.public-deck-preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.public-deck-preview-meta span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border: 1px solid rgba(214, 168, 79, 0.45);
+  border-radius: 999px;
+  background: rgba(6, 18, 12, 0.72);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.public-deck-preview-list {
+  padding-left: 20px;
+  color: var(--color-text);
+}
+
 .status.error,
 .field-error {
   color: var(--color-on-danger);

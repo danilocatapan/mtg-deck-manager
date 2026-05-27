@@ -4,20 +4,16 @@ import Layout from './components/Layout'
 import ContactPage from './pages/ContactPage'
 import ReleaseNotesPage from './pages/ReleaseNotesPage'
 import MetaTopDeckAdminPage from './pages/MetaTopDeckAdminPage'
+import { HASH_ROUTES, pageViewForRoute, parseHashRoute, routeToHash, titleForRoute } from './services/hashRoutes'
 
 function App() {
-  const [view, setView] = useState(() => viewFromHash(window.location.hash))
+  const [route, setRoute] = useState(() => parseHashRoute(window.location.hash))
   const firstViewSync = useRef(true)
+  const view = pageViewForRoute(route)
 
   useEffect(() => {
-    const titles = {
-      home: 'Biblioteca de Decks - MTG Deck Manager',
-      'release-notes': 'Novidades - MTG Deck Manager',
-      contact: 'Contato - MTG Deck Manager',
-      'meta-admin': 'Meta Admin - MTG Deck Manager',
-    }
-    document.title = titles[view] || titles.home
-    if (firstViewSync.current && view === 'home') {
+    document.title = titleForRoute(route)
+    if (firstViewSync.current && route.name === HASH_ROUTES.HOME) {
       firstViewSync.current = false
       return
     }
@@ -29,35 +25,41 @@ function App() {
         heading.focus({ preventScroll: true })
       }
     })
-  }, [view])
+  }, [route, view])
 
   useEffect(() => {
-    function syncHashView() {
-      setView(viewFromHash(window.location.hash))
+    function syncHashRoute() {
+      setRoute(parseHashRoute(window.location.hash))
     }
 
-    window.addEventListener('hashchange', syncHashView)
-    return () => window.removeEventListener('hashchange', syncHashView)
+    window.addEventListener('hashchange', syncHashRoute)
+    return () => window.removeEventListener('hashchange', syncHashRoute)
   }, [])
 
+  function navigate(routeValue) {
+    const nextHash = routeToHash(routeValue)
+    if (nextHash) {
+      if (window.location.hash !== nextHash) window.location.hash = nextHash
+    } else {
+      window.history.pushState('', document.title, window.location.pathname + window.location.search)
+    }
+    setRoute(routeValue)
+  }
+
   function openReleaseNotes() {
-    window.location.hash = 'release-notes'
-    setView('release-notes')
+    navigate({ name: HASH_ROUTES.RELEASE_NOTES })
   }
 
   function openContact() {
-    window.location.hash = 'contact'
-    setView('contact')
+    navigate({ name: HASH_ROUTES.CONTACT })
   }
 
   function openMetaAdmin() {
-    window.location.hash = 'meta-admin'
-    setView('meta-admin')
+    navigate({ name: HASH_ROUTES.META_ADMIN })
   }
 
-function backHome() {
-    window.history.pushState('', document.title, window.location.pathname + window.location.search)
-    setView('home')
+  function backHome() {
+    navigate({ name: HASH_ROUTES.HOME })
   }
 
   return (
@@ -65,16 +67,9 @@ function backHome() {
       {view === 'release-notes' && <ReleaseNotesPage onBack={backHome} />}
       {view === 'contact' && <ContactPage onBack={backHome} />}
       {view === 'meta-admin' && <MetaTopDeckAdminPage onBack={backHome} />}
-      {view === 'home' && <Home />}
+      {view === 'home' && <Home route={route} onNavigate={navigate} />}
     </Layout>
   )
-}
-
-function viewFromHash(hash) {
-  if (hash === '#release-notes') return 'release-notes'
-  if (hash === '#contact') return 'contact'
-  if (hash === '#meta-admin') return 'meta-admin'
-  return 'home'
 }
 
 export default App
