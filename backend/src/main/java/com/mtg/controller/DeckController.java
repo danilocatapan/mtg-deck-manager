@@ -2,7 +2,7 @@ package com.mtg.controller;
 
 import com.mtg.domain.DeckAnalysis;
 import com.mtg.domain.DeckRecommendations;
-import com.mtg.domain.StrategicRecommendation;
+import com.mtg.domain.StrategicRecommendationRun;
 import com.mtg.config.SensitiveLogSanitizer;
 import com.mtg.dto.ApplyRecommendationSwapDTO;
 import com.mtg.dto.AuthenticatedUserDTO;
@@ -266,8 +266,8 @@ public class DeckController {
         if (id == null) return badRequest("Invalid deck id");
 
         try {
-            List<StrategicRecommendation> recommendations = strategicRecommendationService.recommend(id, params, currentUserId());
-            return Response.ok(recommendations).build();
+            StrategicRecommendationRun run = strategicRecommendationService.recommendRun(id, params, currentUserId());
+            return Response.ok(run).build();
         } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
         } catch (IllegalStateException e) {

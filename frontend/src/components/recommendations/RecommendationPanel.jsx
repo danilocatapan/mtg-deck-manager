@@ -29,10 +29,14 @@ export default function RecommendationPanel({
   comparison = null,
   history = [],
 }) {
-  const items = Array.isArray(recommendations) ? recommendations : []
-  const hasGenerated = Array.isArray(recommendations)
+  const run = Array.isArray(recommendations) ? null : recommendations
+  const items = Array.isArray(recommendations) ? recommendations : recommendations?.recommendations || []
+  const hasGenerated = Array.isArray(recommendations) || Boolean(recommendations?.recommendations)
   const source = profileSource(metaProfile, items)
   const hasFallback = source === 'fallback'
+  const confidence = run?.confidence || (hasFallback ? 'low_confidence' : 'medium_confidence')
+  const lowConfidence = confidence === 'low_confidence'
+  const limitations = Array.isArray(run?.limitations) ? run.limitations : []
 
   return (
     <section className="recommendation-panel" aria-live="polite">
@@ -44,6 +48,9 @@ export default function RecommendationPanel({
         </div>
         <div className="recommendation-panel-context">
           <RecommendationBadge variant="curve">Bracket: {bracket}</RecommendationBadge>
+          <RecommendationBadge variant={lowConfidence ? 'fallback' : 'meta'}>
+            {confidenceLabel(confidence)}
+          </RecommendationBadge>
           <RecommendationBadge variant={hasFallback ? 'fallback' : 'meta'}>
             {hasFallback ? 'Análise heurística' : 'Perfil meta local'}
           </RecommendationBadge>
@@ -63,7 +70,17 @@ export default function RecommendationPanel({
           <span>Origem</span>
           <strong>{hasFallback ? 'Heurística' : 'Meta local'}</strong>
         </div>
+        <div>
+          <span>Confianca</span>
+          <strong>{shortConfidence(confidence)}</strong>
+        </div>
       </div>
+
+      {lowConfidence && (
+        <StateMessage tone="warning" title="Ainda nao e possivel prometer melhor qualidade que GPT">
+          Nao tenho dados suficientes para superar uma analise GPT ampla neste caso; posso ainda validar legalidade e sugerir melhorias conservadoras.
+        </StateMessage>
+      )}
 
       {hasFallback && items.length > 0 && (
         <StateMessage tone="warning" title="Dados meta insuficientes">
@@ -112,9 +129,35 @@ export default function RecommendationPanel({
         </div>
       )}
 
-      {(comparison?.metrics?.length > 0 || history.length > 0 || metaSources.length > 0) && (
+      {(comparison?.metrics?.length > 0 || history.length > 0 || metaSources.length > 0 || run) && (
         <details className="recommendation-source-details advanced-recommendation-details">
           <summary>Informações avançadas</summary>
+
+          {run && (
+            <section className="recommendation-quality-details">
+              <div className="section-heading compact">
+                <div>
+                  <p className="eyebrow">Qualidade da recomendacao</p>
+                  <h4>{confidenceLabel(confidence)}</h4>
+                </div>
+                <RecommendationBadge variant={lowConfidence ? 'fallback' : 'meta'}>
+                  {run.benchmarkStatus || 'benchmark pendente'}
+                </RecommendationBadge>
+              </div>
+              <div className="quality-grid">
+                <span className="source-pill enabled">Amostra: {run.coverage?.sampleSize ?? 0}</span>
+                <span className="source-pill">Cartas: {run.coverage?.resolvedCards ?? 0}/{run.coverage?.requestedCards ?? 0}</span>
+                <span className="source-pill">Dados: {formatFreshness(run.dataFreshness)}</span>
+              </div>
+              {limitations.length > 0 && (
+                <ul className="quality-limitations">
+                  {limitations.slice(0, 5).map((limitation) => (
+                    <li key={limitation}>{limitation}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
 
           {comparison?.metrics?.length > 0 && (
             <section className="recommendation-comparison">
@@ -175,4 +218,21 @@ function recommendationKey(item) {
 function formatMetric(value) {
   const numeric = Number(value || 0)
   return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2)
+}
+
+function confidenceLabel(confidence) {
+  if (confidence === 'high_confidence') return 'Confianca alta'
+  if (confidence === 'medium_confidence') return 'Confianca media'
+  return 'Confianca baixa'
+}
+
+function shortConfidence(confidence) {
+  if (confidence === 'high_confidence') return 'Alta'
+  if (confidence === 'medium_confidence') return 'Media'
+  return 'Baixa'
+}
+
+function formatFreshness(value) {
+  if (!value || value === 'unknown') return 'desconhecido'
+  return String(value).slice(0, 10)
 }

@@ -90,11 +90,13 @@ class DeckRecommendationIntegrationTest {
                 .when().post(deckLocation + "/recommendations/strategic")
                 .then()
                 .statusCode(200)
-                .body("$", hasSize(greaterThanOrEqualTo(3)))
-                .body("add", everyItem(not(is("Grand Arbiter Augustin IV"))))
-                .body("remove", everyItem(not(is("Grand Arbiter Augustin IV"))))
-                .body("reasoning", everyItem(not(is(""))))
-                .body("budget", everyItem(nullValue()));
+                .body("confidence", not(is("")))
+                .body("coverage.commanderKnown", is(true))
+                .body("recommendations", hasSize(greaterThanOrEqualTo(3)))
+                .body("recommendations.add", everyItem(not(is("Grand Arbiter Augustin IV"))))
+                .body("recommendations.remove", everyItem(not(is("Grand Arbiter Augustin IV"))))
+                .body("recommendations.reasoning", everyItem(not(is(""))))
+                .body("recommendations.budget", everyItem(nullValue()));
     }
 
     @Test
@@ -112,11 +114,13 @@ class DeckRecommendationIntegrationTest {
                 .when().post(deckLocation + "/recommendations/strategic")
                 .then()
                 .statusCode(200)
-                .body("$", hasSize(greaterThanOrEqualTo(3)))
-                .body("add", everyItem(not(is("Xenagos, God of Revels"))))
-                .body("remove", everyItem(not(is("Xenagos, God of Revels"))))
-                .body("reasoning", everyItem(not(is(""))))
-                .body("budget", everyItem(nullValue()));
+                .body("confidence", not(is("")))
+                .body("coverage.commanderKnown", is(true))
+                .body("recommendations", hasSize(greaterThanOrEqualTo(3)))
+                .body("recommendations.add", everyItem(not(is("Xenagos, God of Revels"))))
+                .body("recommendations.remove", everyItem(not(is("Xenagos, God of Revels"))))
+                .body("recommendations.reasoning", everyItem(not(is(""))))
+                .body("recommendations.budget", everyItem(nullValue()));
     }
 
     @Test
@@ -140,17 +144,20 @@ class DeckRecommendationIntegrationTest {
                 .when().post(deckLocation + "/recommendations/strategic")
                 .then()
                 .statusCode(200)
-                .body("$", hasSize(greaterThanOrEqualTo(5)))
-                .body("add", everyItem(not(is("Xenagos, God of Revels"))))
-                .body("remove", everyItem(not(is("Xenagos, God of Revels"))))
-                .body("reasoning", everyItem(not(is(""))))
+                .body("confidence", not(is("")))
+                .body("coverage.commanderKnown", is(true))
+                .body("benchmarkStatus", not(is("")))
+                .body("recommendations", hasSize(greaterThanOrEqualTo(5)))
+                .body("recommendations.add", everyItem(not(is("Xenagos, God of Revels"))))
+                .body("recommendations.remove", everyItem(not(is("Xenagos, God of Revels"))))
+                .body("recommendations.reasoning", everyItem(not(is(""))))
                 .extract()
                 .jsonPath();
 
-        List<String> adds = response.getList("add", String.class);
-        List<String> cuts = response.getList("remove", String.class);
-        List<Map<String, Object>> addBreakdowns = response.getList("addScoreBreakdown");
-        List<Map<String, Object>> cutBreakdowns = response.getList("cutScoreBreakdown");
+        List<String> adds = response.getList("recommendations.add", String.class);
+        List<String> cuts = response.getList("recommendations.remove", String.class);
+        List<Map<String, Object>> addBreakdowns = response.getList("recommendations.addScoreBreakdown");
+        List<Map<String, Object>> cutBreakdowns = response.getList("recommendations.cutScoreBreakdown");
 
         Set<String> expectedAdds = Set.of(
                 "Savage Ventmaw",
@@ -222,15 +229,17 @@ class DeckRecommendationIntegrationTest {
                 .when().post(deckLocation + "/recommendations/strategic")
                 .then()
                 .statusCode(200)
-                .body("$", hasSize(10))
-                .body("add", everyItem(not(is("K'rrik, Son of Yawgmoth"))))
-                .body("remove", everyItem(not(is("K'rrik, Son of Yawgmoth"))))
-                .body("reasoning", everyItem(not(is(""))))
+                .body("confidence", not(is("")))
+                .body("coverage.commanderKnown", is(true))
+                .body("recommendations", hasSize(10))
+                .body("recommendations.add", everyItem(not(is("K'rrik, Son of Yawgmoth"))))
+                .body("recommendations.remove", everyItem(not(is("K'rrik, Son of Yawgmoth"))))
+                .body("recommendations.reasoning", everyItem(not(is(""))))
                 .extract()
                 .jsonPath();
 
-        List<String> adds = response.getList("add", String.class);
-        List<String> cuts = response.getList("remove", String.class);
+        List<String> adds = response.getList("recommendations.add", String.class);
+        List<String> cuts = response.getList("recommendations.remove", String.class);
 
         Set<String> expectedAdds = Set.of(
                 "Cabal Ritual",

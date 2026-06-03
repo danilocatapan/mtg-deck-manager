@@ -4,9 +4,11 @@ Todas as mudancas notaveis deste projeto serao documentadas aqui.
 
 O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e atualizado a partir das tags Git e mensagens de commit da release.
 
-## [0.0.0-local] - 2026-05-27
+## [0.0.0-local] - 2026-06-03
 
 ### Added
+- Quality gate das recomendacoes estrategicas expõe confiança, cobertura, fontes, freshness, limitações e status de benchmark contra GPT antes de afirmar superioridade.
+- Protocolo `docs/recommendation-gpt-benchmark.md` define corpus, baseline GPT, métricas e regra de produto para provar superioridade do recomendador Commander.
 - Script operacional para migrar PostgreSQL do Render para Neon via Docker, com imagem PostgreSQL configuravel, dump, restore, validacao de contagens e template de variaveis Quarkus.
 - Cache local de combos conhecidos com tabelas `meta_combos`/`meta_combo_cards`, adapter Commander Spellbook e endpoint administrativo `POST /meta/combos/sync`.
 - Contrato de analise passa a expor `manaCurveCards`, permitindo auditar quais cartas compoem cada ponto da curva de mana.
@@ -32,6 +34,8 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Endpoint estrategico de recomendacoes passa a retornar uma execução auditavel com metadados e lista de trocas, e a UI avisa quando faltam dados para superar uma analise GPT ampla.
+- Parametros de recomendacao deixam de ser apenas decorativos: orçamento filtra/penaliza cartas caras e `strategy` passa a influenciar o score em modos como budget, power, theme e cEDH.
 - Frontend agora documenta baseline WCAG 2.2 AA com AAA oportunista, checklist de teclado/foco/contraste e governanca Playwright/axe para mudancas de UI.
 - Testes frontend ganharam scripts `test:e2e` e `test:a11y`, mocks de REST/login Google, validacao axe desktop/mobile e checagem de contraste dos tokens semanticos principais.
 - Navegacao por hash foi centralizada em helper local, com rotas compartilhaveis `#/contact`, `#/release-notes`, `#/meta-admin`, `#/import` e `#/public/:id`.

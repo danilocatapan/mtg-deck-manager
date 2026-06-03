@@ -1,6 +1,7 @@
 package com.mtg.service;
 
 import com.mtg.domain.StrategicRecommendation;
+import com.mtg.domain.StrategicRecommendationRun;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.dto.RecommendationParamsDTO;
 import com.mtg.model.Deck;
@@ -187,7 +188,7 @@ class StrategicRecommendationServiceTest {
     }
 
     @Test
-    void shouldIgnoreStrategyIntentButKeepBudgetInResponse() {
+    void shouldApplyBudgetStrategyAndKeepBudgetInResponse() {
         Deck deck = xenagosDeck();
         CommanderMetaProfile profile = profile("Xenagos, God of Revels", "mid", 4, List.of(
                 new MetaCard("Greater Good", 0.95, "draw", 4.0),
@@ -206,9 +207,35 @@ class StrategicRecommendationServiceTest {
 
         assertFalse(recommendations.isEmpty());
         StrategicRecommendation first = recommendations.getFirst();
-        assertEquals("consistency", first.recommendationMode());
+        assertEquals("budget", first.recommendationMode());
         assertEquals(5.0, first.budget());
         assertTrue(first.addInsight().estimatedPrice() == null || first.addInsight().estimatedPrice() >= 0.0);
+        assertTrue(recommendations.stream().noneMatch(recommendation -> recommendation.add().equals("Greater Good")));
+    }
+
+    @Test
+    void shouldExposeRecommendationRunQualityGateAndLimitations() {
+        Deck deck = xenagosDeck();
+        CommanderMetaProfile smallProfile = profile("Xenagos, God of Revels", "mid", 2, List.of(
+                new MetaCard("Greater Good", 1.0, "draw", 4.0)
+        ));
+
+        when(deckRepository.findById(1L)).thenReturn(deck);
+        when(commanderMetaProfileService.findByCommanderAndBracket("Xenagos, God of Revels", "mid")).thenReturn(smallProfile);
+        when(metaProvider.getTopCards("Xenagos, God of Revels")).thenReturn(List.of(
+                new MetaCard("Nature's Lore", 0.80, "ramp", 2.0),
+                new MetaCard("Heroic Intervention", 0.70, "protection", 2.0)
+        ));
+        when(cardService.findByNames(Mockito.anyList())).thenReturn(xenagosCards());
+
+        StrategicRecommendationRun run = sut.recommendRun(1L, new RecommendationParamsDTO(null, "mid", null, null));
+
+        assertEquals("low_confidence", run.confidence());
+        assertEquals("benchmark_reference_exists_but_current_run_is_low_confidence", run.benchmarkStatus());
+        assertTrue(run.coverage().fallbackUsed());
+        assertFalse(run.coverage().usefulMeta());
+        assertTrue(run.limitations().stream().anyMatch(limitation -> limitation.contains("Dados meta insuficientes")));
+        assertFalse(run.recommendations().isEmpty());
     }
 
     @Test

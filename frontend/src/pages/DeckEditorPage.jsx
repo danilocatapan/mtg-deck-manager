@@ -136,20 +136,21 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
       setLoadingRec(true)
       setRecommendationParams(params)
       console.info('event=recommendation.request.started', { deckId: currentDeck.id, bracket: params?.bracket || 'casual' })
-      const recommendations = await getRecommendations(currentDeck.id, params)
+      const recommendationRun = await getRecommendations(currentDeck.id, params)
+      const recommendationItems = Array.isArray(recommendationRun) ? recommendationRun : recommendationRun?.recommendations || []
       const profile = await getCommanderMeta(currentDeck.commander, {
         bracket: params?.bracket || 'casual',
       })
       const deckComparison = await getSimilarDeckComparison(currentDeck.id, params)
-      console.info('event=recommendation.request.completed', { deckId: currentDeck.id, count: Array.isArray(recommendations) ? recommendations.length : 0 })
+      console.info('event=recommendation.request.completed', { deckId: currentDeck.id, count: recommendationItems.length, confidence: recommendationRun?.confidence || null })
       if (!profile || Number(profile.sampleSize || 0) < 3) {
         console.info('event=recommendation.fallback.rendered', { deckId: currentDeck.id })
       }
-      setRec(recommendations)
+      setRec(recommendationRun)
       setMetaProfile(profile)
       setComparison(deckComparison)
       changePanel('recommendations')
-      setMessage(`${Array.isArray(recommendations) ? recommendations.length : 0} recomendações estratégicas geradas.`)
+      setMessage(`${recommendationItems.length} recomendações estratégicas geradas.`)
     } catch (e) {
       console.error('recommendations error')
       console.info('event=recommendation.request.failed', { deckId: currentDeck.id })

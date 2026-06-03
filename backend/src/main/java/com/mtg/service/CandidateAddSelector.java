@@ -121,7 +121,7 @@ public class CandidateAddSelector {
 
         for (MetaCard metaCard : metaCards.stream().limit(50).toList()) {
             CardResponseDTO card = knownCards.get(normalize(metaCard.getName()));
-            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, "meta_top_cards")) {
+            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, "meta_top_cards")) {
                 selectionOrigins.putIfAbsent(normalize(card.name()), "meta_top_cards");
             }
             if (cards.size() >= 30) break;
@@ -135,24 +135,26 @@ public class CandidateAddSelector {
                     knownCards.putIfAbsent(normalize(card.name()), card);
                 }
             }
-            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, "combo_completion")) {
+            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, "combo_completion")) {
                 selectionOrigins.putIfAbsent(normalize(card.name()), "combo_completion");
             }
         }
 
         for (CardResponseDTO card : archetypeFallbackCards(profile, bracket)) {
+            card = knownCards.getOrDefault(normalize(card.name()), card);
             knownCards.putIfAbsent(normalize(card.name()), card);
             if (cards.size() >= 30) break;
-            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, "archetype_fallback")) {
+            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, "archetype_fallback")) {
                 selectionOrigins.putIfAbsent(normalize(card.name()), "archetype_fallback");
             }
         }
 
         if (cards.size() < 12) {
             for (CardResponseDTO card : stapleFallbackCards(profile, bracket)) {
+                card = knownCards.getOrDefault(normalize(card.name()), card);
                 knownCards.putIfAbsent(normalize(card.name()), card);
                 if (cards.size() >= 24) break;
-                if (addIfLegal(cards, card, existingNames, profile.colors(), filters, "color_staple_fallback")) {
+                if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, "color_staple_fallback")) {
                     selectionOrigins.putIfAbsent(normalize(card.name()), "color_staple_fallback");
                 }
             }
@@ -161,8 +163,9 @@ public class CandidateAddSelector {
         if (cards.size() < 12) {
             for (String role : prioritizedGapRoles(roles, profile)) {
                 for (CardResponseDTO card : fallbackCards(role, bracket)) {
+                    card = knownCards.getOrDefault(normalize(card.name()), card);
                     knownCards.putIfAbsent(normalize(card.name()), card);
-                    if (addIfLegal(cards, card, existingNames, profile.colors(), filters, "role_fallback:" + role)) {
+                    if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, "role_fallback:" + role)) {
                         selectionOrigins.putIfAbsent(normalize(card.name()), "role_fallback:" + role);
                     }
                 }
@@ -177,8 +180,8 @@ public class CandidateAddSelector {
                 .toList();
     }
 
-    private boolean addIfLegal(List<CardResponseDTO> cards, CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters, String origin) {
-        String rejection = rejectionReason(card, existingNames, commanderColors, filters, cards);
+    private boolean addIfLegal(List<CardResponseDTO> cards, CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters, Double budget, String origin) {
+        String rejection = rejectionReason(card, existingNames, commanderColors, filters, budget, cards);
         if (rejection == null) {
             cards.add(card);
             LOG.infov("event=recommendation.add_candidate.accepted card=\"{0}\" origin={1} commanderColors={2}", card.name(), origin, commanderColors);
@@ -221,6 +224,7 @@ public class CandidateAddSelector {
             score += isCompetitiveBracket(bracket) ? 0.18 : 0.10;
         }
         score = applyFilters(score, filters, card, role, commanderSynergy, archetypeFit);
+        score = applyRecommendationMode(score, recommendationMode, card, commanderSynergy, archetypeFit, metaScore, efficiency, role, budget);
         score *= assessment == null ? 1.0 : assessment.priorityFor(role);
         String source = comboName != null && metaCard == null
                 ? "combo_database"
@@ -702,10 +706,10 @@ public class CandidateAddSelector {
     }
 
     private boolean isLegalAdd(CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors) {
-        return rejectionReason(card, existingNames, commanderColors, Set.of(), List.of()) == null;
+        return rejectionReason(card, existingNames, commanderColors, Set.of(), null, List.of()) == null;
     }
 
-    private String rejectionReason(CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters, List<CardResponseDTO> alreadySelected) {
+    private String rejectionReason(CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters, Double budget, List<CardResponseDTO> alreadySelected) {
         if (card == null || card.name() == null) return "missing_card";
         String normalizedName = normalize(card.name());
         if (existingNames.contains(normalizedName)) return "already_in_deck";
@@ -713,6 +717,7 @@ public class CandidateAddSelector {
         if (!ColorIdentityMatcher.matches(card, commanderColors)) return "color_identity";
         if (!matchesFunctionalMana(card, commanderColors)) return "functional_mana_outside_color_identity";
         if (!passesFilters(card, filters)) return "request_filter";
+        if (budget != null && budget > 0.0 && card.estimatedPrice() != null && card.estimatedPrice() > budget) return "budget";
         if (alreadySelected.stream().anyMatch(existing -> normalize(existing.name()).equals(normalizedName))) return "duplicate_candidate";
         String typeLine = card.typeLine() == null ? "" : card.typeLine().toLowerCase(Locale.ROOT);
         if (typeLine.contains("plane") || typeLine.contains("scheme") || typeLine.contains("conspiracy")) return "unsupported_card_type";
@@ -824,6 +829,42 @@ public class CandidateAddSelector {
             return cmc <= 1.0 ? 1.0 : cmc <= 2.0 ? 0.85 : cmc <= 3.0 ? 0.45 : 0.2;
         }
         return cmc <= 2.0 ? 0.9 : cmc <= 4.0 ? 0.65 : 0.35;
+    }
+
+    private double applyRecommendationMode(
+            double score,
+            String recommendationMode,
+            CardResponseDTO card,
+            double synergy,
+            double archetypeFit,
+            double metaScore,
+            double efficiency,
+            String role,
+            Double budget
+    ) {
+        String mode = recommendationMode == null || recommendationMode.isBlank()
+                ? "consistency"
+                : recommendationMode.toLowerCase(Locale.ROOT);
+        double adjusted = score;
+        double price = card.estimatedPrice() == null ? -1.0 : card.estimatedPrice();
+        switch (mode) {
+            case "power", "cedh" -> adjusted = adjusted * 0.75 + Math.max(metaScore, efficiency) * 0.25;
+            case "budget" -> {
+                if (budget != null && budget > 0.0 && price >= 0.0) {
+                    adjusted *= price <= budget ? 1.18 : 0.45;
+                } else if (price >= 0.0 && price <= 5.0) {
+                    adjusted *= 1.12;
+                }
+            }
+            case "theme" -> adjusted = adjusted * 0.70 + Math.max(synergy, archetypeFit) * 0.30;
+            default -> {
+                // consistency is the baseline score.
+            }
+        }
+        if ("cedh".equals(mode) && ("tutor".equals(role) || "selection".equals(role) || "combo-piece".equals(role) || "protection".equals(role))) {
+            adjusted *= 1.10;
+        }
+        return adjusted;
     }
 
     private List<String> scoreReasons(CardResponseDTO card, String role, String comboName, List<ComboDetectionService.ComboRecommendationContext> comboContexts, boolean gameChanger, StrategicDeckAssessment assessment, double multiplayerScore, double curveScore) {

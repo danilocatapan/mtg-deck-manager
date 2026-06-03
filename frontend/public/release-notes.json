@@ -1,22 +1,22 @@
 [
   {
     "version": "0.0.0-local",
-    "date": "2026-05-27",
+    "date": "2026-06-03",
     "title": "Decks publicos e curadoria da comunidade",
     "changes": {
       "added": [
+        "Recomendacoes agora mostram um quality gate com confianca, cobertura de dados e limitacoes antes de afirmar que superam uma analise GPT.",
         "Cache local de combos via Commander Spellbook melhora deteccao, recomendacoes e protecao de pecas-chave sem depender de API externa durante a analise.",
         "Aba Curva agora permite abrir cada custo de mana e conferir quais cartas compoem a soma exibida no grafico.",
         "Benchmark local de K'rrik em cEDH melhora recomendacoes de rituais, tutors, fast mana, Necropotence e combos.",
-        "Importacoes preservam edicao, numero de colecao, foil e imagem correta quando a lista traz dados de impressao.",
-        "Tela Meta Admin permite ao usuario autorizado importar e consultar top decks externos que alimentam perfis de meta quando houver amostra suficiente."
+        "Importacoes preservam edicao, numero de colecao, foil e imagem correta quando a lista traz dados de impressao."
       ],
       "changed": [
+        "A tela de recomendacoes avisa quando faltam dados para prometer qualidade superior ao GPT e segue com sugestoes conservadoras.",
+        "Orcamento e estrategia passam a influenciar ranking e filtragem das trocas sugeridas.",
         "Analise de combos agora considera o comandante junto com o main deck para detectar linhas e proteger pecas presentes.",
         "Fallback de recomendacoes usa staples por cor, papel e bracket quando nao ha perfil meta suficiente, mantendo filtros de legalidade.",
-        "Telas de importacao, edicao, analise e recomendacoes receberam baseline WCAG 2.2 AA, testes Playwright/axe no CI, previa publica, rotas compartilhaveis e explicacoes de seguranca das trocas.",
-        "Analise de curva e CMC medio agora ignora terrenos e classifica cartas dupla face pela face principal.",
-        "Recomendacoes estrategicas passam a mirar 10 trocas por padrao quando houver pares legais suficientes."
+        "Telas de importacao, edicao, analise e recomendacoes receberam baseline WCAG 2.2 AA, testes Playwright/axe no CI, previa publica, rotas compartilhaveis e explicacoes de seguranca das trocas."
       ],
       "fixed": [
         "Recomendacoes de K'rrik deixam de sugerir remover Vilis quando ele atua como engine central de compra por perda de vida.",

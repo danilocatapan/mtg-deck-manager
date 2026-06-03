@@ -1,6 +1,9 @@
 package com.mtg.service;
 
+import com.mtg.domain.RecommendationCoverage;
+import com.mtg.domain.RecommendationSourceSummary;
 import com.mtg.domain.StrategicRecommendation;
+import com.mtg.domain.StrategicRecommendationRun;
 import com.mtg.dto.CardResponseDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.DeckCard;
@@ -18,6 +21,7 @@ import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -70,10 +74,18 @@ public class StrategicRecommendationService {
     RecommendationAuditContext auditContext;
 
     public List<StrategicRecommendation> recommend(Long deckId, com.mtg.dto.RecommendationParamsDTO params) {
-        return recommend(deckId, params, null);
+        return recommendRun(deckId, params, null).recommendations();
     }
 
     public List<StrategicRecommendation> recommend(Long deckId, com.mtg.dto.RecommendationParamsDTO params, String ownerId) {
+        return recommendRun(deckId, params, ownerId).recommendations();
+    }
+
+    public StrategicRecommendationRun recommendRun(Long deckId, com.mtg.dto.RecommendationParamsDTO params) {
+        return recommendRun(deckId, params, null);
+    }
+
+    public StrategicRecommendationRun recommendRun(Long deckId, com.mtg.dto.RecommendationParamsDTO params, String ownerId) {
         Deck deck = ownerId == null ? deckRepository.findById(deckId) : deckRepository.findByIdAndOwner(deckId, ownerId);
         if (deck == null) {
             throw new NotFoundException("Deck not found");
@@ -140,6 +152,7 @@ public class StrategicRecommendationService {
         if (metaCards == null) metaCards = List.of();
 
         Map<String, CardResponseDTO> knownCards = preloadCards(deck, metaCards);
+        int requestedCardCount = requestedCardCount(deck, metaCards);
         CardResponseDTO commanderCard = knownCards.get(normalize(deck.getCommander()));
         DeckRoleSummary roles = deckRoleAnalyzer.analyze(deck, knownCards, bracket);
         CommanderArchetypeProfile profile = archetypeDetector.detect(deck.getCommander(), commanderCard, roles, persistedColors(deck.getColorIdentity()));
@@ -195,7 +208,18 @@ public class StrategicRecommendationService {
                 recommendations.size()
         );
         persistAudit(deck, ownerId, params, bracket, profile, roles, assessment, recommendations);
-        return recommendations;
+        return buildRun(
+                deck,
+                params,
+                bracket,
+                sourceMode,
+                metaProfile,
+                hasUsefulMeta,
+                knownCards,
+                requestedCardCount,
+                mainDeckCount,
+                recommendations
+        );
     }
 
     private boolean hasUsefulMeta(CommanderMetaProfile profile) {
@@ -254,10 +278,184 @@ public class StrategicRecommendationService {
     }
 
     private String normalizeRecommendationMode(String strategy) {
-        if (strategy != null && !strategy.isBlank()) {
-            LOG.infov("event=recommendation.strategy.ignored requested=\"{0}\" effective=consistency", strategy);
+        if (strategy == null || strategy.isBlank()) {
+            return "consistency";
         }
-        return "consistency";
+        String normalized = strategy.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "power", "competitive" -> "power";
+            case "budget" -> "budget";
+            case "theme", "preserve-theme" -> "theme";
+            case "cedh", "cEDH" -> "cedh";
+            default -> {
+                LOG.infov("event=recommendation.strategy.unsupported requested=\"{0}\" effective=consistency", strategy);
+                yield "consistency";
+            }
+        };
+    }
+
+    private StrategicRecommendationRun buildRun(
+            Deck deck,
+            com.mtg.dto.RecommendationParamsDTO params,
+            String bracket,
+            String sourceMode,
+            CommanderMetaProfile metaProfile,
+            boolean hasUsefulMeta,
+            Map<String, CardResponseDTO> knownCards,
+            int requestedCardCount,
+            int mainDeckCount,
+            List<StrategicRecommendation> recommendations
+    ) {
+        double resolutionRate = requestedCardCount <= 0 ? 0.0 : knownCards.size() / (double) requestedCardCount;
+        boolean commanderKnown = knownCards.containsKey(normalize(deck.getCommander()));
+        boolean fallbackUsed = !hasUsefulMeta || recommendations.stream().anyMatch(recommendation -> "heuristic_fallback".equals(recommendation.source()));
+        List<String> sources = metaProfile == null ? List.of() : metaProfile.sourcesUsed();
+        int sampleSize = metaProfile == null ? 0 : metaProfile.sampleSize();
+        List<String> limitations = limitations(params, commanderKnown, hasUsefulMeta, sampleSize, resolutionRate, mainDeckCount, deck.getCommander());
+        String confidence = confidence(hasUsefulMeta, sampleSize, resolutionRate, mainDeckCount, commanderKnown, params, limitations);
+
+        RecommendationCoverage coverage = new RecommendationCoverage(
+                commanderKnown,
+                hasUsefulMeta,
+                sampleSize,
+                sources,
+                requestedCardCount,
+                knownCards.size(),
+                resolutionRate,
+                mainDeckCount,
+                bracket,
+                fallbackUsed
+        );
+        RecommendationSourceSummary sourceSummary = new RecommendationSourceSummary(
+                sourceMode,
+                sampleSize,
+                sources,
+                attributionFor(sources),
+                hasUsefulMeta,
+                fallbackUsed
+        );
+        return new StrategicRecommendationRun(
+                confidence,
+                coverage,
+                dataFreshness(metaProfile),
+                sourceSummary,
+                limitations,
+                benchmarkStatus(deck.getCommander(), bracket, confidence),
+                recommendations
+        );
+    }
+
+    private List<String> limitations(
+            com.mtg.dto.RecommendationParamsDTO params,
+            boolean commanderKnown,
+            boolean hasUsefulMeta,
+            int sampleSize,
+            double resolutionRate,
+            int mainDeckCount,
+            String commander
+    ) {
+        List<String> limitations = new ArrayList<>();
+        if (!commanderKnown) {
+            limitations.add("Comandante sem detalhes completos de carta; color identity e sinergia podem depender do fallback persistido.");
+        }
+        if (!hasUsefulMeta) {
+            limitations.add("Dados meta insuficientes para este comandante/bracket; a recomendacao usa heuristicas conservadoras.");
+        } else if (sampleSize < 10) {
+            limitations.add("Amostra meta pequena; use as sugestoes como direcao, nao como prova estatistica.");
+        }
+        if (resolutionRate < 0.75) {
+            limitations.add("Parte relevante das cartas nao foi resolvida pela base de cartas; comparacoes de curva, preco e papel podem ficar incompletas.");
+        }
+        if (mainDeckCount < 90) {
+            limitations.add("Deck incompleto; qualidade contra GPT nao e comprovada ate a lista se aproximar de 99 cartas no main deck.");
+        }
+        if (params != null && Boolean.TRUE.equals(params.ownedOnly())) {
+            limitations.add("Filtro 'apenas cartas que possuo' solicitado, mas nao ha inventario de colecao persistido para validar posse das cartas.");
+        }
+        if (!benchmarkedCommander(commander)) {
+            limitations.add("Este comandante ainda nao esta coberto pelo benchmark interno contra GPT.");
+        }
+        if (limitations.isEmpty()) {
+            limitations.add("Recomendacao coberta por dados suficientes para comparacao interna, ainda assim valide preco, disponibilidade e acordo da mesa.");
+        }
+        return limitations;
+    }
+
+    private String confidence(
+            boolean hasUsefulMeta,
+            int sampleSize,
+            double resolutionRate,
+            int mainDeckCount,
+            boolean commanderKnown,
+            com.mtg.dto.RecommendationParamsDTO params,
+            List<String> limitations
+    ) {
+        if (Boolean.TRUE.equals(params == null ? null : params.ownedOnly())) {
+            return "low_confidence";
+        }
+        if (hasUsefulMeta && sampleSize >= 10 && resolutionRate >= 0.85 && mainDeckCount >= 90 && commanderKnown && limitations.size() <= 1) {
+            return "high_confidence";
+        }
+        if ((hasUsefulMeta || resolutionRate >= 0.65) && mainDeckCount >= 60 && commanderKnown) {
+            return "medium_confidence";
+        }
+        return "low_confidence";
+    }
+
+    private String benchmarkStatus(String commander, String bracket, String confidence) {
+        if (!benchmarkedCommander(commander)) {
+            return "not_proven_against_gpt";
+        }
+        if ("low_confidence".equals(confidence)) {
+            return "benchmark_reference_exists_but_current_run_is_low_confidence";
+        }
+        return "covered_by_internal_benchmark_reference";
+    }
+
+    private boolean benchmarkedCommander(String commander) {
+        String normalized = normalize(commander);
+        return Set.of(
+                "xenagos, god of revels",
+                "k'rrik, son of yawgmoth",
+                "grand arbiter augustin iv",
+                "kess, dissident mage"
+        ).contains(normalized);
+    }
+
+    private String dataFreshness(CommanderMetaProfile metaProfile) {
+        if (metaProfile == null || metaProfile.updatedAt() == null) {
+            return "unknown";
+        }
+        return metaProfile.updatedAt().toString();
+    }
+
+    private String attributionFor(List<String> sources) {
+        if (sources == null || sources.isEmpty()) {
+            return "Sem fonte meta suficiente; heuristicas locais e regras Commander.";
+        }
+        if (sources.stream().anyMatch(source -> source != null && source.equalsIgnoreCase("TOPDECK"))) {
+            return "Dados de torneio fornecidos por TopDeck.gg; usar com atribuicao visivel quando exibido publicamente.";
+        }
+        if (sources.stream().anyMatch(source -> source != null && source.equalsIgnoreCase("meta_top_decks"))) {
+            return "Dados de top decks importados localmente; respeitar atribuicao da fonte original.";
+        }
+        return "Dados meta locais/importados combinados com heuristicas do sistema.";
+    }
+
+    private int requestedCardCount(Deck deck, List<MetaCard> metaCards) {
+        Set<String> names = new HashSet<>();
+        names.add(normalize(deck.getCommander()));
+        deck.getCards().stream()
+                .map(DeckCard::getName)
+                .map(this::normalize)
+                .filter(name -> !name.isBlank())
+                .forEach(names::add);
+        metaCards.stream()
+                .map(MetaCard::getName)
+                .map(this::normalize)
+                .filter(name -> !name.isBlank())
+                .forEach(names::add);
+        return names.size();
     }
 
     private Set<String> filters(com.mtg.dto.RecommendationParamsDTO params) {
