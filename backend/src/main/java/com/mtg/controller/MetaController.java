@@ -9,6 +9,7 @@ import com.mtg.service.AuthenticatedUserService;
 import com.mtg.service.CommanderSpellbookComboSyncService;
 import com.mtg.service.ExternalDeckImportService;
 import com.mtg.service.MetaTopDeckService;
+import com.mtg.service.RecommendationBenchmarkService;
 import com.mtg.service.meta.CommanderMetaProfile;
 import com.mtg.service.meta.CommanderMetaProfileService;
 import com.mtg.service.meta.ExternalMetaIngestionJob;
@@ -63,6 +64,9 @@ public class MetaController {
 
     @Inject
     CommanderSpellbookComboSyncService comboSyncService;
+
+    @Inject
+    RecommendationBenchmarkService recommendationBenchmarkService;
 
     @Inject
     AuthenticatedUserService authenticatedUserService;
@@ -195,6 +199,15 @@ public class MetaController {
         }
         int imported = comboSyncService.sync(query == null || query.isBlank() ? "legal:commander" : query, limit == null ? 500 : limit);
         return Response.ok(Map.of("source", "Commander Spellbook", "imported", imported)).build();
+    }
+
+    @GET
+    @Path("/recommendation-benchmark/summary")
+    public Response recommendationBenchmarkSummary(@HeaderParam("X-Admin-Key") String adminKey) {
+        if (!isTopDeckAdminAuthorized(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        return Response.ok(recommendationBenchmarkService.summary()).build();
     }
 
     @GET

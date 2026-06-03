@@ -455,6 +455,18 @@ export async function syncMetaTopDecks(payload, adminKey = '') {
   }
 }
 
+export async function getRecommendationBenchmarkSummary(adminKey = '') {
+  try {
+    return await request('/meta/recommendation-benchmark/summary', {
+      retryOnStartup: false,
+      headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+    })
+  } catch (e) {
+    logApiError('getRecommendationBenchmarkSummary error', e)
+    throw e
+  }
+}
+
 export async function importDeck(data) {
   try {
     return await request('/decks/import', {
@@ -516,6 +528,7 @@ export default {
   getMetaTopDeck,
   importMetaTopDecks,
   syncMetaTopDecks,
+  getRecommendationBenchmarkSummary,
   getAppInfo,
   exportUserData,
   deleteAccountData,

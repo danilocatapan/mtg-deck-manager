@@ -241,6 +241,24 @@ class MetaTopDeckControllerTest {
     }
 
     @Test
+    void benchmarkSummaryRequiresAdminAndExposesCoverage() {
+        given()
+                .when().get("/meta/recommendation-benchmark/summary")
+                .then()
+                .statusCode(403);
+
+        given()
+                .header("X-Admin-Key", "top-deck-test-key")
+                .when().get("/meta/recommendation-benchmark/summary")
+                .then()
+                .statusCode(200)
+                .body("status", is("benchmark_seed"))
+                .body("totalCases", is(8))
+                .body("coverage.commander", hasItem("Kess, Dissident Mage"))
+                .body("metrics.name", hasItem("blind_preference_over_gpt"));
+    }
+
+    @Test
     @TestSecurity(user = "meta-admin-user", attributes = {
             @SecurityAttribute(key = "email", value = "dcatapan@gmail.com")
     })

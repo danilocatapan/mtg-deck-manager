@@ -9,12 +9,14 @@ import com.mtg.dto.DeckCardDTO;
 import com.mtg.dto.DeckHistoryEntryDTO;
 import com.mtg.dto.DeckResponseDTO;
 import com.mtg.dto.RecommendationAuditExportDTO;
+import com.mtg.dto.UserCollectionCardDTO;
 import com.mtg.dto.UserDataExportDTO;
 import com.mtg.model.Deck;
 import com.mtg.model.RecommendationAuditRun;
 import com.mtg.repository.DeckLikeRepository;
 import com.mtg.repository.DeckRepository;
 import com.mtg.repository.RecommendationAuditRepository;
+import com.mtg.repository.UserCardCollectionRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -34,22 +36,26 @@ public class UserPrivacyService {
             "avatar",
             "decks cadastrados",
             "cartas dos decks",
+            "colecao de cartas importada pelo usuario",
             "historico e auditorias de recomendacao"
     );
 
     private final DeckRepository deckRepository;
     private final RecommendationAuditRepository auditRepository;
     private final DeckLikeRepository deckLikeRepository;
+    private final UserCardCollectionRepository collectionRepository;
 
     @Inject
     public UserPrivacyService(
             DeckRepository deckRepository,
             RecommendationAuditRepository auditRepository,
-            DeckLikeRepository deckLikeRepository
+            DeckLikeRepository deckLikeRepository,
+            UserCardCollectionRepository collectionRepository
     ) {
         this.deckRepository = deckRepository;
         this.auditRepository = auditRepository;
         this.deckLikeRepository = deckLikeRepository;
+        this.collectionRepository = collectionRepository;
     }
 
     public UserDataExportDTO exportData(AuthenticatedUserDTO user) {
@@ -62,6 +68,9 @@ public class UserPrivacyService {
                 deckRepository.listByOwner(ownerId).stream()
                         .map(this::toDeckDto)
                         .collect(Collectors.toList()),
+                collectionRepository.listByOwner(ownerId).stream()
+                        .map(item -> new UserCollectionCardDTO(item.getCardName(), item.getQuantity() == null ? 0 : item.getQuantity()))
+                        .collect(Collectors.toList()),
                 auditRepository.listByOwner(ownerId).stream()
                         .map(this::toAuditDto)
                         .collect(Collectors.toList())
@@ -73,6 +82,7 @@ public class UserPrivacyService {
         validateOwner(ownerId);
         auditRepository.delete("ownerId", ownerId);
         deckLikeRepository.deleteByOwner(ownerId);
+        collectionRepository.deleteByOwner(ownerId);
         deckRepository.listByOwner(ownerId).forEach(deckRepository::delete);
     }
 

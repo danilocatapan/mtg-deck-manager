@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import StateMessage from '../components/ui/StateMessage'
-import { fetchMetaTopDecks, getMetaTopDeck, importMetaTopDecks, syncMetaTopDecks } from '../services/api'
+import { fetchMetaTopDecks, getMetaSources, getMetaTopDeck, getRecommendationBenchmarkSummary, importMetaTopDecks, syncMetaTopDecks } from '../services/api'
 import { getAuthProfile, isMetaAdmin, subscribeAuth } from '../services/auth'
 
 const DEFAULT_FILTERS = {
@@ -53,6 +53,8 @@ export default function MetaTopDeckAdminPage({ onBack }) {
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
   const [warnings, setWarnings] = useState([])
+  const [sources, setSources] = useState([])
+  const [benchmark, setBenchmark] = useState(null)
   const canAdmin = isMetaAdmin(profile)
 
   useEffect(() => subscribeAuth(() => setProfile(getAuthProfile())), [])
@@ -75,6 +77,32 @@ export default function MetaTopDeckAdminPage({ onBack }) {
   useEffect(() => {
     queueMicrotask(loadDecks)
   }, [loadDecks])
+
+  useEffect(() => {
+    if (!canAdmin) return
+    let cancelled = false
+    async function loadStatus() {
+      try {
+        const [loadedSources, loadedBenchmark] = await Promise.all([
+          getMetaSources(),
+          getRecommendationBenchmarkSummary(),
+        ])
+        if (!cancelled) {
+          setSources(Array.isArray(loadedSources) ? loadedSources : [])
+          setBenchmark(loadedBenchmark)
+        }
+      } catch {
+        if (!cancelled) {
+          setSources([])
+          setBenchmark(null)
+        }
+      }
+    }
+    queueMicrotask(loadStatus)
+    return () => {
+      cancelled = true
+    }
+  }, [canAdmin])
 
   const deckRows = useMemo(() => decks.slice(0, Number(appliedFilters.limit || 10)), [appliedFilters.limit, decks])
 
@@ -129,15 +157,15 @@ export default function MetaTopDeckAdminPage({ onBack }) {
     setMessage(null)
     try {
       const response = await syncMetaTopDecks({
-        source: filters.source || 'MANUAL',
+        source: filters.source || 'TOPDECK_GG',
         rankingPeriod: 'MONTHLY',
         rankingDate: filters.rankingDate || currentMonthDate(),
         limitPerGroup: 3,
         groupBy: 'COMMANDER',
       })
-      setMessage(response?.message || 'Sincronizacao registrada com sucesso.')
+      setMessage(response?.message || 'Sincronizacao TopDeck.gg registrada com sucesso.')
     } catch (exception) {
-      setError(adminErrorMessage(exception, 'Nao foi possivel registrar a sincronizacao.'))
+      setError(adminErrorMessage(exception, 'Nao foi possivel sincronizar TopDeck.gg.'))
     } finally {
       setSyncing(false)
     }
@@ -174,7 +202,7 @@ export default function MetaTopDeckAdminPage({ onBack }) {
           </p>
         </div>
         <div className="actions-row">
-          <Button variant="secondary" onClick={handleSync} loading={syncing} loadingLabel="Registrando sync...">Registrar sync</Button>
+          <Button variant="secondary" onClick={handleSync} loading={syncing} loadingLabel="Sincronizando...">Sincronizar TopDeck.gg</Button>
           <Button variant="secondary" onClick={onBack}>Voltar</Button>
         </div>
       </section>
@@ -207,6 +235,25 @@ export default function MetaTopDeckAdminPage({ onBack }) {
           <p>Mais sugestoes baseadas em uso real de top decks.</p>
           <p>Recomendacoes podem indicar origem meta_top_decks.</p>
           <p>Menos fallback generico quando houver amostra suficiente.</p>
+        </Card>
+      </div>
+
+      <div className="meta-admin-info-grid">
+        <Card className="zone zone-library meta-admin-info-card">
+          <h2>Status TopDeck.gg</h2>
+          <SourceStatus source={topDeckSource(sources)} />
+          <p>Attribution: dados de torneio fornecidos por TopDeck.gg quando a fonte aparecer nas recomendacoes.</p>
+        </Card>
+        <Card className="zone zone-planning meta-admin-info-card">
+          <h2>Benchmark vs GPT</h2>
+          <p>Status: {benchmark?.status || 'indisponivel'}</p>
+          <p>Casos: {benchmark?.totalCases ?? 0}/{benchmark?.targetCases ?? 50}</p>
+          <p>Baseline: {benchmark?.baselineStatus || 'nao carregado'}</p>
+        </Card>
+        <Card className="zone zone-battlefield meta-admin-info-card">
+          <h2>Claim de qualidade</h2>
+          <p>{benchmark?.limitations?.[0] || 'Sem benchmark carregado; nao afirmar superioridade sobre GPT.'}</p>
+          <p>{benchmark?.limitations?.[2] || 'Fora da cobertura, o produto deve avisar que nao esta comprovado contra GPT.'}</p>
         </Card>
       </div>
 
@@ -352,6 +399,28 @@ function Metric({ label, value }) {
       <strong>{value || '-'}</strong>
     </div>
   )
+}
+
+function SourceStatus({ source }) {
+  if (!source) {
+    return (
+      <>
+        <p>Configuracao: nao encontrada.</p>
+        <p>API key: nao informada nesta tela.</p>
+      </>
+    )
+  }
+  return (
+    <>
+      <p>Enabled: {source.enabled ? 'sim' : 'nao'}</p>
+      <p>Ultimo sync: {source.lastSync || 'nunca'}</p>
+      <p>Brackets: {(source.supportedBrackets || []).join(', ') || '-'}</p>
+    </>
+  )
+}
+
+function topDeckSource(sources) {
+  return (sources || []).find((source) => String(source?.name || '').toLowerCase().includes('topdeck'))
 }
 
 function adminErrorMessage(exception, fallback) {

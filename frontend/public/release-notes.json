@@ -6,6 +6,8 @@
     "changes": {
       "added": [
         "Recomendacoes agora mostram um quality gate com confianca, cobertura de dados e limitacoes antes de afirmar que superam uma analise GPT.",
+        "Meta Admin ganhou resumo de benchmark vs GPT com cobertura inicial, metricas-alvo e status de prova por comandante/bracket.",
+        "Usuarios autenticados podem importar uma colecao textual; ela entra no export/delete de privacidade e prepara recomendacoes ownedOnly reais.",
         "Cache local de combos via Commander Spellbook melhora deteccao, recomendacoes e protecao de pecas-chave sem depender de API externa durante a analise.",
         "Aba Curva agora permite abrir cada custo de mana e conferir quais cartas compoem a soma exibida no grafico.",
         "Benchmark local de K'rrik em cEDH melhora recomendacoes de rituais, tutors, fast mana, Necropotence e combos.",
@@ -13,6 +15,9 @@
       ],
       "changed": [
         "A tela de recomendacoes avisa quando faltam dados para prometer qualidade superior ao GPT e segue com sugestoes conservadoras.",
+        "ownedOnly agora filtra adds pela colecao persistida quando existe inventario; sem colecao, a recomendacao segue conservadora e sem claim contra GPT.",
+        "Meta Admin mostra status TopDeck.gg, attribution e benchmark, e a acao principal deixa claro quando registra sincronizacao TopDeck.gg.",
+        "TopDeck.gg aceita deckObj estruturado, cai para decklist textual quando necessario e trata falhas 401/403/429 sem derrubar o cache local.",
         "Orcamento e estrategia passam a influenciar ranking e filtragem das trocas sugeridas.",
         "Analise de combos agora considera o comandante junto com o main deck para detectar linhas e proteger pecas presentes.",
         "Fallback de recomendacoes usa staples por cor, papel e bracket quando nao ha perfil meta suficiente, mantendo filtros de legalidade.",

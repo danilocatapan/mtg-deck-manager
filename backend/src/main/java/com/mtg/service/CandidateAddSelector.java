@@ -109,6 +109,23 @@ public class CandidateAddSelector {
             Set<String> filters,
             StrategicDeckAssessment assessment
     ) {
+        return select(deck, metaCards, knownCards, profile, roles, bracket, metaProfileDriven, recommendationMode, budget, filters, assessment, Set.of());
+    }
+
+    public List<StrategicCandidate> select(
+            Deck deck,
+            List<MetaCard> metaCards,
+            Map<String, CardResponseDTO> knownCards,
+            CommanderArchetypeProfile profile,
+            DeckRoleSummary roles,
+            String bracket,
+            boolean metaProfileDriven,
+            String recommendationMode,
+            Double budget,
+            Set<String> filters,
+            StrategicDeckAssessment assessment,
+            Set<String> ownedCardNames
+    ) {
         Set<String> existingNames = new HashSet<>();
         deck.getCards().stream()
                 .map(DeckCard::getName)
@@ -121,7 +138,7 @@ public class CandidateAddSelector {
 
         for (MetaCard metaCard : metaCards.stream().limit(50).toList()) {
             CardResponseDTO card = knownCards.get(normalize(metaCard.getName()));
-            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, "meta_top_cards")) {
+            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, ownedCardNames, "meta_top_cards")) {
                 selectionOrigins.putIfAbsent(normalize(card.name()), "meta_top_cards");
             }
             if (cards.size() >= 30) break;
@@ -135,7 +152,7 @@ public class CandidateAddSelector {
                     knownCards.putIfAbsent(normalize(card.name()), card);
                 }
             }
-            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, "combo_completion")) {
+            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, ownedCardNames, "combo_completion")) {
                 selectionOrigins.putIfAbsent(normalize(card.name()), "combo_completion");
             }
         }
@@ -144,7 +161,7 @@ public class CandidateAddSelector {
             card = knownCards.getOrDefault(normalize(card.name()), card);
             knownCards.putIfAbsent(normalize(card.name()), card);
             if (cards.size() >= 30) break;
-            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, "archetype_fallback")) {
+            if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, ownedCardNames, "archetype_fallback")) {
                 selectionOrigins.putIfAbsent(normalize(card.name()), "archetype_fallback");
             }
         }
@@ -154,7 +171,7 @@ public class CandidateAddSelector {
                 card = knownCards.getOrDefault(normalize(card.name()), card);
                 knownCards.putIfAbsent(normalize(card.name()), card);
                 if (cards.size() >= 24) break;
-                if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, "color_staple_fallback")) {
+                if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, ownedCardNames, "color_staple_fallback")) {
                     selectionOrigins.putIfAbsent(normalize(card.name()), "color_staple_fallback");
                 }
             }
@@ -165,7 +182,7 @@ public class CandidateAddSelector {
                 for (CardResponseDTO card : fallbackCards(role, bracket)) {
                     card = knownCards.getOrDefault(normalize(card.name()), card);
                     knownCards.putIfAbsent(normalize(card.name()), card);
-                    if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, "role_fallback:" + role)) {
+                    if (addIfLegal(cards, card, existingNames, profile.colors(), filters, budget, ownedCardNames, "role_fallback:" + role)) {
                         selectionOrigins.putIfAbsent(normalize(card.name()), "role_fallback:" + role);
                     }
                 }
@@ -180,8 +197,8 @@ public class CandidateAddSelector {
                 .toList();
     }
 
-    private boolean addIfLegal(List<CardResponseDTO> cards, CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters, Double budget, String origin) {
-        String rejection = rejectionReason(card, existingNames, commanderColors, filters, budget, cards);
+    private boolean addIfLegal(List<CardResponseDTO> cards, CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters, Double budget, Set<String> ownedCardNames, String origin) {
+        String rejection = rejectionReason(card, existingNames, commanderColors, filters, budget, cards, ownedCardNames);
         if (rejection == null) {
             cards.add(card);
             LOG.infov("event=recommendation.add_candidate.accepted card=\"{0}\" origin={1} commanderColors={2}", card.name(), origin, commanderColors);
@@ -706,13 +723,18 @@ public class CandidateAddSelector {
     }
 
     private boolean isLegalAdd(CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors) {
-        return rejectionReason(card, existingNames, commanderColors, Set.of(), null, List.of()) == null;
+        return rejectionReason(card, existingNames, commanderColors, Set.of(), null, List.of(), Set.of()) == null;
     }
 
     private String rejectionReason(CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters, Double budget, List<CardResponseDTO> alreadySelected) {
+        return rejectionReason(card, existingNames, commanderColors, filters, budget, alreadySelected, Set.of());
+    }
+
+    private String rejectionReason(CardResponseDTO card, Set<String> existingNames, Set<String> commanderColors, Set<String> filters, Double budget, List<CardResponseDTO> alreadySelected, Set<String> ownedCardNames) {
         if (card == null || card.name() == null) return "missing_card";
         String normalizedName = normalize(card.name());
         if (existingNames.contains(normalizedName)) return "already_in_deck";
+        if (ownedCardNames != null && !ownedCardNames.isEmpty() && !ownedCardNames.contains(normalizedName)) return "not_owned";
         if (commanderBanlist().isBanned(card.name())) return "commander_banned";
         if (!ColorIdentityMatcher.matches(card, commanderColors)) return "color_identity";
         if (!matchesFunctionalMana(card, commanderColors)) return "functional_mana_outside_color_identity";

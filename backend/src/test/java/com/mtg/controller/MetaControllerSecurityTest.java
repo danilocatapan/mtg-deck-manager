@@ -46,5 +46,6 @@ class MetaControllerSecurityTest {
         given().when().get("/meta/top-decks").then().statusCode(403);
         given().when().get("/meta/top-decks/1").then().statusCode(403);
         given().contentType("application/json").body("{}").when().post("/meta/top-decks/sync").then().statusCode(403);
+        given().when().get("/meta/recommendation-benchmark/summary").then().statusCode(403);
     }
 }

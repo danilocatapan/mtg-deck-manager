@@ -1,28 +1,140 @@
 package com.mtg.dto;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import java.util.Objects;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @Schema(name = "RecommendationParams")
-public record RecommendationParamsDTO(
-        Double budget,
-        String bracket,
-        String strategy,
-        String meta,
-        String sourceMode,
-        Integer maxRecommendations,
-        Boolean ownedOnly,
-        Boolean avoidSalt,
-        Boolean avoidTutors,
-        Boolean improveMana,
-        Boolean lowerCurve,
-        Boolean moreInteraction,
-        Boolean preserveTheme
-) {
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+public class RecommendationParamsDTO {
+    private Double budget;
+    private String bracket;
+    private String strategy;
+    private String meta;
+    private String sourceMode;
+    private Integer maxRecommendations;
+    private Boolean ownedOnly;
+    private Boolean avoidSalt;
+    private Boolean avoidTutors;
+    private Boolean improveMana;
+    private Boolean lowerCurve;
+    private Boolean moreInteraction;
+    private Boolean preserveTheme;
+
+    public RecommendationParamsDTO() {
+    }
+
     public RecommendationParamsDTO(Double budget, String bracket, String strategy, String meta) {
         this(budget, bracket, strategy, meta, null, null);
     }
 
-    public RecommendationParamsDTO(Double budget, String bracket, String strategy, String meta, String sourceMode, Integer maxRecommendations) {
+    public RecommendationParamsDTO(
+            Double budget,
+            String bracket,
+            String strategy,
+            String meta,
+            String sourceMode,
+            Integer maxRecommendations
+    ) {
         this(budget, bracket, strategy, meta, sourceMode, maxRecommendations, null, null, null, null, null, null, null);
+    }
+
+    public RecommendationParamsDTO(
+            Double budget,
+            String bracket,
+            String strategy,
+            String meta,
+            String sourceMode,
+            Integer maxRecommendations,
+            Boolean ownedOnly,
+            Boolean avoidSalt,
+            Boolean avoidTutors,
+            Boolean improveMana,
+            Boolean lowerCurve,
+            Boolean moreInteraction,
+            Boolean preserveTheme
+    ) {
+        this.budget = budget;
+        this.bracket = bracket;
+        this.strategy = strategy;
+        this.meta = meta;
+        this.sourceMode = sourceMode;
+        this.maxRecommendations = maxRecommendations;
+        this.ownedOnly = ownedOnly;
+        this.avoidSalt = avoidSalt;
+        this.avoidTutors = avoidTutors;
+        this.improveMana = improveMana;
+        this.lowerCurve = lowerCurve;
+        this.moreInteraction = moreInteraction;
+        this.preserveTheme = preserveTheme;
+    }
+
+    public Double budget() { return budget; }
+    public void setBudget(Double budget) { this.budget = budget; }
+    public String bracket() { return bracket; }
+    public void setBracket(String bracket) { this.bracket = bracket; }
+    public String strategy() { return strategy; }
+    public void setStrategy(String strategy) { this.strategy = strategy; }
+    public String meta() { return meta; }
+    public void setMeta(String meta) { this.meta = meta; }
+    public String sourceMode() { return sourceMode; }
+    public void setSourceMode(String sourceMode) { this.sourceMode = sourceMode; }
+    public Integer maxRecommendations() { return maxRecommendations; }
+    public void setMaxRecommendations(Integer maxRecommendations) { this.maxRecommendations = maxRecommendations; }
+    public Boolean ownedOnly() { return ownedOnly; }
+    public void setOwnedOnly(Boolean ownedOnly) { this.ownedOnly = ownedOnly; }
+    public Boolean avoidSalt() { return avoidSalt; }
+    public void setAvoidSalt(Boolean avoidSalt) { this.avoidSalt = avoidSalt; }
+    public Boolean avoidTutors() { return avoidTutors; }
+    public void setAvoidTutors(Boolean avoidTutors) { this.avoidTutors = avoidTutors; }
+    public Boolean improveMana() { return improveMana; }
+    public void setImproveMana(Boolean improveMana) { this.improveMana = improveMana; }
+    public Boolean lowerCurve() { return lowerCurve; }
+    public void setLowerCurve(Boolean lowerCurve) { this.lowerCurve = lowerCurve; }
+    public Boolean moreInteraction() { return moreInteraction; }
+    public void setMoreInteraction(Boolean moreInteraction) { this.moreInteraction = moreInteraction; }
+    public Boolean preserveTheme() { return preserveTheme; }
+    public void setPreserveTheme(Boolean preserveTheme) { this.preserveTheme = preserveTheme; }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof RecommendationParamsDTO that)) {
+            return false;
+        }
+        return Objects.equals(budget, that.budget)
+                && Objects.equals(bracket, that.bracket)
+                && Objects.equals(strategy, that.strategy)
+                && Objects.equals(meta, that.meta)
+                && Objects.equals(sourceMode, that.sourceMode)
+                && Objects.equals(maxRecommendations, that.maxRecommendations)
+                && Objects.equals(ownedOnly, that.ownedOnly)
+                && Objects.equals(avoidSalt, that.avoidSalt)
+                && Objects.equals(avoidTutors, that.avoidTutors)
+                && Objects.equals(improveMana, that.improveMana)
+                && Objects.equals(lowerCurve, that.lowerCurve)
+                && Objects.equals(moreInteraction, that.moreInteraction)
+                && Objects.equals(preserveTheme, that.preserveTheme);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                budget,
+                bracket,
+                strategy,
+                meta,
+                sourceMode,
+                maxRecommendations,
+                ownedOnly,
+                avoidSalt,
+                avoidTutors,
+                improveMana,
+                lowerCurve,
+                moreInteraction,
+                preserveTheme
+        );
     }
 }

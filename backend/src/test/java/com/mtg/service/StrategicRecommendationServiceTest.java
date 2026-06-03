@@ -30,6 +30,7 @@ class StrategicRecommendationServiceTest {
     CardService cardService = Mockito.mock(CardService.class);
     MetaProvider metaProvider = Mockito.mock(MetaProvider.class);
     com.mtg.service.meta.CommanderMetaProfileService commanderMetaProfileService = Mockito.mock(com.mtg.service.meta.CommanderMetaProfileService.class);
+    UserCollectionService userCollectionService = Mockito.mock(UserCollectionService.class);
 
     StrategicRecommendationService sut;
 
@@ -66,6 +67,7 @@ class StrategicRecommendationServiceTest {
         sut.cardService = cardService;
         sut.metaProvider = metaProvider;
         sut.commanderMetaProfileService = commanderMetaProfileService;
+        sut.userCollectionService = userCollectionService;
         sut.deckRoleAnalyzer = roleAnalyzer;
         sut.archetypeDetector = archetypeDetector;
         sut.addSelector = addSelector;
@@ -236,6 +238,28 @@ class StrategicRecommendationServiceTest {
         assertFalse(run.coverage().usefulMeta());
         assertTrue(run.limitations().stream().anyMatch(limitation -> limitation.contains("Dados meta insuficientes")));
         assertFalse(run.recommendations().isEmpty());
+    }
+
+    @Test
+    void shouldFilterOwnedOnlyAddsAgainstPersistedCollection() {
+        Deck deck = xenagosDeck();
+        CommanderMetaProfile profile = profile("Xenagos, God of Revels", "mid", 4, List.of(
+                new MetaCard("Greater Good", 0.95, "draw", 4.0),
+                new MetaCard("Nature's Lore", 0.80, "ramp", 2.0)
+        ));
+
+        when(deckRepository.findByIdAndOwner(1L, "owner-1")).thenReturn(deck);
+        when(commanderMetaProfileService.findByCommanderAndBracket("Xenagos, God of Revels", "mid")).thenReturn(profile);
+        when(cardService.findByNames(Mockito.anyList())).thenReturn(xenagosCards());
+        when(userCollectionService.ownedCardNames("owner-1")).thenReturn(Set.of("nature's lore"));
+
+        StrategicRecommendationRun run = sut.recommendRun(1L, new RecommendationParamsDTO(null, "mid", null, null, null, null, true, null, null, null, null, null, null), "owner-1");
+
+        Set<String> adds = run.recommendations().stream().map(StrategicRecommendation::add).collect(java.util.stream.Collectors.toSet());
+        assertTrue(adds.contains("Nature's Lore"));
+        assertFalse(adds.contains("Greater Good"));
+        assertTrue(run.limitations().stream().anyMatch(limitation -> limitation.contains("colecao persistida")));
+        assertFalse(run.limitations().stream().anyMatch(limitation -> limitation.contains("nao ha inventario")));
     }
 
     @Test

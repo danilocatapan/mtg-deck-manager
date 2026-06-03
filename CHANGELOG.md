@@ -7,6 +7,9 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 ## [0.0.0-local] - 2026-06-03
 
 ### Added
+- Endpoint admin read-only `GET /meta/recommendation-benchmark/summary` expoe cobertura inicial, metricas-alvo e status do benchmark sistema vs GPT.
+- Fixtures seed em `backend/src/test/resources/recommendation-benchmark/` iniciam o corpus com Xenagos, K'rrik, Grand Arbiter e Kess, preparando avaliacao curada sem usar GPT como fonte de verdade.
+- Colecao minima por usuario com importacao textual em `POST /users/me/collection/import`, listagem em `GET /users/me/collection` e exportacao/remocao junto aos dados LGPD.
 - Quality gate das recomendacoes estrategicas expõe confiança, cobertura, fontes, freshness, limitações e status de benchmark contra GPT antes de afirmar superioridade.
 - Protocolo `docs/recommendation-gpt-benchmark.md` define corpus, baseline GPT, métricas e regra de produto para provar superioridade do recomendador Commander.
 - Script operacional para migrar PostgreSQL do Render para Neon via Docker, com imagem PostgreSQL configuravel, dump, restore, validacao de contagens e template de variaveis Quarkus.
@@ -34,6 +37,9 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- `ownedOnly=true` passa a filtrar cartas sugeridas contra a colecao persistida do usuario; sem inventario valido, o quality gate continua `low_confidence` e explica a limitacao.
+- Meta Admin troca a acao generica por `Sincronizar TopDeck.gg` e exibe status de fonte, attribution e resumo do benchmark sem expor API key.
+- Adaptador TopDeck.gg passa a solicitar `deckObj`/commander, preferir cartas estruturadas quando disponiveis, cair para decklist textual e degradar com cache em 401/403/429.
 - Endpoint estrategico de recomendacoes passa a retornar uma execução auditavel com metadados e lista de trocas, e a UI avisa quando faltam dados para superar uma analise GPT ampla.
 - Parametros de recomendacao deixam de ser apenas decorativos: orçamento filtra/penaliza cartas caras e `strategy` passa a influenciar o score em modos como budget, power, theme e cEDH.
 - Frontend agora documenta baseline WCAG 2.2 AA com AAA oportunista, checklist de teclado/foco/contraste e governanca Playwright/axe para mudancas de UI.

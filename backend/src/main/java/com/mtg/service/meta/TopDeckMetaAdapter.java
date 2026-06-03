@@ -6,6 +6,7 @@ import com.mtg.client.TopDeckTournamentDTO;
 import com.mtg.client.TopDeckTournamentRequestDTO;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.WebApplicationException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
@@ -16,6 +17,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -70,16 +72,26 @@ public class TopDeckMetaAdapter extends AbstractCachedMetaSourceAdapter {
         }
 
         LOG.infov("event=meta.sync.started source={0} days={1} minParticipants={2}", SOURCE, days, minParticipants);
-        List<TopDeckTournamentDTO> tournaments = client.tournaments(
-                apiKey.get(),
-                new TopDeckTournamentRequestDTO(
-                        "Magic: The Gathering",
-                        "EDH",
-                        days,
-                        minParticipants,
-                        List.of("name", "decklist", "wins", "draws", "losses", "winRate")
-                )
-        );
+        List<TopDeckTournamentDTO> tournaments;
+        try {
+            tournaments = client.tournaments(
+                    apiKey.get(),
+                    new TopDeckTournamentRequestDTO(
+                            "Magic: The Gathering",
+                            "EDH",
+                            days,
+                            minParticipants,
+                            List.of("name", "commander", "deckObj", "decklist", "wins", "draws", "losses", "winRate")
+                    )
+            );
+        } catch (WebApplicationException exception) {
+            int status = exception.getResponse() == null ? 0 : exception.getResponse().getStatus();
+            LOG.warnv(exception, "event=meta.sync.failed source={0} httpStatus={1}", SOURCE, status);
+            return cachedDecks;
+        } catch (RuntimeException exception) {
+            LOG.warnv(exception, "event=meta.sync.failed source={0}", SOURCE);
+            return cachedDecks;
+        }
         List<MetaDeck> imported = toMetaDecks(tournaments);
         cachedDecks = imported;
         lastSync = OffsetDateTime.now();
@@ -124,11 +136,16 @@ public class TopDeckMetaAdapter extends AbstractCachedMetaSourceAdapter {
     }
 
     private MetaDeck toMetaDeck(TopDeckTournamentDTO tournament, TopDeckStandingDTO standing, int placement) {
-        if (standing.decklist() == null || standing.decklist().isBlank()) {
+        boolean hasDecklist = standing.decklist() != null && !standing.decklist().isBlank();
+        boolean hasDeckObj = standing.deckObj() != null && !standing.deckObj().isEmpty();
+        if (!hasDecklist && !hasDeckObj) {
             return null;
         }
-        String commander = normalizer.findCommander(standing.decklist());
-        List<MetaDeckCard> cards = normalizer.normalizePlainText(standing.decklist()).stream()
+        String commander = firstNonBlank(standing.commander(), hasDecklist ? normalizer.findCommander(standing.decklist()) : null);
+        if ((commander == null || commander.isBlank()) && !hasDecklist) {
+            return null;
+        }
+        List<MetaDeckCard> cards = (hasDeckObj ? fromDeckObj(standing.deckObj()) : normalizer.normalizePlainText(standing.decklist())).stream()
                 .filter(card -> commander == null || !commander.equalsIgnoreCase(card.name()))
                 .toList();
         return new MetaDeck(
@@ -163,5 +180,25 @@ public class TopDeckMetaAdapter extends AbstractCachedMetaSourceAdapter {
 
     private String nullSafe(String value) {
         return value == null ? "" : value;
+    }
+
+    private List<MetaDeckCard> fromDeckObj(Map<String, Integer> deckObj) {
+        if (deckObj == null || deckObj.isEmpty()) {
+            return List.of();
+        }
+        return deckObj.entrySet().stream()
+                .filter(entry -> entry.getKey() != null && !entry.getKey().isBlank())
+                .map(entry -> new MetaDeckCard(entry.getKey().trim(), Math.max(1, entry.getValue() == null ? 1 : entry.getValue()), List.of(), null, null, List.of()))
+                .toList();
+    }
+
+    private String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first.trim();
+        }
+        if (second != null && !second.isBlank()) {
+            return second.trim();
+        }
+        return null;
     }
 }

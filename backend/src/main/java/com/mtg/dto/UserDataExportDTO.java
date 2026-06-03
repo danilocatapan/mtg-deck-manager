@@ -8,6 +8,7 @@ public record UserDataExportDTO(
         AuthenticatedUserDTO user,
         List<String> collectedData,
         List<DeckResponseDTO> decks,
+        List<UserCollectionCardDTO> collection,
         List<RecommendationAuditExportDTO> recommendationAudits
 ) {
 }

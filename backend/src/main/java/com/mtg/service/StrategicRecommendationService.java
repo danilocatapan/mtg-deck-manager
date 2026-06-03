@@ -73,6 +73,9 @@ public class StrategicRecommendationService {
     @Inject
     RecommendationAuditContext auditContext;
 
+    @Inject
+    UserCollectionService userCollectionService;
+
     public List<StrategicRecommendation> recommend(Long deckId, com.mtg.dto.RecommendationParamsDTO params) {
         return recommendRun(deckId, params, null).recommendations();
     }
@@ -108,6 +111,9 @@ public class StrategicRecommendationService {
         Double budget = params == null ? null : params.budget();
         Set<String> filters = filters(params);
         int maxRecommendations = maxRecommendations(params);
+        boolean ownedOnlyRequested = params != null && Boolean.TRUE.equals(params.ownedOnly());
+        Set<String> ownedCardNames = ownedCardNames(ownerId, ownedOnlyRequested);
+        boolean collectionAvailable = !ownedOnlyRequested || !ownedCardNames.isEmpty();
 
         LOG.infov("event=recommendation.strategic.started deckId={0} bracket={1}", deckId, bracket);
 
@@ -169,7 +175,7 @@ public class StrategicRecommendationService {
                 assessment.weakCards()
         );
 
-        List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket, hasUsefulMeta, recommendationMode, budget, filters, assessment);
+        List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket, hasUsefulMeta, recommendationMode, budget, filters, assessment, ownedCardNames);
         List<StrategicCandidate> cuts = cutSelector.select(deck, knownCards, profile, roles, bracket, assessment);
 
         LOG.infov(
@@ -218,6 +224,7 @@ public class StrategicRecommendationService {
                 knownCards,
                 requestedCardCount,
                 mainDeckCount,
+                collectionAvailable,
                 recommendations
         );
     }
@@ -304,6 +311,7 @@ public class StrategicRecommendationService {
             Map<String, CardResponseDTO> knownCards,
             int requestedCardCount,
             int mainDeckCount,
+            boolean collectionAvailable,
             List<StrategicRecommendation> recommendations
     ) {
         double resolutionRate = requestedCardCount <= 0 ? 0.0 : knownCards.size() / (double) requestedCardCount;
@@ -311,8 +319,8 @@ public class StrategicRecommendationService {
         boolean fallbackUsed = !hasUsefulMeta || recommendations.stream().anyMatch(recommendation -> "heuristic_fallback".equals(recommendation.source()));
         List<String> sources = metaProfile == null ? List.of() : metaProfile.sourcesUsed();
         int sampleSize = metaProfile == null ? 0 : metaProfile.sampleSize();
-        List<String> limitations = limitations(params, commanderKnown, hasUsefulMeta, sampleSize, resolutionRate, mainDeckCount, deck.getCommander());
-        String confidence = confidence(hasUsefulMeta, sampleSize, resolutionRate, mainDeckCount, commanderKnown, params, limitations);
+        List<String> limitations = limitations(params, commanderKnown, hasUsefulMeta, sampleSize, resolutionRate, mainDeckCount, deck.getCommander(), collectionAvailable);
+        String confidence = confidence(hasUsefulMeta, sampleSize, resolutionRate, mainDeckCount, commanderKnown, params, limitations, collectionAvailable);
 
         RecommendationCoverage coverage = new RecommendationCoverage(
                 commanderKnown,
@@ -352,7 +360,8 @@ public class StrategicRecommendationService {
             int sampleSize,
             double resolutionRate,
             int mainDeckCount,
-            String commander
+            String commander,
+            boolean collectionAvailable
     ) {
         List<String> limitations = new ArrayList<>();
         if (!commanderKnown) {
@@ -369,8 +378,10 @@ public class StrategicRecommendationService {
         if (mainDeckCount < 90) {
             limitations.add("Deck incompleto; qualidade contra GPT nao e comprovada ate a lista se aproximar de 99 cartas no main deck.");
         }
-        if (params != null && Boolean.TRUE.equals(params.ownedOnly())) {
+        if (params != null && Boolean.TRUE.equals(params.ownedOnly()) && !collectionAvailable) {
             limitations.add("Filtro 'apenas cartas que possuo' solicitado, mas nao ha inventario de colecao persistido para validar posse das cartas.");
+        } else if (params != null && Boolean.TRUE.equals(params.ownedOnly())) {
+            limitations.add("Filtro 'apenas cartas que possuo' aplicado contra a colecao persistida do usuario.");
         }
         if (!benchmarkedCommander(commander)) {
             limitations.add("Este comandante ainda nao esta coberto pelo benchmark interno contra GPT.");
@@ -388,9 +399,10 @@ public class StrategicRecommendationService {
             int mainDeckCount,
             boolean commanderKnown,
             com.mtg.dto.RecommendationParamsDTO params,
-            List<String> limitations
+            List<String> limitations,
+            boolean collectionAvailable
     ) {
-        if (Boolean.TRUE.equals(params == null ? null : params.ownedOnly())) {
+        if (Boolean.TRUE.equals(params == null ? null : params.ownedOnly()) && !collectionAvailable) {
             return "low_confidence";
         }
         if (hasUsefulMeta && sampleSize >= 10 && resolutionRate >= 0.85 && mainDeckCount >= 90 && commanderKnown && limitations.size() <= 1) {
@@ -433,7 +445,7 @@ public class StrategicRecommendationService {
         if (sources == null || sources.isEmpty()) {
             return "Sem fonte meta suficiente; heuristicas locais e regras Commander.";
         }
-        if (sources.stream().anyMatch(source -> source != null && source.equalsIgnoreCase("TOPDECK"))) {
+        if (sources.stream().anyMatch(source -> source != null && (source.equalsIgnoreCase("TOPDECK") || source.equalsIgnoreCase("TOPDECK_GG") || source.equalsIgnoreCase("TopDeck")))) {
             return "Dados de torneio fornecidos por TopDeck.gg; usar com atribuicao visivel quando exibido publicamente.";
         }
         if (sources.stream().anyMatch(source -> source != null && source.equalsIgnoreCase("meta_top_decks"))) {
@@ -470,6 +482,18 @@ public class StrategicRecommendationService {
         if (Boolean.TRUE.equals(params.moreInteraction())) filters.add("more-interaction");
         if (Boolean.TRUE.equals(params.preserveTheme())) filters.add("preserve-theme");
         return filters;
+    }
+
+    private Set<String> ownedCardNames(String ownerId, boolean ownedOnlyRequested) {
+        if (!ownedOnlyRequested || ownerId == null || ownerId.isBlank() || userCollectionService == null) {
+            return Set.of();
+        }
+        try {
+            return userCollectionService.ownedCardNames(ownerId);
+        } catch (Exception exception) {
+            LOG.warnv(exception, "event=recommendation.collection.unavailable owner={0}", ownerId);
+            return Set.of();
+        }
     }
 
     private int currentGameChangers(Deck deck) {

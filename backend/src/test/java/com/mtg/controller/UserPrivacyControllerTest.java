@@ -76,6 +76,7 @@ class UserPrivacyControllerTest {
         Response created = createDeck("Privacy Delete Deck");
         Long deckId = idFromLocation(created.getHeader("Location"));
         persistAudit(deckId, "privacy-delete-user");
+        importCollection("2 Sol Ring\n1 Arcane Signet");
 
         given()
                 .when().delete("/users/me")
@@ -87,7 +88,35 @@ class UserPrivacyControllerTest {
                 .then()
                 .statusCode(200)
                 .body("decks", empty())
+                .body("collection", empty())
                 .body("recommendationAudits", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "collection-import-user")
+    void collectionImportPersistsNormalizedQuantitiesAndAppearsInExport() {
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"content\":\"2 Sol Ring\\n1 Sol Ring\\n1 Arcane Signet\",\"replaceExisting\":true}")
+                .when().post("/users/me/collection/import")
+                .then()
+                .statusCode(200)
+                .body("importedCards", is(4))
+                .body("uniqueCards", is(2))
+                .body("warnings", hasItem("Cartas repetidas foram somadas na colecao importada."));
+
+        given()
+                .when().get("/users/me/collection")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("Sol Ring"))
+                .body("find { it.name == 'Sol Ring' }.quantity", is(3));
+
+        given()
+                .when().get("/users/me/export")
+                .then()
+                .statusCode(200)
+                .body("collection.name", hasItem("Arcane Signet"));
     }
 
     @Test
@@ -98,6 +127,15 @@ class UserPrivacyControllerTest {
     @Test
     void deleteAccount_requiresAuthentication() {
         given().when().delete("/users/me").then().statusCode(401);
+    }
+
+    @Test
+    void collectionImportRequiresAuthentication() {
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"content\":\"1 Sol Ring\"}")
+                .when().post("/users/me/collection/import")
+                .then().statusCode(401);
     }
 
     private Response createDeck(String name) {
@@ -124,6 +162,15 @@ class UserPrivacyControllerTest {
             audit.setRecommendationsJson("[]");
             auditRepository.persist(audit);
         });
+    }
+
+    private void importCollection(String content) {
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"content\":\"" + content.replace("\n", "\\n") + "\",\"replaceExisting\":true}")
+                .when().post("/users/me/collection/import")
+                .then()
+                .statusCode(200);
     }
 
     private Long idFromLocation(String location) {

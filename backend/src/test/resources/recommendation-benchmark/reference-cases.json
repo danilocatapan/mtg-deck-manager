@@ -1,0 +1,81 @@
+[
+  {
+    "id": "xenagos-mid-budget-001",
+    "commander": "Xenagos, God of Revels",
+    "bracket": "mid",
+    "strategy": "budget",
+    "labels": {
+      "mustNotCut": ["Xenagos, God of Revels"],
+      "goodAdds": ["Nature's Lore", "Heroic Intervention", "Greater Good"],
+      "badAdds": ["Swords to Plowshares"]
+    }
+  },
+  {
+    "id": "xenagos-mid-power-002",
+    "commander": "Xenagos, God of Revels",
+    "bracket": "mid",
+    "strategy": "power",
+    "labels": {
+      "mustNotCut": ["Xenagos, God of Revels"],
+      "goodAdds": ["Greater Good", "Finale of Devastation"]
+    }
+  },
+  {
+    "id": "krrik-cedh-001",
+    "commander": "K'rrik, Son of Yawgmoth",
+    "bracket": "cedh",
+    "strategy": "cedh",
+    "labels": {
+      "mustNotCut": ["K'rrik, Son of Yawgmoth"],
+      "goodAdds": ["Necropotence", "Demonic Tutor"]
+    }
+  },
+  {
+    "id": "krrik-cedh-owned-002",
+    "commander": "K'rrik, Son of Yawgmoth",
+    "bracket": "cedh",
+    "strategy": "cedh",
+    "ownedOnly": true,
+    "labels": {
+      "mustRespectOwnedOnly": true
+    }
+  },
+  {
+    "id": "grand-arbiter-high-power-001",
+    "commander": "Grand Arbiter Augustin IV",
+    "bracket": "high-power",
+    "strategy": "power",
+    "labels": {
+      "mustNotCut": ["Grand Arbiter Augustin IV"],
+      "goodAdds": ["Mystic Remora", "Rhystic Study", "Swan Song"]
+    }
+  },
+  {
+    "id": "grand-arbiter-theme-002",
+    "commander": "Grand Arbiter Augustin IV",
+    "bracket": "high-power",
+    "strategy": "theme",
+    "labels": {
+      "mustPreserveTheme": true
+    }
+  },
+  {
+    "id": "kess-cedh-001",
+    "commander": "Kess, Dissident Mage",
+    "bracket": "cedh",
+    "strategy": "cedh",
+    "labels": {
+      "mustNotCut": ["Kess, Dissident Mage", "Underworld Breach", "Lion's Eye Diamond"],
+      "goodAdds": ["Brain Freeze", "Demonic Consultation", "Thassa's Oracle"]
+    }
+  },
+  {
+    "id": "kess-cedh-interaction-002",
+    "commander": "Kess, Dissident Mage",
+    "bracket": "cedh",
+    "strategy": "cedh",
+    "labels": {
+      "goodAdds": ["Flusterstorm", "Swan Song"]
+    }
+  }
+]
