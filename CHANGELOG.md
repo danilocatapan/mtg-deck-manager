@@ -7,6 +7,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 ## [0.0.0-local] - 2026-05-27
 
 ### Added
+- Script operacional para migrar PostgreSQL do Render para Neon via Docker, com imagem PostgreSQL configuravel, dump, restore, validacao de contagens e template de variaveis Quarkus.
 - Cache local de combos conhecidos com tabelas `meta_combos`/`meta_combo_cards`, adapter Commander Spellbook e endpoint administrativo `POST /meta/combos/sync`.
 - Contrato de analise passa a expor `manaCurveCards`, permitindo auditar quais cartas compoem cada ponto da curva de mana.
 - Benchmark local para K'rrik, Son of Yawgmoth em cEDH, alinhando recomendacoes offline com sinais de EDHREC/Moxfield/GPT para rituais, tutors, fast mana, Necropotence, reanimacao e protecao.

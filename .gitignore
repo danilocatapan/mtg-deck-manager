@@ -11,6 +11,10 @@ frontend/dist/
 backend/target/
 data/
 
+# Database backups
+*.dump
+*.pgdump
+
 # IDE
 .vscode/
 .idea/

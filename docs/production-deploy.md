@@ -1,7 +1,7 @@
 # Production Deploy Runbook
 
-Versao docs: 2026-05-21
-Ultima atualizacao: 2026-05-21
+Versao docs: 2026-06-03
+Ultima atualizacao: 2026-06-03
 
 ## Database
 
@@ -67,6 +67,38 @@ QUARKUS_DATASOURCE_PASSWORD=<render-postgres-password>
 QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY=validate
 QUARKUS_FLYWAY_MIGRATE_AT_START=true
 ```
+
+## Neon PostgreSQL Migration
+
+Use Neon Free only while the database stays comfortably below the free storage limit. Keep a logical backup before switching production because free tiers should not be treated as operational backup.
+
+The local migration helper uses Docker and does not store credentials in the repository:
+
+```powershell
+.\tools\migrate-render-postgres-to-neon.ps1
+```
+
+By default the helper uses `postgres:18-alpine` so `pg_dump` can connect to Render databases running PostgreSQL 18. Override it only when the source server is newer:
+
+```powershell
+$env:POSTGRES_DOCKER_IMAGE = "postgres:<major>-alpine"
+```
+
+Prefer the Render External Database URL from the database dashboard. The internal `DATABASE_URL` injected into the Render service may have a host like `dpg-...-a` and is usually reachable only from Render private networking.
+
+After restoring into Neon, configure the Render backend with explicit Quarkus variables so the old `DATABASE_URL` is ignored:
+
+```text
+QUARKUS_DATASOURCE_DB_KIND=postgresql
+QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://<neon-host>:5432/<neon-database>?sslmode=require
+QUARKUS_DATASOURCE_USERNAME=<neon-user>
+QUARKUS_DATASOURCE_PASSWORD=<neon-password>
+QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY=validate
+QUARKUS_FLYWAY_MIGRATE_AT_START=false
+QUARKUS_DATASOURCE_JDBC_MAX_SIZE=5
+```
+
+Keep the previous Render PostgreSQL database available until `GET /app/info`, `GET /meta/sources`, public deck listing and the authenticated deck flows are validated against Neon.
 
 ## Backend Runtime Variables
 
