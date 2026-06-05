@@ -1,7 +1,7 @@
 # AGENTS.md - Regras canonicas de agentes
 
-Versao: agents-2026-05-22
-Ultima atualizacao: 2026-05-22
+Versao: agents-2026-06-05
+Ultima atualizacao: 2026-06-05
 
 Papel deste arquivo
 -------------------
@@ -21,13 +21,15 @@ Nao criar resumos paralelos com regras globais. Quando o projeto mudar, atualiza
 Fluxo minimo obrigatorio
 ------------------------
 1. Leia este `AGENTS.md`.
-2. Escolha o guia especializado relevante.
-3. Antes de alterar comportamento observavel, execute a analise minima definida em `analysis.md`.
-4. Use `PROJECT_CONTEXT.md` como mapa rapido quando a tarefa exigir entendimento amplo do produto.
+2. Em toda tarefa nao trivial, leia `PROJECT_CONTEXT.md` como snapshot operacional antes de explorar o codigo.
+3. Escolha o guia especializado relevante.
+4. Antes de alterar comportamento observavel, execute a analise minima definida em `analysis.md`.
+5. Reabra codigo alem dos pontos indicados no snapshot somente para confirmar o escopo diretamente afetado, investigar divergencia ou preencher uma lacuna marcada como parcial/planejada.
 
 Economia de contexto para agentes
 ---------------------------------
 - Comece por `rg`/`rg --files` e abra apenas arquivos necessarios ao pedido atual.
+- Use primeiro o estado verificado, as prioridades e o mapa rapido de `PROJECT_CONTEXT.md`; nao refaca descoberta ampla quando o snapshot responder ao pedido.
 - Para backend, confirme primeiro controller/service/test afetado antes de abrir DTOs, entidades ou migrations.
 - Para frontend, confirme primeiro page/component/service afetado antes de abrir CSS/assets.
 - Evite colar arquivos inteiros na resposta final; informe arquivos alterados, validacoes executadas e riscos restantes.

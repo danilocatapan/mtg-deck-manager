@@ -1,21 +1,22 @@
 # AGENTS.md - Instrucoes para Codex
 
-Versao: agents-2026-05-22
-Ultima atualizacao: 2026-05-22
+Versao: agents-2026-06-05
+Ultima atualizacao: 2026-06-05
 
 Este arquivo e o ponto de entrada do Codex neste repositorio.
 
 ## Ordem de leitura
 
 1. Leia `.github/agents/AGENTS.md` antes de qualquer alteracao.
-2. Leia apenas os guias especializados necessarios em `.github/agents/`:
+2. Para toda tarefa nao trivial, leia `PROJECT_CONTEXT.md` como snapshot operacional do estado, prioridades e pontos de entrada do projeto.
+3. Leia apenas os guias especializados necessarios em `.github/agents/`:
    - `analysis.md` para bugs, regressao e impacto.
    - `backend-quarkus.md` para backend Java/Quarkus.
    - `frontend-react.md` para frontend React/Vite.
    - `testing.md` para estrategia de testes.
    - `workflow-graph.md` para pipeline de recomendacao.
-3. Use `.github/copilot-instructions.md` somente como bootstrap historico para Copilot; a fonte canonica fica em `.github/agents/AGENTS.md`.
-4. Para pedidos nao triviais no Codex, consulte `docs/codex-skills.md` e use skills instaladas quando elas melhorarem o resultado.
+4. Use `.github/copilot-instructions.md` somente como bootstrap historico para Copilot; a fonte canonica fica em `.github/agents/AGENTS.md`.
+5. Para pedidos nao triviais no Codex, consulte `docs/codex-skills.md` e use skills instaladas quando elas melhorarem o resultado.
 
 ## Regras para o Codex
 

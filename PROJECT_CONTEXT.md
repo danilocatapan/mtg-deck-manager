@@ -1,7 +1,49 @@
 # MTG Deck Manager - Contexto do Projeto
 
-Versao: context-2026-05-26
-Ultima atualizacao: 2026-05-26
+Versao: context-2026-06-05
+Ultima atualizacao: 2026-06-05
+
+## Leitura em 60 segundos
+
+- Objetivo: gerenciar e melhorar decks Commander com recomendacoes explicaveis, legais, personalizadas e verificaveis; afirmar vantagem sobre GPT apenas quando benchmark e cobertura sustentarem isso.
+- Stack: Java 25 + Quarkus 3.35.2 em `backend/`, React 19 + Vite 8 em `frontend/`, Hibernate/Panache com H2 para testes e PostgreSQL/Flyway para producao.
+- Fluxo de recomendacao: deck + preferencias -> meta elegivel -> candidatos -> filtros Commander -> score/sinergia -> adds/cuts -> quality gate -> auditoria/feedback.
+- Invariantes: respeitar color identity, nao sugerir duplicata, nao cortar comandante, manter quantidade coerente e usar top decks somente com fonte/bracket/amostra validos.
+- Validacao essencial: backend com JDK 25 e `./mvnw.cmd test`; frontend com `npm run lint` e `npm run build`; mudancas de recomendacao tambem exigem caso representativo.
+- Entrada por tarefa: recomendacao -> `StrategicRecommendationService` + `.github/agents/workflow-graph.md`; backend/contrato -> controller/service/test + `.github/agents/backend-quarkus.md`; frontend -> page/component/API + `.github/agents/frontend-react.md`; testes -> `.github/agents/testing.md`.
+- Regra para agentes: use primeiro este snapshot; abra codigo adicional com `rg` apenas para confirmar o trecho diretamente afetado ou quando este documento marcar a capacidade como parcial/planejada.
+
+## Estado Atual Verificado
+
+| Capacidade | Estado | Evidencia e limite atual |
+| --- | --- | --- |
+| Quality gate, confianca e limitacoes | `pronto` | `StrategicRecommendationRun` e `StrategicRecommendationService` expoem confidence, coverage, freshness, fontes, limitacoes e `benchmarkStatus`; UI apresenta aviso em baixa confianca. |
+| Personalizacao por estrategia, orcamento e colecao | `pronto` | `strategy` altera scoring, `budget` filtra/penaliza candidatos e `ownedOnly` usa a colecao persistida; sem inventario, o quality gate cai para baixa confianca. |
+| TopDeck.gg e Meta Admin | `pronto` | Adapter suporta `deckObj` e decklist textual, degrada para cache em erros conhecidos, preserva attribution e possui sync/status no Meta Admin. |
+| Benchmark contra GPT | `parcial` | Existem protocolo, 8 fixtures seed e endpoint de resumo; `RecommendationBenchmarkService` ainda retorna cobertura/metas estaticas e nao calcula precision@k ou vitoria contra GPT. |
+| Baseline GPT e avaliacao humana | `parcial` | O prompt fixo existe, mas `gpt-baseline.md` ainda contem placeholders e nao ha labels suficientes de `systemWins`, `gptWins` ou `tie`. |
+| Cobertura meta por comandante | `parcial` | Perfis locais dedicados cobrem Xenagos, K'rrik, Grand Arbiter e Kess; ainda nao ha cobertura ampla de comandantes populares e long-tail. |
+| Feedback agregado e calibracao automatica | `planejado` | Feedback `accepted`/`rejected`/`needs_review` e persistido, mas nao existe relatorio agregado por comandante/bracket/fonte nem ajuste de pesos baseado nele. |
+| Pet cards e cartas intocaveis | `planejado` | Pecas de combo e valor estrategico recebem protecao, mas o usuario ainda nao pode marcar explicitamente cartas intocaveis. |
+
+Estado da prova: a fundacao verificavel esta pronta, mas o produto ainda nao demonstrou superioridade global sobre GPT. Claims devem permanecer restritos a execucoes com cobertura e benchmark suficientes.
+
+## Proximas Prioridades
+
+1. Implementar runner real do benchmark e calcular invariantes, `addPrecisionAt10`, `cutPrecisionAt10`, `preferenceAdherenceRate` e actionability.
+2. Preencher respostas GPT versionadas, realizar avaliacao humana cega e medir `systemWins`, `gptWins` e `tie`.
+3. Ampliar corpus e cobertura de meta para comandantes populares, brackets diferentes e casos long-tail.
+4. Criar relatorios agregados de feedback por comandante, bracket, fonte e motivo de rejeicao.
+5. Calibrar scoring somente quando o benchmark demonstrar melhora sem regressao dos invariantes Commander.
+
+## Mapa Rapido para Agentes
+
+- Recomendacao: comece em `backend/src/main/java/com/mtg/service/StrategicRecommendationService.java`, depois selectors/pairer e `backend/src/test/java/com/mtg/service/StrategicRecommendationServiceTest.java`; preserve o grafo descrito em `.github/agents/workflow-graph.md`.
+- Benchmark: consulte `docs/recommendation-gpt-benchmark.md`, `backend/src/test/resources/recommendation-benchmark/` e `RecommendationBenchmarkService`; trate o resumo atual como seed, nao como prova calculada.
+- Meta/TopDeck: comece em `TopDeckMetaAdapter`, `MetaTopDeckService`, `MetaTopDeckSignalBuilder` e `MetaTopDeckControllerTest`; ingestao externa deve respeitar API, attribution, rate limit e cache.
+- Colecao/privacidade: comece em `UserCollectionService`, `UserPrivacyController`, migration `V12__create_user_card_collection.sql` e `UserPrivacyControllerTest`; preserve isolamento por usuario e exportacao/exclusao LGPD.
+- Frontend: recomendacoes em `frontend/src/components/recommendations/`, Meta Admin em `frontend/src/pages/MetaTopDeckAdminPage.jsx` e contratos HTTP em `frontend/src/services/api.js`.
+- Validacao conhecida em 2026-06-05: backend `./mvnw.cmd test` com JDK 25 passou com 201 testes e zero falhas; frontend `npm run lint` e `npm run build` passaram.
 
 ## Objetivo
 
@@ -115,10 +157,13 @@ Controllers devem ficar finos. Regra de negocio deve viver em services/component
 - `GET /meta/top-decks/{id}`
 - `POST /meta/top-decks/sync`
 - `POST /meta/combos/sync`
+- `GET /meta/recommendation-benchmark/summary`
 
 ### Auditoria, LGPD e Seguranca
 
 - `POST /recommendation-audits/{id}/feedback`
+- `GET /users/me/collection`
+- `POST /users/me/collection/import`
 - `GET /users/me/export`
 - `DELETE /users/me`
 - `POST /security/status/check`

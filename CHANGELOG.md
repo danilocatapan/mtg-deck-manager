@@ -4,7 +4,7 @@ Todas as mudancas notaveis deste projeto serao documentadas aqui.
 
 O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e atualizado a partir das tags Git e mensagens de commit da release.
 
-## [0.0.0-local] - 2026-06-03
+## [0.0.0-local] - 2026-06-05
 
 ### Added
 - Endpoint admin read-only `GET /meta/recommendation-benchmark/summary` expoe cobertura inicial, metricas-alvo e status do benchmark sistema vs GPT.
@@ -37,6 +37,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- `PROJECT_CONTEXT.md` passa a funcionar como snapshot operacional de leitura em 60 segundos, com estado verificado, limites atuais, prioridades, mapa rapido para agentes e validacoes conhecidas; os arquivos `AGENTS.md` agora exigem sua leitura antes de reexplorar tarefas nao triviais.
 - `ownedOnly=true` passa a filtrar cartas sugeridas contra a colecao persistida do usuario; sem inventario valido, o quality gate continua `low_confidence` e explica a limitacao.
 - Meta Admin troca a acao generica por `Sincronizar TopDeck.gg` e exibe status de fonte, attribution e resumo do benchmark sem expor API key.
 - Adaptador TopDeck.gg passa a solicitar `deckObj`/commander, preferir cartas estruturadas quando disponiveis, cair para decklist textual e degradar com cache em 401/403/429.
