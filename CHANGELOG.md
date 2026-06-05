@@ -11,6 +11,9 @@
 - Adiciona coletores reproduziveis de snapshots Archidekt/TopDeck, retomada GPT por hashes dependentes das respostas e evidencia dinamica por comandante/bracket.
 - Recomendacoes exibem "Por que confiar nesta analise"; o Meta Admin ganha funil do corpus, bloqueadores traduzidos, resultados por baseline e diagnostico por caso.
 - Revisa toda a interface do Meta Admin para pt-BR correto e impede a exibicao de codigos/estados internos sem traducao.
+- Congela e valida 25 snapshots Archidekt completos, com comandantes distintos, listas de 100 cartas e catalogo normalizado.
+- Valida Flyway V1-V15 e a suite completa contra PostgreSQL 16 real.
+- Executa smoke real da Responses API; a chamada alcança a OpenAI, mas a promoção permanece bloqueada por `insufficient_quota`.
 
 Todas as mudancas notaveis deste projeto serao documentadas aqui.
 

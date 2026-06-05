@@ -19,6 +19,33 @@ $snapshots = [System.Collections.Generic.List[object]]::new()
 $commanders = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 $capturedAt = [DateTimeOffset]::UtcNow.ToString("o")
 
+function Convert-ColorIdentity($colors) {
+    $symbols = @{ White = "W"; Blue = "U"; Black = "B"; Red = "R"; Green = "G"; Colorless = "C" }
+    return @($colors | ForEach-Object { if ($symbols.ContainsKey([string]$_)) { $symbols[[string]$_] } else { [string]$_ } })
+}
+
+function Convert-Bracket($value) {
+    switch ([string]$value) {
+        "1" { return "casual" }
+        "2" { return "mid" }
+        "3" { return "high-power" }
+        "4" { return "cedh" }
+        "casual" { return "casual" }
+        "mid" { return "mid" }
+        "high-power" { return "high-power" }
+        "cedh" { return "cedh" }
+        default { return "mid" }
+    }
+}
+
+function Get-TypeLine($oracle) {
+    $main = @($oracle.superTypes) + @($oracle.types)
+    $line = ($main | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join " "
+    $subTypes = @($oracle.subTypes) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    if ($subTypes.Count -gt 0) { $line += " - " + ($subTypes -join " ") }
+    return $line
+}
+
 foreach ($candidate in $ranking) {
     if ($selected.Count -ge $Target) {
         break
@@ -45,7 +72,7 @@ foreach ($candidate in $ranking) {
         archidektId = $candidate.id
         name = $candidate.name
         commander = $commander
-        bracket = $candidate.edhBracket
+        bracket = Convert-Bracket $candidate.edhBracket
         views = $candidate.viewCount
         cards = $cardCount
         source = "archidekt_popular"
@@ -60,18 +87,18 @@ foreach ($candidate in $ranking) {
         $oracle = $entry.card.oracleCard
         $catalog.Add([ordered]@{
             name = $oracle.name
-            colorIdentity = @($oracle.colorIdentity)
-            typeLine = $oracle.typeLine
+            colorIdentity = @(Convert-ColorIdentity $oracle.colorIdentity)
+            typeLine = Get-TypeLine $oracle
             cmc = [double]$oracle.cmc
-            oracleText = $oracle.oracleText
+            oracleText = $oracle.text
         })
     }
     $snapshots.Add([ordered]@{
         id = "archidekt-$($candidate.id)"
         commander = $commander
-        bracket = if ([string]::IsNullOrWhiteSpace($candidate.edhBracket)) { "mid" } else { $candidate.edhBracket }
+        bracket = Convert-Bracket $candidate.edhBracket
         strategy = "consistency"
-        colorIdentity = @($commanderCards[0].card.oracleCard.colorIdentity)
+        colorIdentity = @(Convert-ColorIdentity $commanderCards[0].card.oracleCard.colorIdentity)
         deck = $deck
         catalog = $catalog
         meta = @()

@@ -21,23 +21,22 @@ Ultima atualizacao: 2026-06-05
 | Personalizacao por estrategia, orcamento e colecao | `pronto` | `strategy` altera scoring, `budget` filtra/penaliza candidatos e `ownedOnly` usa a colecao persistida; sem inventario, o quality gate cai para baixa confianca. |
 | TopDeck.gg e Meta Admin | `pronto` | TopDeck.gg e a unica fonte externa viva; `/meta/sync` busca, persiste na base canonica, reconstrói perfis e separa importados, descartados, snapshot preservado e erros operacionais. |
 | Benchmark GPT automatico | `em desenvolvimento` | Engine real offline, V15, jobs GPT-5.5, dois baselines, tres juizes, vetos, retomada por hashes e evidencia dinamica implementados. Promocao bloqueada ate congelar 50 decks reais completos e distintos. |
-
-Coleta do corpus: `tools/collect-archidekt-benchmark-candidates.ps1` congela manifesto/listas/catalogo; `tools/collect-topdeck-benchmark-candidates.ps1` seleciona a parcela competitiva e exige `TOPDECK_API_KEY`.
-| Benchmark contra GPT | `parcial` | Runner offline calcula metricas sobre 20 casos versionados e persiste rodadas/resultados; ainda faltam 50 casos e execucao direta do nucleo estrategico para prova mais forte. |
-| Baseline GPT e avaliacao humana | `parcial` | Baselines estruturados entram nos 20 casos e o Meta Admin oferece revisao A/B cega; ainda faltam 3 votos por caso para fechar o quorum. |
-| Cobertura meta por comandante | `parcial` | Perfis locais dedicados cobrem Xenagos, K'rrik, Grand Arbiter e Kess; ainda nao ha cobertura ampla de comandantes populares e long-tail. |
+| Benchmark contra GPT | `parcial` | Runner executa o engine real offline; faltam os 25 casos TopDeck e a primeira promocao GPT para a prova qualificavel. |
+| Baseline GPT e avaliacao humana | `parcial` | Dois baselines e tres julgamentos automaticos por comparacao estao implementados; validacao humana permanece posterior. |
 | Feedback agregado e calibracao automatica | `parcial` | Meta Admin agrega feedback por comandante, bracket, status e motivo; pesos continuam sem ajuste automatico por regra. |
 | Pet cards e cartas intocaveis | `planejado` | Pecas de combo e valor estrategico recebem protecao, mas o usuario ainda nao pode marcar explicitamente cartas intocaveis. |
+
+Coleta do corpus: 25 snapshots Archidekt completos, distintos e sem violacoes foram congelados em `archidekt-snapshots.json`; `tools/collect-topdeck-benchmark-candidates.ps1` seleciona a parcela competitiva, exige `TOPDECK_API_KEY` e ainda requer enriquecimento do catalogo congelado para qualificar os casos.
 
 Estado da prova: a fundacao verificavel esta pronta, mas o produto ainda nao demonstrou superioridade global sobre GPT. Claims devem permanecer restritos a execucoes com cobertura e benchmark suficientes.
 
 ## Proximas Prioridades
 
-1. Expandir o corpus calculado de 20 para pelo menos 50 casos completos.
-2. Extrair o nucleo estrategico para o runner executar diretamente o algoritmo com fixtures offline, substituindo snapshots versionados de saida.
-3. Completar 3 avaliacoes cegas por caso e analisar `systemWins`, `gptWins` e `tie`.
-4. Investigar metricas abaixo da meta usando auditoria e diagnostico sanitizado.
-5. Calibrar scoring somente quando o benchmark demonstrar melhora sem regressao dos invariantes Commander.
+1. Criar `TOPDECK_API_KEY`, coletar/enriquecer os 25 snapshots competitivos e formar os 50 casos distintos.
+2. Adicionar saldo/limite à conta OpenAI API, repetir o smoke opt-in e promover o primeiro conjunto completo.
+3. Investigar metricas abaixo da meta usando auditoria e diagnostico sanitizado.
+4. Calibrar scoring somente quando o benchmark demonstrar melhora sem regressao dos invariantes Commander.
+5. Completar validacao humana posterior.
 
 ## Mapa Rapido para Agentes
 
@@ -46,7 +45,8 @@ Estado da prova: a fundacao verificavel esta pronta, mas o produto ainda nao dem
 - Meta/TopDeck: comece em `TopDeckMetaAdapter`, `ExternalMetaIngestionJob`, `MetaDatasetService` e `MetaDeckSnapshot`; ingestao externa deve respeitar API, attribution, rate limit e preservacao do ultimo snapshot.
 - Colecao/privacidade: comece em `UserCollectionService`, `UserPrivacyController`, migration `V12__create_user_card_collection.sql` e `UserPrivacyControllerTest`; preserve isolamento por usuario e exportacao/exclusao LGPD.
 - Frontend: recomendacoes em `frontend/src/components/recommendations/`, Meta Admin em `frontend/src/pages/MetaAdminPage.jsx` e contratos HTTP em `frontend/src/services/api.js`.
-- Validacao conhecida em 2026-06-05: backend H2 passou com 197 testes; frontend lint/build, 14 cenarios E2E e 6 cenarios de acessibilidade passaram. Playwright gera screenshots do card de evidencia, funil e diagnostico em desktop/mobile. PostgreSQL local aguarda Docker daemon ativo.
+- Validacao conhecida em 2026-06-05: backend H2 e PostgreSQL 16 isolado passaram com 198 testes; Flyway aplicou V1-V15 sobre schema vazio. Frontend lint/build, 14 cenarios E2E e 6 cenarios de acessibilidade passaram. Os 25 snapshots Archidekt possuem comandantes distintos e zero violacoes de qualificacao.
+- Smoke OpenAI real alcançou a Responses API, mas retornou HTTP 429 `insufficient_quota`; a credencial existe, porém a conta precisa de saldo/limite antes da geração.
 
 ## Objetivo
 

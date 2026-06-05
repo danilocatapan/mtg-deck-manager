@@ -343,12 +343,15 @@ public class RecommendationBenchmarkService {
         int archidekt = 0;
         int topDeck = 0;
         java.util.Set<String> commanders = new java.util.HashSet<>();
-        for (JsonNode fixture : root.path("cases")) {
+        List<JsonNode> snapshots = new ArrayList<>();
+        snapshots.addAll(snapshotCases("recommendation-benchmark/archidekt-snapshots.json"));
+        snapshots.addAll(snapshotCases("recommendation-benchmark/topdeck-snapshots.json"));
+        for (JsonNode fixture : snapshots) {
             if (scenarioService.validateFixture(fixture).isEmpty() && commanders.add(normalize(fixture.path("commander").asText()))) valid++;
             if ("archidekt_popular".equals(fixture.path("source").asText())) archidekt++;
             if ("topdeck_tournament".equals(fixture.path("source").asText())) topDeck++;
         }
-        int candidates = archidektCandidateCount();
+        int candidates = archidektCandidateCount() + topDeck;
         List<String> blockers = new ArrayList<>();
         if (valid < TARGET_CASES) blockers.add("Faltam capturas completas e auditáveis para atingir 50 casos válidos.");
         if (topDeck < 25) blockers.add("A parcela competitiva TopDeck.gg ainda não possui 25 casos congelados.");
@@ -382,6 +385,20 @@ public class RecommendationBenchmarkService {
             return input == null ? 0 : objectMapper.readTree(input).path("count").asInt(0);
         } catch (Exception exception) {
             return 0;
+        }
+    }
+
+    private List<JsonNode> snapshotCases(String resource) {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream(resource)) {
+            if (input == null) return List.of();
+            JsonNode cases = objectMapper.readTree(input).path("cases");
+            if (!cases.isArray()) return List.of();
+            List<JsonNode> result = new ArrayList<>();
+            cases.forEach(result::add);
+            return result;
+        } catch (Exception exception) {
+            LOG.warnv("event=benchmark.corpus_snapshot.invalid resource={0}", resource);
+            return List.of();
         }
     }
 

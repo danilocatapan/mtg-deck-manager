@@ -67,9 +67,12 @@ class RecommendationBenchmarkServiceTest {
     @Test
     void blocksAiGenerationPreviewUntilCorpusHasFiftyRealCompleteDecks() {
         var preview = aiService.preview();
+        var summary = service.summary();
 
         assertEquals(20, preview.totalCases());
         assertEquals("corpus_not_ready", preview.status());
+        assertEquals(25, summary.getCorpusStatus().get("validCases"), summary.getCorpusStatus().toString());
+        assertEquals(25, summary.getCorpusStatus().get("archidektCases"));
     }
 
     @Test
@@ -82,6 +85,19 @@ class RecommendationBenchmarkServiceTest {
             assertTrue(violations.contains("missing_source_url"));
             assertTrue(violations.contains("missing_capture_date"));
             assertTrue(violations.contains("deck_must_include_commander_plus_99"));
+        }
+    }
+
+    @Test
+    void validatesFrozenArchidektSnapshots() throws Exception {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("recommendation-benchmark/archidekt-snapshots.json")) {
+            var cases = objectMapper.readTree(input).path("cases");
+            java.util.List<String> violations = new java.util.ArrayList<>();
+            cases.forEach(fixture -> scenarioService.validateFixture(fixture)
+                    .forEach(violation -> violations.add(fixture.path("id").asText() + ":" + violation)));
+
+            assertEquals(25, cases.size());
+            assertTrue(violations.isEmpty(), violations.toString());
         }
     }
 }

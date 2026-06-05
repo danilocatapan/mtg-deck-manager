@@ -60,7 +60,7 @@ Checklist rapido
 Comandos atuais
 ---------------
 - Backend: em `backend`, no Windows/PowerShell rode Maven sempre com o preambulo do JDK 25 no mesmo comando; no Linux/macOS rode `./mvnw test`.
-- Backend com PostgreSQL local: suba `docker compose up -d postgres` e rode em `backend` com variaveis PostgreSQL/Flyway quando a mudanca tocar persistencia.
+- Backend com PostgreSQL local: suba `docker compose up -d postgres` e rode em `backend` com variaveis PostgreSQL/Flyway quando a mudanca tocar persistencia. Use um banco/schema vazio e isolado por rodada completa; reutilizar banco com dados deixados por testes anteriores pode produzir falsos negativos.
 - Frontend: em `frontend`, rode `npm run lint` e `npm run build`.
 - Frontend e2e: em `frontend`, rode `npm run test:e2e` para fluxos anonimos/autenticados com mocks.
 - Frontend a11y: em `frontend`, rode `npm run test:a11y` para axe em desktop/mobile e checagem de contraste semantico.

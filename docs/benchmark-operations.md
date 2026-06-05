@@ -5,6 +5,7 @@ Ultima atualizacao: 2026-06-05
 ## Estado Atual
 
 - Corpus diagnostico: 20 cenarios reduzidos em `recommendation-benchmark/cases-v1.json`.
+- Corpus real popular: 25 snapshots Archidekt completos, distintos e validados em `archidekt-snapshots.json`.
 - Meta qualificavel: 50 decks reais completos e comandantes distintos.
 - Runner offline: `RecommendationBenchmarkService`.
 - Engine: `StrategicRecommendationEngine`.
@@ -43,6 +44,13 @@ Os resultados ficam em `archidekt-candidates.json`, `archidekt-snapshots.json` e
 
 O Meta Admin exibe o funil candidatos -> snapshots -> casos validos -> runner offline -> artefatos GPT -> conjunto promovido. Bloqueadores aparecem como acoes legiveis e nunca exigem importacao manual de JSON.
 
+## Credenciais e Responsabilidades
+
+- `TOPDECK_API_KEY`: crie gratuitamente em `https://topdeck.gg/account` e configure somente no `.env` local como `TOPDECK_API_KEY=<chave>`. Ela autoriza o backend/coletor a consultar torneios, classificacoes e decklists pela API TopDeck.gg; nunca deve ser enviada em chat ou commitada.
+- `OPENAI_API_KEY`: deve permanecer somente no backend. O smoke real de 2026-06-05 alcançou a Responses API, mas retornou `insufficient_quota`; a conta precisa de saldo ou limite disponível antes de gerar e promover artefatos.
+- Acao do responsavel pela conta: criar a chave TopDeck e regularizar o saldo/limite da OpenAI API.
+- Acao executavel pelo Codex apos isso: coletar e enriquecer os 25 casos TopDeck, validar os 50 casos, repetir smoke/benchmark e promover o primeiro conjunto completo.
+
 ## APIs
 
 - `POST /meta/recommendation-benchmark/run`
@@ -58,7 +66,8 @@ Backend registra somente IDs, versoes, hashes, status, tempos e contagens. O dia
 
 ## Validacao
 
-- Backend H2 completo e migration PostgreSQL V1-V15.
+- Backend H2 completo: 198 testes passaram em 2026-06-05.
+- PostgreSQL 16 real e isolado: 198 testes passaram e Flyway aplicou V1-V15 sobre schema vazio em 2026-06-05.
 - Smoke OpenAI real somente opt-in.
 - Frontend lint/build.
 - Playwright desktop/mobile para preview, job, progresso, falha preservada, comparacao, claim qualificado e screenshots.
@@ -66,7 +75,7 @@ Backend registra somente IDs, versoes, hashes, status, tempos e contagens. O dia
 
 ## Pendencias
 
-1. Congelar 50 decks reais completos e distintos.
-2. Configurar `TOPDECK_API_KEY` para a parcela competitiva.
-3. Executar smoke OpenAI e promover o primeiro conjunto.
+1. Configurar `TOPDECK_API_KEY` e congelar os 25 decks competitivos restantes.
+2. Formar o corpus ativo de 50 casos, adicionar saldo/limite à OpenAI API e repetir o smoke.
+3. Promover o primeiro conjunto completo.
 4. Completar validacao humana posterior.
