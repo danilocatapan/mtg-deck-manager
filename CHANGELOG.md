@@ -7,6 +7,12 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 ## [0.0.0-local] - 2026-06-05
 
 ### Added
+- Benchmark determinístico offline com 20 casos versionados, métricas calculadas, persistência de rodadas/resultados e preservação da última rodada válida.
+- Revisão humana cega A/B no Meta Admin com quórum de 3 votos por caso, maioria simples e empate explícito.
+- Relatórios agregados de feedback por comandante, bracket, status e motivo, sem expor identidade ou notas privadas.
+- Modo diagnóstico frontend opt-in por sessão e logs backend estruturados e sanitizados para auditoria operacional.
+- Migration V14 cria persistência de rodadas, resultados por caso e avaliações humanas do benchmark.
+- CI PostgreSQL valida o caminho V1-V12 com dados legados, executa V13/V14 e confirma remoção seletiva e preservação dos decks curados.
 - Base canonica PostgreSQL `meta_decks`/`meta_deck_cards` para snapshots TopDeck.gg normalizados, com substituicao idempotente por fonte e preservacao do ultimo snapshot valido.
 - Meta Admin passa a mostrar proximas acoes derivadas do benchmark, cobertura da fonte e feedback agregado sem checklist manual paralelo.
 - Rodadas estrategicas expoem `auditId` e permitem feedback simples `Util`, `Nao util` ou `Precisa revisao`.
@@ -22,9 +28,8 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Metadados de impressao nas cartas importadas (`scryfall_id`, edicao, numero de colecao, acabamento e imagem), preservando a arte correta quando listas Moxfield/MTG Arena/Archidekt trazem `(SET) numero` e foil.
 - Inventario `docs/codex-skills.md` documentando skills Codex instaladas, ganhos esperados, exemplos de uso e candidatos avaliados para backend, frontend, UX, seguranca, documentacao e recomendacoes.
 - Configuracao compartilhada `.codex/config.toml` para padronizar approvals conservadores, sandbox de workspace, busca cacheada, snapshot de shell e multi-agent em sessoes confiaveis do Codex.
-- Tela `Meta Admin` no frontend para usuario Google autorizado importar JSON de top decks, consultar snapshots, abrir detalhes e registrar sync manual com orientacoes objetivas sobre impacto nas recomendacoes.
 - API administrativa de meta iniciou suporte a snapshots rankeados; o fluxo manual correspondente foi removido nesta mesma entrega em favor de `POST /meta/sync`.
-- Avaliacao automatizada dos sinais de top decks garante amostra minima, rastreabilidade `meta_top_decks` e invariantes de recomendacao antes de privilegiar cartas recorrentes.
+- Avaliacao automatizada dos sinais do snapshot canonico garante amostra minima e invariantes de recomendacao antes de privilegiar cartas recorrentes.
 - Analise de decks passa a expor as cartas por papel em `roleCards`, permitindo detalhar Ramp, Compra, Interacao, Protecao, Limpa-mesa, Vitoria e Terrenos na UI.
 - Likes em todos os decks publicos, com voto unico por usuario autenticado e ranking interno por periodo em `GET /public/decks/top`.
 - Endpoint administrativo `POST /meta/external-decks/import` para importar decks externos como publicos, com origem marcada e suporte inicial a payload estruturado, MTG Arena, LigaMagic e formato generico.
@@ -40,6 +45,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- Fluxos de sucesso do benchmark, revisão cega, feedback agregado e diagnóstico passam a ter validação Playwright obrigatória.
 - `POST /meta/sync` passa a executar o fluxo completo TopDeck.gg: buscar, normalizar, persistir e reconstruir perfis por comandante/bracket.
 - TopDeck.gg passa a ser a unica fonte externa viva de meta; dataset local permanece como fallback embarcado para cobertura sem operacao manual.
 - Meta Admin deixa de importar JSON/decklists e passa a oferecer apenas sincronizacao automatica e acompanhamento operacional.
@@ -70,7 +76,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Manual canonico de agentes passa a consultar `docs/codex-skills.md` em pedidos nao triviais para selecionar skills automaticamente, sem exigir que o usuario decore nomes ou adapte prompts manualmente.
 - Manual canonico de agentes recebeu um fluxo produtivo para Codex cobrindo prompts, planejamento, contexto, approvals, configuracao, MCP/plugins, skills, subagentes, automacoes, validacao e revisao.
 - Documentacao operacional e agents foram versionados em `agents-2026-05-21`/`docs-2026-05-21`, alinhando contexto, endpoints, PostgreSQL/Flyway, privacidade, meta top decks e fluxo atual de recomendacoes para reduzir reexploracao e alucinacao em Codex/Copilot.
-- Recomendacoes estrategicas passam a usar top decks importados como fonte `meta_top_decks` quando ha amostra suficiente por comandante/bracket, preservando score, filtros de cor, bloqueio de duplicatas e cortes seguros.
+- Recomendacoes estrategicas passam a usar o snapshot canonico quando ha amostra suficiente por comandante/bracket, preservando score, filtros de cor, bloqueio de duplicatas e cortes seguros.
 - Cards de troca nas recomendacoes podem ser recolhidos ao clicar no card, deixando apenas o resumo com carta que entra e carta removida.
 - Telas de listagem, edicao e analise de decks receberam preview de carta reutilizavel, acoes flutuantes padronizadas, galeria com rolagem interna e ajustes mobile para comandante, imagens e footer.
 - Tela de consulta "Ver deck" passa a reutilizar a lista do editor, com filtro por nome, filtro por tipo, agrupamento por tipo e alternancia entre lista e imagens em modo somente leitura.
@@ -92,6 +98,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Exclusao de decks no frontend passa a usar um dialogo proprio, mantendo a experiencia visual consistente.
 
 ### Fixed
+- Cards de métricas do benchmark deixam de comprimir e cortar amostra/meta no Meta Admin desktop.
 - Botao de sincronizacao do Meta Admin deixa de apenas registrar um lote e passa a buscar dados reais do TopDeck.gg.
 - Migration de remocao do fluxo manual preserva decks curados por `POST /meta/external-decks/import`, removendo apenas projecoes ligadas aos registros legados.
 

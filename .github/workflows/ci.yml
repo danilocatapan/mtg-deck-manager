@@ -176,6 +176,30 @@ jobs:
           app.objective=Analise e otimizacao de decks Commander com recomendacoes explicaveis.
           EOF
 
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+
+      - name: Validate legacy V13 and V14 migration path
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGDATABASE: mtg_deck_manager
+          PGUSER: mtg
+          PGPASSWORD: mtg_dev_password
+        run: |
+          set -euo pipefail
+
+          for version in $(seq 1 12); do
+            migration="$(find src/main/resources/db/migration -name "V${version}__*.sql" -print -quit)"
+            psql -v ON_ERROR_STOP=1 -f "$migration"
+          done
+
+          psql -v ON_ERROR_STOP=1 -f src/test/resources/postgresql/prepare-v13-v14.sql
+          psql -v ON_ERROR_STOP=1 -f src/main/resources/db/migration/V13__replace_manual_top_decks_with_canonical_meta.sql
+          psql -v ON_ERROR_STOP=1 -f src/main/resources/db/migration/V14__create_recommendation_benchmark.sql
+          psql -v ON_ERROR_STOP=1 -f src/test/resources/postgresql/assert-v13-v14.sql
+          psql -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+
       - name: Test backend against PostgreSQL
         run: ./mvnw test
         env:

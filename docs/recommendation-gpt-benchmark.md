@@ -1,6 +1,6 @@
 # Benchmark: recomendador Commander vs GPT
 
-Ultima atualizacao: 2026-06-03
+Ultima atualizacao: 2026-06-05
 
 ## Objetivo
 
@@ -8,9 +8,11 @@ Definir quando o MTG Deck Manager pode afirmar que suas recomendacoes de upgrade
 
 O sistema so deve afirmar superioridade quando houver evidencia no benchmark e a execucao atual estiver com `medium_confidence` ou `high_confidence`. Em execucoes `low_confidence`, a UI deve informar que ainda nao ha dados suficientes para superar uma analise GPT ampla.
 
-## Corpus minimo
+## Corpus atual e meta de cobertura
 
-Criar um arquivo ou conjunto de fixtures com `[50-100]` casos:
+O corpus atual possui 20 casos completos em `backend/src/main/resources/recommendation-benchmark/cases-v1.json`, distribuídos entre Xenagos, K'rrik, Grand Arbiter, Kess, Atraxa, Yuriko, Muldrotha e Edgar Markov.
+
+Cada caso contém:
 
 - `commander`
 - `bracket`
@@ -22,9 +24,13 @@ Criar um arquivo ou conjunto de fixtures com `[50-100]` casos:
 - `protectedCards`: cartas que nao devem ser cortadas
 - `notes`: contexto de mesa, arquétipo e motivo dos labels
 
+O runner atual é determinístico, offline e persistido. Ele calcula métricas sobre saídas estruturadas versionadas do sistema e do baseline GPT. A próxima evolução técnica é executar diretamente o núcleo estratégico extraído sobre cada fixture, ainda sem rede e sem criar auditorias de usuário.
+
+O status `benchmark_ready` exige pelo menos 50 casos completos e quórum humano em todos eles.
+
 ## Baseline GPT
 
-Para cada caso, gerar uma resposta GPT com prompt fixo:
+Para cada caso, gerar uma resposta GPT manualmente com prompt fixo:
 
 ```text
 Improve this Magic: The Gathering Commander deck.
@@ -34,7 +40,7 @@ Return concrete add/cut swaps with reasons.
 [DECK_AND_USER_CONTEXT]
 ```
 
-Registrar a saida GPT como artefato de benchmark, sem usa-la como fonte de verdade. O julgamento final deve comparar sistema e GPT contra labels humanos e invariantes.
+Registrar a saída GPT estruturada no corpus versionado, sem integração OpenAI no runtime e sem usá-la como fonte de verdade. O julgamento final compara sistema e GPT contra labels humanos, invariantes e revisão cega.
 
 ## Metricas obrigatorias
 
@@ -47,6 +53,14 @@ Registrar a saida GPT como artefato de benchmark, sem usa-la como fonte de verda
 - `blindPreferenceWinRate`: avaliadores preferem o sistema ao GPT em teste cego; alvo inicial 60%+ nos casos cobertos.
 - `actionabilityRate`: recomendacoes com add, cut, motivo, risco e impacto suficiente para aplicar ou rejeitar.
 - `preferenceAdherenceRate`: aderencia a budget, ownedOnly, avoidSalt, avoidTutors e preserveTheme.
+
+Métricas sem amostra suficiente permanecem `not_ready`. Resultados nunca alteram pesos automaticamente.
+
+## Revisao humana cega
+
+- O Meta Admin apresenta respostas A/B sem revelar qual pertence ao sistema.
+- Cada caso exige 3 avaliações; maioria simples define o resultado e empate permanece explícito.
+- Cada administrador possui um voto por rodada/caso, com atualização do voto existente.
 
 ## Status por execucao
 
@@ -66,3 +80,4 @@ Registrar a saida GPT como artefato de benchmark, sem usa-la como fonte de verda
 - O Meta Admin e a fonte operacional dessas pendencias; nao existe checklist manual paralelo.
 - Usuarios podem avaliar cada rodada como `accepted`, `rejected` ou `needs_review`.
 - Feedback orienta investigacao e relatorios, mas nunca altera scoring automaticamente.
+- Operação, contratos, pontos de entrada e testes imediatos estão em `docs/benchmark-operations.md`.

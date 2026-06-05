@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { installAuth, mockApi } from '../helpers/mockApi.mjs'
 
+async function attachFlowScreenshot(page, testInfo, name) {
+  const path = testInfo.outputPath(`${name}.png`)
+  await page.screenshot({ path, fullPage: true })
+  await testInfo.attach(name, { path, contentType: 'image/png' })
+}
+
 test('public routes expose home, contact, release notes and shared deck consult', async ({ page }) => {
   await mockApi(page)
   await page.goto('./')
@@ -112,17 +118,40 @@ test('contact supports success and release notes empty state', async ({ page }) 
   await expect(page.getByText('Nenhuma nota de versao', { exact: true })).toBeVisible()
 })
 
-test('meta admin handles authorization states with mocks', async ({ page }) => {
+test('meta admin handles authorization states with mocks', async ({ page }, testInfo) => {
+  const consoleEvents = []
+  page.on('console', (message) => {
+    if (message.type() === 'info') consoleEvents.push(message.text())
+  })
   await mockApi(page)
   await page.goto('./#/meta-admin')
   await expect(page.getByRole('heading', { name: /Acesso restrito/i })).toBeVisible()
+  await attachFlowScreenshot(page, testInfo, '01-meta-admin-acesso-restrito')
 
   await installAuth(page, { email: 'dcatapan@gmail.com' })
   await page.goto('./#/meta-admin')
   await expect(page.getByRole('heading', { name: /Meta automatico/i })).toBeVisible()
   await expect(page.getByText(/Expandir corpus versionado/i)).toBeVisible()
+  await attachFlowScreenshot(page, testInfo, '02-meta-admin-estado-inicial')
   await page.getByRole('button', { name: /Sincronizar meta agora/i }).click()
   await expect(page.getByText(/24 decks persistidos/i)).toBeVisible()
+  await attachFlowScreenshot(page, testInfo, '03-meta-admin-sync-concluido')
+  await page.getByRole('button', { name: /Executar benchmark/i }).click()
+  await expect(page.getByText(/Casos avaliados: 20\/20/i)).toBeVisible()
+  await expect(page.getByText('addPrecisionAt10')).toBeVisible()
+  await attachFlowScreenshot(page, testInfo, '04-meta-admin-benchmark-metricas')
+  await page.getByRole('button', { name: /Carregar proximo caso/i }).click()
+  await expect(page.getByRole('heading', { name: /Opcao A/i })).toBeVisible()
+  await attachFlowScreenshot(page, testInfo, '05-meta-admin-revisao-cega')
+  await page.getByRole('button', { name: /Prefiro A/i }).click()
+  await page.getByRole('button', { name: /Prefiro A/i }).click()
+  await page.getByRole('button', { name: /Empate/i }).click()
+  await expect(page.getByText(/Progresso: 1\/20 casos com quorum/i)).toBeVisible()
+  await attachFlowScreenshot(page, testInfo, '06-meta-admin-quorum-concluido')
+  await page.getByRole('button', { name: /Ativar diagnostico/i }).click()
+  await expect(page.getByLabel('Eventos de diagnostico')).toBeVisible()
+  expect(consoleEvents.some((event) => event.includes('event=meta_admin.diagnostics.enabled'))).toBeTruthy()
+  await attachFlowScreenshot(page, testInfo, '07-meta-admin-diagnostico-sanitizado')
 })
 
 test('shared deck editor routes and card popovers support keyboard dismissal', async ({ page }) => {

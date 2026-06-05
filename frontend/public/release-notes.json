@@ -5,18 +5,18 @@
     "title": "Meta automatico e recomendacoes verificaveis",
     "changes": {
       "added": [
+        "Meta Admin ganhou benchmark offline de 20 casos, metricas calculadas e revisao humana cega A/B.",
+        "Feedback agregado e modo diagnostico opcional ajudam a investigar recomendacoes sem expor dados privados.",
         "Meta Admin ganhou sincronizacao automatica TopDeck.gg, cobertura por bracket e proximas acoes derivadas.",
         "Usuarios podem avaliar cada rodada de recomendacoes como util, nao util ou precisa revisao.",
-        "Recomendacoes mostram quality gate com confianca, cobertura e limitacoes antes de afirmar vantagem contra GPT.",
-        "Colecao textual autenticada prepara recomendacoes ownedOnly reais e participa do fluxo de privacidade.",
-        "Cache local de combos via Commander Spellbook melhora deteccao e protecao de pecas-chave."
+        "Recomendacoes mostram quality gate com confianca, cobertura e limitacoes antes de afirmar vantagem contra GPT."
       ],
       "changed": [
+        "Fluxos de sucesso do benchmark e diagnostico agora sao validados via Playwright em desktop e mobile.",
         "TopDeck.gg passa a ser a unica fonte externa viva de meta; o dataset local permanece como fallback sem trabalho manual.",
         "Meta Admin deixa de solicitar JSON ou decklists e passa a acompanhar apenas sincronizacao, cobertura e progresso.",
         "Falhas e rate limits do TopDeck.gg preservam o ultimo snapshot valido.",
-        "ownedOnly filtra adds pela colecao persistida quando existe inventario.",
-        "Orcamento e estrategia influenciam ranking e filtragem das trocas sugeridas."
+        "ownedOnly filtra adds pela colecao persistida quando existe inventario."
       ],
       "fixed": [
         "Botao de sincronizacao do Meta Admin agora busca dados reais em vez de apenas registrar um lote.",

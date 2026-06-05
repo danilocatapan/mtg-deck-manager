@@ -75,4 +75,6 @@ Notas operacionais rapidas
 - Centralize chamadas externas e feature flags em `src/services`.
 - Preserve `credentials: omit`, `Authorization: Bearer <id-token>` e limpeza de sessao em 401.
 - Use os testes Playwright/axe existentes como gate automatizado e mantenha uma validacao manual focada para fluxos de alto risco.
+- Fluxos de sucesso do Meta Admin/benchmark devem ser cobertos por Playwright em desktop e mobile.
+- O modo diagnostico usa `src/services/diagnostics.js`, fica desligado por padrao e dura somente a sessao.
 - Em duvidas contratuais, volte para `AGENTS.md` e siga a regra: nao alterar regra negocial sem solicitacao explicita.

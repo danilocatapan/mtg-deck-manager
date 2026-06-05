@@ -1,7 +1,7 @@
 # Production Deploy Runbook
 
-Versao docs: 2026-06-03
-Ultima atualizacao: 2026-06-03
+Versao docs: 2026-06-05
+Ultima atualizacao: 2026-06-05
 
 ## Database
 
@@ -111,9 +111,7 @@ FRONTEND_URL=https://danilocatapan.github.io/mtg-deck-manager/
 SWAGGER_UI_ENABLED=false
 APP_LOG_LEVEL=INFO
 QUARKUS_FLYWAY_MIGRATE_AT_START=false
-META_SPICERACK_ENABLED=true
-SPICERACK_API_KEY=<optional-spicerack-key>
-META_TOPDECK_ENABLED=false
+META_TOPDECK_ENABLED=true
 TOPDECK_API_KEY=<optional-topdeck-key>
 META_ADMIN_EMAILS=<comma-separated-admin-emails>
 SECURITY_ADMIN_SUBJECTS=<comma-separated-admin-google-subjects>
@@ -145,7 +143,6 @@ BACKEND_DEPLOY_HOOK_URL=<hosting-provider-deploy-hook>
 QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://<host>:5432/<database>
 QUARKUS_DATASOURCE_USERNAME=<database-user>
 QUARKUS_DATASOURCE_PASSWORD=<database-password>
-SPICERACK_API_KEY=<optional-spicerack-key>
 TOPDECK_API_KEY=<optional-topdeck-key>
 STAGING_BEARER_TOKEN=<short-lived-google-id-token-for-smoke-tests>
 ```
@@ -181,7 +178,7 @@ Use a staging database for these tests. The smoke deck is deleted at the end of 
 
 ## Meta Admin Checks
 
-When enabling the top decks admin UI, configure the same admin e-mail allowlist in frontend and backend:
+When enabling the Meta Admin UI, configure the same admin e-mail allowlist in frontend and backend:
 
 ```text
 VITE_META_ADMIN_EMAILS=<comma-separated-admin-emails>
@@ -191,10 +188,10 @@ META_ADMIN_EMAILS=<comma-separated-admin-emails>
 Validate with an authorized Google account:
 
 - open the frontend `Meta Admin` screen
-- list top decks
-- import a small JSON payload in staging
+- execute o benchmark offline e confirme metricas, amostra, revisao cega e proximas acoes
+- confirme que o modo diagnostico inicia desligado, dura somente a sessao e registra apenas eventos sanitizados
 - confirm `POST /meta/sync` consulta TopDeck.gg, persiste o snapshot canonico, reconstrói perfis e preserva o snapshot anterior em falhas sem expor secrets
-- confirm strategic recommendations mention/use `meta_top_decks` only when the sample is sufficient
+- confirm strategic recommendations use the canonical snapshot only when the sample is sufficient
 
 ## Promotion Checklist
 

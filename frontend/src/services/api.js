@@ -431,6 +431,30 @@ export async function getRecommendationBenchmarkSummary(adminKey = '') {
   }
 }
 
+export async function runRecommendationBenchmark(adminKey = '') {
+  return await request('/meta/recommendation-benchmark/run', {
+    method: 'POST',
+    retryOnStartup: false,
+    headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+  })
+}
+
+export async function getNextRecommendationBenchmarkReview(adminKey = '') {
+  return await request('/meta/recommendation-benchmark/reviews/next', {
+    retryOnStartup: false,
+    headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+  })
+}
+
+export async function submitRecommendationBenchmarkReview(caseId, payload, adminKey = '') {
+  return await request(`/meta/recommendation-benchmark/reviews/${encodeURIComponent(caseId)}`, {
+    method: 'POST',
+    retryOnStartup: false,
+    headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function importDeck(data) {
   try {
     return await request('/decks/import', {
@@ -491,6 +515,9 @@ export default {
   syncMeta,
   submitRecommendationFeedback,
   getRecommendationBenchmarkSummary,
+  runRecommendationBenchmark,
+  getNextRecommendationBenchmarkReview,
+  submitRecommendationBenchmarkReview,
   getAppInfo,
   exportUserData,
   deleteAccountData,

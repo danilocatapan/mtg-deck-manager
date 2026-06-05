@@ -35,6 +35,8 @@ Cobertura que merece atencao explicita
 - Importacao de deck e normalizacao de decklist.
 - Decks publicos, likes, copia, privacidade e LGPD.
 - Persistencia PostgreSQL/Flyway quando entidade, indice, constraint ou query mudar.
+- A CI PostgreSQL deve manter o cenário legado V1-V12 -> dados preparados -> V13/V14 antes da suíte completa; não substitua essa validação por busca textual nas migrations.
+- Benchmark: 20 fixtures offline, formulas das metricas, concorrencia, preservacao da ultima rodada, anonimato A/B, voto unico e quorum de 3.
 - Auth/OIDC, CORS, headers e logs sanitizados quando seguranca for afetada.
 - Erros de contrato REST e respostas HTTP.
 - Acessibilidade frontend: WCAG 2.2 AA + AAA oportunista, teclado, foco, contraste, landmarks, dialogs, tabs, popovers, live regions e estados vazio/loading/erro.
@@ -62,6 +64,8 @@ Comandos atuais
 - Frontend: em `frontend`, rode `npm run lint` e `npm run build`.
 - Frontend e2e: em `frontend`, rode `npm run test:e2e` para fluxos anonimos/autenticados com mocks.
 - Frontend a11y: em `frontend`, rode `npm run test:a11y` para axe em desktop/mobile e checagem de contraste semantico.
+- Playwright e obrigatorio para os fluxos de sucesso do benchmark, revisao cega, feedback agregado e diagnostico sanitizado.
+- O fluxo Playwright do Meta Admin anexa screenshots dos marcos de sucesso em desktop e mobile; use essas evidencias junto aos asserts, nunca como substituto deles.
 - CI frontend executa lint, build, e2e e a11y; se Playwright falhar, priorize corrigir o comportamento ou o mock em vez de remover cobertura.
 - Os testes Playwright autenticados devem simular `sessionStorage` com token fake e interceptar REST pelos contratos existentes; nao usar login Google real.
 - Violacoes axe so podem ser aceitas com comentario explicito no teste explicando o motivo, o escopo e o plano de remocao.

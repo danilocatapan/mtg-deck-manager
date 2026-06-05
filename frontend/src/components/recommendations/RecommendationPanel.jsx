@@ -2,8 +2,9 @@ import RecommendationCard from './RecommendationCard'
 import RecommendationBadge from './RecommendationBadge'
 import StateMessage from '../ui/StateMessage'
 import Button from '../ui/Button'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { submitRecommendationFeedback } from '../../services/api'
+import { diagnosticEvents, diagnosticsEnabled, emitDiagnostic, setDiagnosticsEnabled, subscribeDiagnostics } from '../../services/diagnostics'
 
 function profileSource(metaProfile, recommendations) {
   if (recommendations?.some((item) => item.source === 'meta_profile')) return 'meta'
@@ -35,6 +36,8 @@ export default function RecommendationPanel({
   const [feedbackStatus, setFeedbackStatus] = useState(null)
   const [feedbackLoading, setFeedbackLoading] = useState(null)
   const [feedbackError, setFeedbackError] = useState(null)
+  const [diagnostics, setDiagnostics] = useState(() => diagnosticsEnabled())
+  const [events, setEvents] = useState(() => diagnosticEvents())
   const run = Array.isArray(recommendations) ? null : recommendations
   const items = Array.isArray(recommendations) ? recommendations : recommendations?.recommendations || []
   const hasGenerated = Array.isArray(recommendations) || Boolean(recommendations?.recommendations)
@@ -44,6 +47,11 @@ export default function RecommendationPanel({
   const lowConfidence = confidence === 'low_confidence'
   const limitations = Array.isArray(run?.limitations) ? run.limitations : []
 
+  useEffect(() => subscribeDiagnostics(() => {
+    setDiagnostics(diagnosticsEnabled())
+    setEvents(diagnosticEvents())
+  }), [])
+
   async function handleFeedback(status) {
     if (!run?.auditId || feedbackLoading) return
     setFeedbackLoading(status)
@@ -51,6 +59,7 @@ export default function RecommendationPanel({
     try {
       await submitRecommendationFeedback(run.auditId, status)
       setFeedbackStatus(status)
+      emitDiagnostic('event=recommendation.feedback.recorded', { auditId: run.auditId, bracket, confidence, status })
     } catch {
       setFeedbackError('Nao foi possivel registrar sua avaliacao.')
     } finally {
@@ -244,6 +253,23 @@ export default function RecommendationPanel({
           )}
         </details>
       )}
+
+      <details className="recommendation-source-details advanced-recommendation-details">
+        <summary>Diagnostico da sessao</summary>
+        <p>Exibe apenas IDs, status e contagens sanitizadas. Nenhum token, identidade ou decklist completa e registrado.</p>
+        <Button variant="secondary" onClick={() => {
+          const enabled = !diagnostics
+          setDiagnosticsEnabled(enabled)
+          if (enabled) emitDiagnostic('event=recommendation.diagnostics.enabled', { auditId: run?.auditId, bracket, confidence, count: items.length, limitations })
+        }}>
+          {diagnostics ? 'Desativar diagnostico' : 'Ativar diagnostico'}
+        </Button>
+        {diagnostics && (
+          <ul className="quality-limitations" aria-label="Eventos de diagnostico">
+            {events.slice(-8).map((event, index) => <li key={`${event.at}-${index}`}>{event.event} | {event.status || event.confidence || 'ok'} | {event.count ?? '-'}</li>)}
+          </ul>
+        )}
+      </details>
     </section>
   )
 }

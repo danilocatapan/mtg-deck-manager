@@ -146,6 +146,8 @@ export async function installAuth(page, { email = 'tester@example.com' } = {}) {
 export async function mockApi(page, { apiFailure = null, contactStatus = 200 } = {}) {
   let currentUserDeck = structuredClone(userDeck)
   let publicDeckState = structuredClone(publicDeck)
+  let benchmarkRun = false
+  let benchmarkVotes = 0
   await page.route(/http:\/\/(localhost|127\.0\.0\.1):8080\/.*/, async (route) => {
     const request = route.request()
     const url = new URL(request.url())
@@ -283,14 +285,58 @@ export async function mockApi(page, { apiFailure = null, contactStatus = 200 } =
 
     if (path === '/meta/recommendation-benchmark/summary') {
       return json(route, {
-        status: 'benchmark_seed',
-        totalCases: 8,
+        status: 'benchmark_in_progress',
+        lastRunId: benchmarkRun ? 9 : null,
+        evaluatedCases: benchmarkRun ? 20 : 0,
+        totalCases: 20,
         targetCases: 50,
+        metrics: benchmarkRun ? [
+          { name: 'addPrecisionAt10', value: '100.0%', target: '>= 70%', status: 'ready', sampleSize: 38 },
+          { name: 'actionabilityRate', value: '100.0%', target: '>= 90%', status: 'ready', sampleSize: 38 },
+        ] : [],
+        reviewProgress: { completedCases: benchmarkVotes >= 3 ? 1 : 0, totalCases: 20, votes: benchmarkVotes, requiredVotes: 60 },
+        feedback: { accepted: 1, rejected: 0, needsReview: 0 },
+        feedbackBreakdown: { byCommander: { 'Xenagos, God of Revels': 1 }, byBracket: { casual: 1 }, byReason: {} },
         nextActions: [
-          { id: 'expand-corpus', title: 'Expandir corpus versionado', status: 'in_progress', actor: 'maintainer', description: 'Adicionar casos representativos.', completed: 8, target: 50 },
-          { id: 'human-review', title: 'Realizar avaliacao humana cega', status: 'blocked', actor: 'reviewer', description: 'Registrar resultados cegos.' },
+          { id: 'expand-corpus', title: 'Expandir corpus versionado', status: 'in_progress', actor: 'maintainer', description: 'Adicionar casos representativos.', completed: 20, target: 50 },
+          { id: 'human-review', title: 'Concluir avaliacao humana cega', status: 'in_progress', actor: 'reviewer', description: 'Registrar resultados cegos.', completed: benchmarkVotes >= 3 ? 1 : 0, target: 20 },
         ],
       })
+    }
+
+    if (path === '/meta/recommendation-benchmark/run' && method === 'POST') {
+      benchmarkRun = true
+      return json(route, {
+        status: 'benchmark_in_progress',
+        lastRunId: 9,
+        evaluatedCases: 20,
+        totalCases: 20,
+        targetCases: 50,
+        metrics: [{ name: 'addPrecisionAt10', value: '100.0%', target: '>= 70%', status: 'ready', sampleSize: 38 }],
+        reviewProgress: { completedCases: 0, totalCases: 20, votes: 0, requiredVotes: 60 },
+        feedback: { accepted: 1, rejected: 0, needsReview: 0 },
+        feedbackBreakdown: { byCommander: { 'Xenagos, God of Revels': 1 }, byBracket: { casual: 1 } },
+        nextActions: [],
+      })
+    }
+
+    if (path === '/meta/recommendation-benchmark/reviews/next' && method === 'GET') {
+      if (!benchmarkRun || benchmarkVotes >= 3) return route.fulfill({ status: 204 })
+      return json(route, {
+        runId: 9,
+        caseId: 'xenagos-mid-budget-001',
+        commander: 'Xenagos, God of Revels',
+        bracket: 'mid',
+        reviewsCompleted: benchmarkVotes,
+        reviewsRequired: 3,
+        optionA: [{ add: "Nature's Lore", remove: 'Colossal Dreadmaw', reasoning: 'Melhora a aceleracao.' }],
+        optionB: [{ add: 'Heroic Intervention', remove: 'Colossal Dreadmaw', reasoning: 'Protege a mesa.' }],
+      })
+    }
+
+    if (path === '/meta/recommendation-benchmark/reviews/xenagos-mid-budget-001' && method === 'POST') {
+      benchmarkVotes += 1
+      return route.fulfill({ status: 204 })
     }
 
     if (path === '/recommendation-audits/77/feedback' && method === 'POST') {

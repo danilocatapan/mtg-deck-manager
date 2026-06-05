@@ -15,6 +15,7 @@ Regras de arquitetura (resumido)
 - Contratos publicos vivem em controllers + DTOs; qualquer mudanca observavel exige teste.
 - Google OIDC deve continuar baseado em ID token Bearer; nao persistir access/refresh tokens.
 - Logs devem usar dados tecnicos, contagens e codigos; nunca tokens, Authorization, payload completo de deck ou PII desnecessaria.
+- Rodadas de benchmark usam recursos versionados offline, persistem versoes/resultados e nao chamam integracoes externas.
 
 Fluxo de implementacao recomendado
 ----------------------------------
@@ -41,6 +42,7 @@ Hotspots do repositorio (onde revisar primeiro)
 -----------------------------------------------
 - `RecommendationService` e `StrategicRecommendationService` - orquestram recomendacoes heuristicas e estrategicas.
 - `RecommendationAuditService`, `RecommendationAuditRepository`, apply/undo swap e feedback - rastreabilidade de trocas recomendadas.
+- `RecommendationBenchmarkService` e repositories `RecommendationBenchmark*` - metricas offline, rodadas e revisao cega.
 - `DeckCompleter`, `RecommendationScoring`, `RecommendationPairer`, `CandidateAddSelector`, `CandidateCutSelector` - pipeline de completar, pontuar e parear sugestoes.
 - `CardService` e `ScryfallClient` - integracao Scryfall, cache e queries.
 - `service/meta`, `ExternalMetaIngestionJob`, `MetaDatasetService`, `TopDeckMetaAdapter` - ingestao automatica, persistencia canonica, normalizacao e fallback local.

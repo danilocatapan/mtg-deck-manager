@@ -15,6 +15,7 @@ Invariantes do grafo
 - Sugestoes de corte nao devem remover comandante.
 - Meta top decks devem respeitar amostra minima, formato, bracket e sourceMode antes de influenciar ranking.
 - Apply/undo swap nao pode alterar carta errada nem quebrar quantidade total; deve preservar rastreabilidade da recomendacao aplicada.
+- O benchmark offline atual avalia artefatos versionados em `recommendation-benchmark/cases-v1.json`; consulte `docs/benchmark-operations.md` antes de evoluir para execucao direta do nucleo estrategico.
 
 Pontos do codigo que merecem revisao explicita
 ----------------------------------------------

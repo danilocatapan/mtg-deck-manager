@@ -14,6 +14,10 @@ public class RecommendationBenchmarkSummaryDTO {
     private int humanReviewedCases;
     private java.util.Map<String, Long> feedback;
     private List<RecommendationBenchmarkNextActionDTO> nextActions;
+    private Long lastRunId;
+    private java.time.OffsetDateTime lastRunAt;
+    private java.util.Map<String, Object> reviewProgress;
+    private java.util.Map<String, Object> feedbackBreakdown;
 
     public RecommendationBenchmarkSummaryDTO() {
     }
@@ -94,4 +98,12 @@ public class RecommendationBenchmarkSummaryDTO {
     public void setFeedback(java.util.Map<String, Long> feedback) { this.feedback = feedback; }
     public List<RecommendationBenchmarkNextActionDTO> getNextActions() { return nextActions == null ? List.of() : nextActions; }
     public void setNextActions(List<RecommendationBenchmarkNextActionDTO> nextActions) { this.nextActions = nextActions; }
+    public Long getLastRunId() { return lastRunId; }
+    public void setLastRunId(Long lastRunId) { this.lastRunId = lastRunId; }
+    public java.time.OffsetDateTime getLastRunAt() { return lastRunAt; }
+    public void setLastRunAt(java.time.OffsetDateTime lastRunAt) { this.lastRunAt = lastRunAt; }
+    public java.util.Map<String, Object> getReviewProgress() { return reviewProgress == null ? java.util.Map.of() : reviewProgress; }
+    public void setReviewProgress(java.util.Map<String, Object> reviewProgress) { this.reviewProgress = reviewProgress; }
+    public java.util.Map<String, Object> getFeedbackBreakdown() { return feedbackBreakdown == null ? java.util.Map.of() : feedbackBreakdown; }
+    public void setFeedbackBreakdown(java.util.Map<String, Object> feedbackBreakdown) { this.feedbackBreakdown = feedbackBreakdown; }
 }

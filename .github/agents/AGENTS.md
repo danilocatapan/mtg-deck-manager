@@ -135,6 +135,8 @@ Invariantes globais do dominio
 - Sugestoes de corte nao devem remover comandante nem quebrar contratos de quantidade.
 - Decks privados nunca devem aparecer em listagens publicas nem ser consultados por anonimos/outros usuarios; expose somente DTOs publicos sanitizados para decks publicos.
 - Apply/undo de troca recomendada deve registrar auditoria suficiente para rastreabilidade sem gravar tokens, PII desnecessaria ou payloads sensiveis em logs.
+- Benchmark e revisao cega devem usar `docs/benchmark-operations.md` como ponto de entrada; nao reexplorar o pipeline antes de consultar estado, contratos e proximos passos documentados.
+- Diagnostico no navegador deve ser opt-in por sessao e sanitizado; nunca registrar token, identidade, decklist completa ou notas privadas.
 - Meta top decks so deve influenciar recomendacoes quando a amostra minima e os filtros de formato/bracket/fonte forem respeitados.
 
 Prioridades operacionais transversais
@@ -230,5 +232,6 @@ Endpoints principais atuais
 - `GET /meta/sources`, `POST /meta/sync`, `GET /meta/decks`, `POST /meta/rebuild-profiles`, `GET /meta/commanders/{commander}`.
 - `POST /meta/external-decks/import`, `POST /meta/combos/sync`; top decks para recomendacao entram exclusivamente pelo sync automatico `POST /meta/sync`.
 - `POST /recommendation-audits/{id}/feedback`.
+- `POST /meta/recommendation-benchmark/run`, `GET /meta/recommendation-benchmark/summary`, `GET /meta/recommendation-benchmark/reviews/next` e `POST /meta/recommendation-benchmark/reviews/{caseId}`.
 - `GET /users/me/export` e `DELETE /users/me`.
 - `POST /security/status/check` para diagnostico read-only de seguranca; exige usuario autenticado com role `admin` ou subject configurado em `SECURITY_ADMIN_SUBJECTS`, nao deve expor secrets/dados pessoais e deve manter logs sem valores sensiveis.

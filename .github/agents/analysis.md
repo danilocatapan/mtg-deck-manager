@@ -37,6 +37,7 @@ Checklist operacional de conformidade arquitetural
 - Confirme que frontend e backend continuam alinhados em payloads JSON.
 - Para dados publicos/LGPD, confirme isolamento por `owner_id`, visibilidade, DTOs sanitizados, exportacao/exclusao e ausencia de PII em logs.
 - Para PostgreSQL, confirme migration Flyway, constraints/indices, teste `%pg`/CI quando entidade persistida mudar.
+- Para benchmark, confirme versao das fixtures/baseline, amostra das metricas, preservacao da ultima rodada valida, quorum e ausencia de identificacao nas opcoes A/B.
 
 Classificacao de achados (P0/P1/P2)
 -----------------------------------

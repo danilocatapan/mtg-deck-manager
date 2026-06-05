@@ -43,6 +43,8 @@ class MetaControllerSecurityTest {
     @Test
     void benchmarkAdminEndpointIsForbiddenWhenAdminKeyIsNotConfigured() {
         given().when().get("/meta/recommendation-benchmark/summary").then().statusCode(403);
+        given().when().post("/meta/recommendation-benchmark/run").then().statusCode(403);
+        given().when().get("/meta/recommendation-benchmark/reviews/next").then().statusCode(403);
     }
 
     @Test

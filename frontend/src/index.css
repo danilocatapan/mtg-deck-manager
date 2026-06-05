@@ -797,6 +797,15 @@ textarea {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+.benchmark-metric-card {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.benchmark-metric-card .status-pill {
+  align-self: flex-start;
+}
+
 .recommendation-feedback {
   display: grid;
   gap: 0.9rem;

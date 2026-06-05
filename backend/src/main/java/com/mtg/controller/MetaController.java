@@ -2,6 +2,7 @@ package com.mtg.controller;
 
 import com.mtg.dto.ExternalDeckImportRequestDTO;
 import com.mtg.dto.ExternalDeckImportResponseDTO;
+import com.mtg.dto.RecommendationBenchmarkReviewRequestDTO;
 import com.mtg.service.AuthenticatedUserService;
 import com.mtg.service.CommanderSpellbookComboSyncService;
 import com.mtg.service.ExternalDeckImportService;
@@ -143,6 +144,48 @@ public class MetaController {
         return Response.ok(recommendationBenchmarkService.summary()).build();
     }
 
+    @POST
+    @Path("/recommendation-benchmark/run")
+    public Response runRecommendationBenchmark(@HeaderParam("X-Admin-Key") String adminKey) {
+        if (!isTopDeckAdminAuthorized(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        try {
+            return Response.ok(recommendationBenchmarkService.run()).build();
+        } catch (IllegalStateException exception) {
+            if ("benchmark_already_running".equals(exception.getMessage())) {
+                return Response.status(Response.Status.CONFLICT).entity(Map.of("code", "benchmark_already_running")).build();
+            }
+            throw exception;
+        }
+    }
+
+    @GET
+    @Path("/recommendation-benchmark/reviews/next")
+    public Response nextRecommendationBenchmarkReview(@HeaderParam("X-Admin-Key") String adminKey) {
+        if (!isTopDeckAdminAuthorized(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        var review = recommendationBenchmarkService.nextReview(currentAdminId());
+        return review == null ? Response.noContent().build() : Response.ok(review).build();
+    }
+
+    @POST
+    @Path("/recommendation-benchmark/reviews/{caseId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response reviewRecommendationBenchmark(
+            @HeaderParam("X-Admin-Key") String adminKey,
+            @PathParam("caseId") String caseId,
+            RecommendationBenchmarkReviewRequestDTO request
+    ) {
+        if (!isTopDeckAdminAuthorized(adminKey)) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        validateLength(caseId, 120, "caseId");
+        recommendationBenchmarkService.review(caseId, request, currentAdminId());
+        return Response.noContent().build();
+    }
+
     @GET
     @Path("/commanders/{commander}")
     public CommanderMetaProfile commander(
@@ -200,5 +243,12 @@ public class MetaController {
 
     private boolean hasValidAdminKey(String adminKey) {
         return syncApiKey.isPresent() && !syncApiKey.get().isBlank() && syncApiKey.get().equals(adminKey);
+    }
+
+    private String currentAdminId() {
+        if (securityIdentity != null && !securityIdentity.isAnonymous()) {
+            return securityIdentity.getPrincipal().getName();
+        }
+        return "admin-key";
     }
 }

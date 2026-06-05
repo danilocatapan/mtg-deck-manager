@@ -1,7 +1,7 @@
 # PostgreSQL Schema Mapping
 
-Versao docs: 2026-05-26
-Ultima atualizacao: 2026-05-26
+Versao docs: 2026-06-05
+Ultima atualizacao: 2026-06-05
 
 ## Objetivo
 
@@ -26,6 +26,9 @@ Este documento resume o schema PostgreSQL atual do MTG Deck Manager e como ele s
 - `V9__create_meta_top_decks.sql`: top decks de meta e lotes de importacao.
 - `V10__add_card_printing_metadata.sql`: metadados de impressao de cartas.
 - `V11__create_meta_combos.sql`: cache local de combos e cartas de combo.
+- `V12__create_user_card_collection.sql`: coleção mínima persistida por usuário.
+- `V13__create_canonical_meta_decks.sql`: snapshot canônico TopDeck.gg e remoção segura do fluxo manual legado.
+- `V14__create_recommendation_benchmark.sql`: rodadas, resultados por caso e avaliações humanas do benchmark.
 
 ## Entidades Persistidas
 
@@ -38,6 +41,9 @@ Este documento resume o schema PostgreSQL atual do MTG Deck Manager e como ele s
 - A migration V13 remove tabelas/lotes do fluxo manual de top decks e somente as projecoes publicas ligadas por `meta_top_decks.public_deck_id`, preservando decks curados por `POST /meta/external-decks/import`.
 - `MetaCombo`: definicao persistida de combo conhecida por fonte externa/local.
 - `MetaComboCard`: cartas normalizadas que compoem cada combo, incluindo slot de comandante quando aplicavel.
+- `RecommendationBenchmarkRun`: rodada calculada, versão do corpus, status, tempos e métricas agregadas.
+- `RecommendationBenchmarkCaseResult`: resultados, métricas e respostas cegas persistidas por caso.
+- `RecommendationBenchmarkReview`: voto único por administrador, rodada e caso.
 
 Registros auxiliares em `service/meta` como `MetaDeck`, `MetaCard`, `CommanderMetaProfile` e similares podem ser dados transitorios ou derivados; so viram tabela quando houver entidade JPA e migration correspondente.
 
@@ -50,6 +56,7 @@ Registros auxiliares em `service/meta` como `MetaDeck`, `MetaCard`, `CommanderMe
 - Auditorias devem guardar rastreabilidade suficiente sem exigir tokens, e-mail ou payload sensivel.
 - Top decks devem preservar origem, periodo, formato, bracket/arquetipo quando disponivel, rank e cartas para recalculo de sinais de meta.
 - Combos persistidos devem manter unicidade por `source` + `external_id` e indice por nome normalizado de carta para deteccao rapida.
+- Avaliações cegas devem manter unicidade por `run_id` + `case_id` + `reviewer_id`.
 
 ## Regras para Alterar Schema
 
@@ -59,6 +66,8 @@ Registros auxiliares em `service/meta` como `MetaDeck`, `MetaCard`, `CommanderMe
 4. Avalie indices quando adicionar consulta por owner, visibilidade, comandante, periodo, fonte ou rank.
 5. Rode testes H2 e PostgreSQL quando schema, repository ou query mudar.
 6. Atualize `PROJECT_CONTEXT.md`, este arquivo e `CHANGELOG.md` quando houver mudanca relevante de persistencia.
+
+A CI PostgreSQL aplica V1-V12, prepara uma projeção manual legada e um deck externo curado, executa V13/V14 e confirma remoção seletiva, preservação e schema final antes da suíte completa.
 
 ## Validacao PostgreSQL Local
 

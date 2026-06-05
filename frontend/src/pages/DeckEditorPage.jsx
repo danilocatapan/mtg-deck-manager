@@ -17,6 +17,7 @@ import {
   undoRecommendationSwap,
   updateDeck,
 } from '../services/api'
+import { emitDiagnostic } from '../services/diagnostics'
 import Button from '../components/ui/Button'
 import ModalDialog from '../components/ui/ModalDialog'
 import analyzeIcon from '../assets/icons/analyze.png'
@@ -135,16 +136,16 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
       setRecommendationError(null)
       setLoadingRec(true)
       setRecommendationParams(params)
-      console.info('event=recommendation.request.started', { deckId: currentDeck.id, bracket: params?.bracket || 'casual' })
+      emitDiagnostic('event=recommendation.request.started', { bracket: params?.bracket || 'casual' })
       const recommendationRun = await getRecommendations(currentDeck.id, params)
       const recommendationItems = Array.isArray(recommendationRun) ? recommendationRun : recommendationRun?.recommendations || []
       const profile = await getCommanderMeta(currentDeck.commander, {
         bracket: params?.bracket || 'casual',
       })
       const deckComparison = await getSimilarDeckComparison(currentDeck.id, params)
-      console.info('event=recommendation.request.completed', { deckId: currentDeck.id, count: recommendationItems.length, confidence: recommendationRun?.confidence || null })
+      emitDiagnostic('event=recommendation.request.completed', { auditId: recommendationRun?.auditId, bracket: params?.bracket || 'casual', count: recommendationItems.length, confidence: recommendationRun?.confidence, sources: recommendationRun?.sourceSummary?.sources, limitations: recommendationRun?.limitations })
       if (!profile || Number(profile.sampleSize || 0) < 3) {
-        console.info('event=recommendation.fallback.rendered', { deckId: currentDeck.id })
+        emitDiagnostic('event=recommendation.fallback.rendered', { auditId: recommendationRun?.auditId, bracket: params?.bracket || 'casual' })
       }
       setRec(recommendationRun)
       setMetaProfile(profile)
@@ -153,7 +154,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
       setMessage(`${recommendationItems.length} recomendações estratégicas geradas.`)
     } catch (e) {
       console.error('recommendations error')
-      console.info('event=recommendation.request.failed', { deckId: currentDeck.id })
+      emitDiagnostic('event=recommendation.request.failed', { bracket: params?.bracket || 'casual', status: 'failed' })
       setRecommendationError(e.message || 'Falha ao gerar recomendações.')
       setError(e.message || 'Falha ao gerar recomendações.')
     } finally {
@@ -191,7 +192,7 @@ export default function DeckEditorPage({ mode = 'create', deck = null, initialMe
       await refreshLegality(currentDeck.id)
       setAnalysis(deckAnalysis)
       setMessage(`Troca aplicada: ${item.add} entrou no lugar de ${item.remove}.`)
-      console.info('event=recommendation.swap.applied', { deckId: currentDeck.id })
+      emitDiagnostic('event=recommendation.swap.applied', { auditId: rec?.auditId, bracket: recommendationParams?.bracket || 'casual', status: 'applied' })
     } catch (e) {
       console.error('apply recommendation swap error')
       setRecommendationError(e.message || 'Não foi possível aplicar a troca.')
