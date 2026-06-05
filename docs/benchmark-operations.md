@@ -36,9 +36,12 @@ Para atualizar o manifesto popular sem alterar automaticamente o corpus:
 
 ```powershell
 ./tools/collect-archidekt-benchmark-candidates.ps1 -Target 25
+./tools/collect-topdeck-benchmark-candidates.ps1 -Target 25
 ```
 
-O resultado fica em `backend/src/main/resources/recommendation-benchmark/archidekt-candidates.json`. Revise e congele os snapshots completos antes de incorporá-los a `cases-v1.json`.
+Os resultados ficam em `archidekt-candidates.json`, `archidekt-snapshots.json` e `topdeck-snapshots.json`. O coletor TopDeck exige `TOPDECK_API_KEY`; seu catalogo vazio impede qualificacao ate o enriquecimento congelado. Revise os 50 snapshots antes de incorporá-los ao corpus ativo.
+
+O Meta Admin exibe o funil candidatos -> snapshots -> casos validos -> runner offline -> artefatos GPT -> conjunto promovido. Bloqueadores aparecem como acoes legiveis e nunca exigem importacao manual de JSON.
 
 ## APIs
 

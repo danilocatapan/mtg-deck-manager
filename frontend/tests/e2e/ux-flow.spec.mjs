@@ -29,7 +29,7 @@ test('public routes expose home, contact, release notes and shared deck consult'
   await expect(page.getByText(/Xenagos, God of Revels/i).first()).toBeVisible()
 })
 
-test('authenticated import, analysis, recommendation, undo and delete stay keyboard-accessible', async ({ page }) => {
+test('authenticated import, analysis, recommendation, undo and delete stay keyboard-accessible', async ({ page }, testInfo) => {
   await mockApi(page)
   await installAuth(page)
   await page.goto('./#/import')
@@ -50,7 +50,10 @@ test('authenticated import, analysis, recommendation, undo and delete stay keybo
 
   await page.getByRole('button', { name: /Recomenda/i }).last().click()
   await page.getByRole('button', { name: /Gerar trocas/i }).click()
+  await expect(page.getByRole('heading', { name: /Por que confiar nesta analise/i })).toBeVisible()
+  await expect(page.getByText('Vantagem automatica qualificada')).toBeVisible()
   await expect(page.getByText('Por que esta troca e segura')).toBeVisible()
+  await attachFlowScreenshot(page, testInfo, 'recomendacao-com-vantagem-qualificada')
   await page.getByRole('button', { name: 'Util', exact: true }).click()
   await expect(page.getByText('Feedback registrado')).toBeVisible()
 
@@ -130,32 +133,36 @@ test('meta admin handles authorization states with mocks', async ({ page }, test
 
   await installAuth(page, { email: 'dcatapan@gmail.com' })
   await page.goto('./#/meta-admin')
-  await expect(page.getByRole('heading', { name: /Meta automatico/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Meta automático/i })).toBeVisible()
   await expect(page.getByText(/Expandir corpus versionado/i)).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Funil operacional do corpus/i })).toBeVisible()
   await attachFlowScreenshot(page, testInfo, '02-meta-admin-estado-inicial')
   await page.getByRole('button', { name: /Sincronizar meta agora/i }).click()
   await expect(page.getByText(/24 decks persistidos/i)).toBeVisible()
   await attachFlowScreenshot(page, testInfo, '03-meta-admin-sync-concluido')
   await page.getByRole('button', { name: /Executar benchmark/i }).click()
   await expect(page.getByText(/Casos avaliados: 20\/20/i)).toBeVisible()
-  await expect(page.getByText('addPrecisionAt10')).toBeVisible()
+  await expect(page.getByText('Precisão das adições')).toBeVisible()
   await attachFlowScreenshot(page, testInfo, '04-meta-admin-benchmark-metricas')
-  await page.getByRole('button', { name: /Visualizar previsao/i }).click()
-  await expect(page.getByText(/Status: corpus_not_ready/i)).toBeVisible()
+  await page.getByRole('button', { name: /Visualizar previsão/i }).click()
+  await expect(page.getByText(/Corpus real ainda incompleto/i)).toBeVisible()
   await attachFlowScreenshot(page, testInfo, '05-meta-admin-preview-gpt-corpus-pendente')
-  await page.getByRole('button', { name: /Gerar comparacoes GPT/i }).click()
-  await expect(page.getByText(/corpus_not_ready/i)).toBeVisible()
+  await page.getByRole('button', { name: /Gerar comparações GPT/i }).click()
+  await expect(page.getByText(/Complete e valide os 50 casos reais/i)).toBeVisible()
   await attachFlowScreenshot(page, testInfo, '06-meta-admin-geracao-gpt-bloqueada')
-  await page.getByRole('button', { name: /Carregar proximo caso/i }).click()
-  await expect(page.getByRole('heading', { name: /Opcao A/i })).toBeVisible()
+  await page.getByRole('button', { name: /Xenagos, God of Revels/i }).click()
+  await expect(page.getByText(/Explicar melhor o risco de curva/i)).toBeVisible()
+  await attachFlowScreenshot(page, testInfo, '06b-meta-admin-diagnostico-caso')
+  await page.getByRole('button', { name: /Carregar próximo caso/i }).click()
+  await expect(page.getByRole('heading', { name: /Opção A/i })).toBeVisible()
   await attachFlowScreenshot(page, testInfo, '07-meta-admin-revisao-cega')
   await page.getByRole('button', { name: /Prefiro A/i }).click()
   await page.getByRole('button', { name: /Prefiro A/i }).click()
-  await page.getByRole('button', { name: /Empate/i }).click()
-  await expect(page.getByText(/Progresso: 1\/20 casos com quorum/i)).toBeVisible()
+  await page.getByRole('button', { name: 'Empate', exact: true }).click()
+  await expect(page.getByText(/Progresso: 1\/20 casos com quórum/i)).toBeVisible()
   await attachFlowScreenshot(page, testInfo, '08-meta-admin-quorum-concluido')
-  await page.getByRole('button', { name: /Ativar diagnostico/i }).click()
-  await expect(page.getByLabel('Eventos de diagnostico')).toBeVisible()
+  await page.getByRole('button', { name: /Ativar diagnóstico/i }).click()
+  await expect(page.getByLabel('Eventos de diagnóstico')).toBeVisible()
   expect(consoleEvents.some((event) => event.includes('event=meta_admin.diagnostics.enabled'))).toBeTruthy()
   await attachFlowScreenshot(page, testInfo, '09-meta-admin-diagnostico-sanitizado')
 })
@@ -181,4 +188,28 @@ test('shared deck editor routes and card popovers support keyboard dismissal', a
   await page.goto('./#/deck/1/recommendations')
   await expect(page).toHaveTitle(/Recomendacoes do Deck/)
   await expect(page.locator('main h2').filter({ hasText: /Recomenda/ }).first()).toBeVisible()
+})
+
+test('recommendation without promoted evidence never displays qualified advantage', async ({ page }, testInfo) => {
+  await mockApi(page)
+  await page.route('**/decks/1/recommendations/strategic', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      confidence: 'medium_confidence',
+      benchmarkStatus: 'not_proven_against_gpt',
+      benchmarkEvidence: { status: 'not_covered', humanValidation: 'pending' },
+      coverage: { sampleSize: 12, resolvedCards: 28, requestedCards: 28, resolutionRate: 1 },
+      limitations: ['Este comandante ainda nao possui evidencia promovida.'],
+      recommendations: [{ add: "Nature's Lore", remove: 'Colossal Dreadmaw', reasoning: 'Melhora aceleracao.', risk: 'Baixo.' }],
+    }),
+  }))
+  await installAuth(page)
+  await page.goto('./#/deck/1/recommendations')
+  await page.getByRole('button', { name: /Gerar trocas/i }).click()
+
+  await expect(page.getByRole('heading', { name: /Por que confiar nesta analise/i })).toBeVisible()
+  await expect(page.getByText('Ainda nao coberto')).toBeVisible()
+  await expect(page.getByText('Vantagem automatica qualificada')).toHaveCount(0)
+  await attachFlowScreenshot(page, testInfo, 'recomendacao-sem-vantagem-qualificada')
 })

@@ -19,6 +19,8 @@ public class RecommendationBenchmarkSummaryDTO {
     private java.util.Map<String, Object> reviewProgress;
     private java.util.Map<String, Object> feedbackBreakdown;
     private java.util.Map<String, Object> aiArtifacts;
+    private java.util.Map<String, Object> corpusStatus;
+    private java.util.List<java.util.Map<String, Object>> pipeline;
 
     public RecommendationBenchmarkSummaryDTO() {
     }
@@ -109,4 +111,8 @@ public class RecommendationBenchmarkSummaryDTO {
     public void setFeedbackBreakdown(java.util.Map<String, Object> feedbackBreakdown) { this.feedbackBreakdown = feedbackBreakdown; }
     public java.util.Map<String, Object> getAiArtifacts() { return aiArtifacts == null ? java.util.Map.of() : aiArtifacts; }
     public void setAiArtifacts(java.util.Map<String, Object> aiArtifacts) { this.aiArtifacts = aiArtifacts; }
+    public java.util.Map<String, Object> getCorpusStatus() { return corpusStatus == null ? java.util.Map.of() : corpusStatus; }
+    public void setCorpusStatus(java.util.Map<String, Object> corpusStatus) { this.corpusStatus = corpusStatus; }
+    public java.util.List<java.util.Map<String, Object>> getPipeline() { return pipeline == null ? java.util.List.of() : pipeline; }
+    public void setPipeline(java.util.List<java.util.Map<String, Object>> pipeline) { this.pipeline = pipeline; }
 }

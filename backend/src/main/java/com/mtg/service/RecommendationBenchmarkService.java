@@ -135,6 +135,9 @@ public class RecommendationBenchmarkService {
         result.setReviewProgress(reviewProgress);
         result.setFeedbackBreakdown(feedbackBreakdown);
         result.setAiArtifacts(aiService == null ? Map.of() : aiService.statusSummary());
+        Map<String, Object> corpusStatus = corpusStatus(root);
+        result.setCorpusStatus(corpusStatus);
+        result.setPipeline(pipeline(corpusStatus, latest, result.getAiArtifacts()));
         return result;
     }
 
@@ -202,8 +205,9 @@ public class RecommendationBenchmarkService {
             if (complete) actionable++;
         }
         violations += validation.violations().size();
-        int declared = fixture.path("labels").path("preferencesDeclared").asInt();
-        int met = fixture.path("labels").path("preferencesMet").asInt();
+        RecommendationBenchmarkScenarioService.PreferenceCounts preferences = scenarioService.preferenceCounts(fixture, system);
+        int declared = preferences.declared();
+        int met = preferences.met();
         totals.addHits += addHits;
         totals.addCount += system.size();
         totals.cutHits += cutHits;
@@ -315,9 +319,9 @@ public class RecommendationBenchmarkService {
         long feedbackTotal = feedback.values().stream().mapToLong(Long::longValue).sum();
         return List.of(
                 new RecommendationBenchmarkNextActionDTO("expand-corpus", "Expandir corpus versionado", totalCases >= TARGET_CASES ? "ready" : "in_progress", "maintainer", "Ampliar de 20 para pelo menos 50 casos completos.", totalCases, TARGET_CASES, "documentation"),
-                new RecommendationBenchmarkNextActionDTO("generate-ai-artifacts", "Gerar comparacoes GPT-5.5", aiService != null && aiService.hasCurrentQualifiedSet(totalCases) ? "ready" : "pending", "maintainer", "Gerar dois baselines e tres julgamentos cegos por comparacao.", 0, totalCases, "automatic_benchmark"),
-                new RecommendationBenchmarkNextActionDTO("human-review", "Validacao humana posterior", reviewedCases >= totalCases ? "ready" : "deferred", "reviewer", "Obter tres avaliacoes independentes por caso sem bloquear a fase automatica.", reviewedCases, totalCases, "human_review"),
-                new RecommendationBenchmarkNextActionDTO("collect-feedback", "Coletar feedback de recomendacoes", feedbackTotal > 0 ? "in_progress" : "pending", "user", "Acompanhar utilidade sem ajustar pesos automaticamente.", Math.toIntExact(feedbackTotal), null, "product_feedback")
+                new RecommendationBenchmarkNextActionDTO("generate-ai-artifacts", "Gerar comparações GPT-5.5", aiService != null && aiService.hasCurrentQualifiedSet(totalCases) ? "ready" : "pending", "maintainer", "Gerar duas referências e três julgamentos cegos por comparação.", 0, totalCases, "automatic_benchmark"),
+                new RecommendationBenchmarkNextActionDTO("human-review", "Validação humana posterior", reviewedCases >= totalCases ? "ready" : "deferred", "reviewer", "Obter três avaliações independentes por caso sem bloquear a fase automática.", reviewedCases, totalCases, "human_review"),
+                new RecommendationBenchmarkNextActionDTO("collect-feedback", "Coletar feedback de recomendações", feedbackTotal > 0 ? "in_progress" : "pending", "user", "Acompanhar utilidade sem ajustar pesos automaticamente.", Math.toIntExact(feedbackTotal), null, "product_feedback")
         );
     }
 
@@ -332,6 +336,53 @@ public class RecommendationBenchmarkService {
             String[] key = entry.getKey().split("\\|", 2);
             return new RecommendationBenchmarkCoverageDTO(key[0], key[1], entry.getValue().size(), "curated_reference");
         }).toList();
+    }
+
+    private Map<String, Object> corpusStatus(JsonNode root) {
+        int valid = 0;
+        int archidekt = 0;
+        int topDeck = 0;
+        java.util.Set<String> commanders = new java.util.HashSet<>();
+        for (JsonNode fixture : root.path("cases")) {
+            if (scenarioService.validateFixture(fixture).isEmpty() && commanders.add(normalize(fixture.path("commander").asText()))) valid++;
+            if ("archidekt_popular".equals(fixture.path("source").asText())) archidekt++;
+            if ("topdeck_tournament".equals(fixture.path("source").asText())) topDeck++;
+        }
+        int candidates = archidektCandidateCount();
+        List<String> blockers = new ArrayList<>();
+        if (valid < TARGET_CASES) blockers.add("Faltam capturas completas e auditáveis para atingir 50 casos válidos.");
+        if (topDeck < 25) blockers.add("A parcela competitiva TopDeck.gg ainda não possui 25 casos congelados.");
+        return Map.of(
+                "candidatesFound", candidates,
+                "snapshotsComplete", archidekt + topDeck,
+                "validCases", valid,
+                "targetCases", TARGET_CASES,
+                "archidektCases", archidekt,
+                "topDeckCases", topDeck,
+                "blockers", blockers
+        );
+    }
+
+    private List<Map<String, Object>> pipeline(Map<String, Object> corpus, RecommendationBenchmarkRun latest, Map<String, Object> ai) {
+        int valid = ((Number) corpus.get("validCases")).intValue();
+        int snapshots = ((Number) corpus.get("snapshotsComplete")).intValue();
+        boolean promoted = Boolean.TRUE.equals(ai.get("promotedSetCurrent"));
+        return List.of(
+                Map.of("id", "candidates", "label", "Candidatos reais", "completed", corpus.get("candidatesFound"), "target", 50, "status", "in_progress"),
+                Map.of("id", "snapshots", "label", "Snapshots completos", "completed", snapshots, "target", 50, "status", snapshots >= 50 ? "ready" : "in_progress"),
+                Map.of("id", "valid", "label", "Casos validos", "completed", valid, "target", 50, "status", valid >= 50 ? "ready" : "blocked"),
+                Map.of("id", "offline", "label", "Benchmark offline", "completed", latest == null ? 0 : latest.getEvaluatedCases(), "target", 50, "status", latest != null && latest.getEvaluatedCases() >= 50 ? "ready" : "pending"),
+                Map.of("id", "artifacts", "label", "Artefatos GPT", "completed", ai.get("latestJob") == null ? 0 : 1, "target", 1, "status", ai.get("latestJob") == null ? "pending" : "in_progress"),
+                Map.of("id", "promoted", "label", "Conjunto promovido", "completed", promoted ? 1 : 0, "target", 1, "status", promoted ? "ready" : "blocked")
+        );
+    }
+
+    private int archidektCandidateCount() {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("recommendation-benchmark/archidekt-candidates.json")) {
+            return input == null ? 0 : objectMapper.readTree(input).path("count").asInt(0);
+        } catch (Exception exception) {
+            return 0;
+        }
     }
 
     private RecommendationBenchmarkRun requireLatest() {

@@ -5,14 +5,14 @@
     "title": "Meta automatico e recomendacoes verificaveis",
     "changes": {
       "added": [
-        "Meta Admin ganhou benchmark offline de 20 casos, metricas calculadas e revisao humana cega A/B.",
+        "Recomendacoes agora mostram um resumo visual explicando confianca, cobertura e evidencia automatica contra GPT.",
         "Feedback agregado e modo diagnostico opcional ajudam a investigar recomendacoes sem expor dados privados.",
         "Meta Admin ganhou sincronizacao automatica TopDeck.gg, cobertura por bracket e proximas acoes derivadas.",
         "Usuarios podem avaliar cada rodada de recomendacoes como util, nao util ou precisa revisao.",
-        "Recomendacoes mostram quality gate com confianca, cobertura e limitacoes antes de afirmar vantagem contra GPT."
+        "Meta Admin ganhou funil do corpus, bloqueadores legiveis, resultados por baseline e diagnosticos sanitizados por caso."
       ],
       "changed": [
-        "Fluxos de sucesso do benchmark e diagnostico agora sao validados via Playwright em desktop e mobile.",
+        "Fluxos de evidencia, benchmark e diagnostico agora sao validados via Playwright com screenshots em desktop e mobile.",
         "TopDeck.gg passa a ser a unica fonte externa viva de meta; o dataset local permanece como fallback sem trabalho manual.",
         "Meta Admin deixa de solicitar JSON ou decklists e passa a acompanhar apenas sincronizacao, cobertura e progresso.",
         "Falhas e rate limits do TopDeck.gg preservam o ultimo snapshot valido.",

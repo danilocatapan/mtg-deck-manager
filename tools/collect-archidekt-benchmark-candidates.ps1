@@ -1,7 +1,8 @@
 param(
     [ValidateRange(1, 50)]
     [int]$Target = 25,
-    [string]$OutputPath = "backend/src/main/resources/recommendation-benchmark/archidekt-candidates.json"
+    [string]$OutputPath = "backend/src/main/resources/recommendation-benchmark/archidekt-candidates.json",
+    [string]$SnapshotPath = "backend/src/main/resources/recommendation-benchmark/archidekt-snapshots.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,6 +15,7 @@ if (-not $match.Success) {
 
 $ranking = ($match.Groups[1].Value | ConvertFrom-Json).props.pageProps.deckResults.results
 $selected = [System.Collections.Generic.List[object]]::new()
+$snapshots = [System.Collections.Generic.List[object]]::new()
 $commanders = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 $capturedAt = [DateTimeOffset]::UtcNow.ToString("o")
 
@@ -50,6 +52,37 @@ foreach ($candidate in $ranking) {
         sourceUrl = $deckUrl
         capturedAt = $capturedAt
     })
+    $deck = @($detail.cards | ForEach-Object {
+        [ordered]@{ name = $_.card.oracleCard.name; quantity = [int]$_.quantity }
+    })
+    $catalog = [System.Collections.Generic.List[object]]::new()
+    foreach ($entry in $detail.cards) {
+        $oracle = $entry.card.oracleCard
+        $catalog.Add([ordered]@{
+            name = $oracle.name
+            colorIdentity = @($oracle.colorIdentity)
+            typeLine = $oracle.typeLine
+            cmc = [double]$oracle.cmc
+            oracleText = $oracle.oracleText
+        })
+    }
+    $snapshots.Add([ordered]@{
+        id = "archidekt-$($candidate.id)"
+        commander = $commander
+        bracket = if ([string]::IsNullOrWhiteSpace($candidate.edhBracket)) { "mid" } else { $candidate.edhBracket }
+        strategy = "consistency"
+        colorIdentity = @($commanderCards[0].card.oracleCard.colorIdentity)
+        deck = $deck
+        catalog = $catalog
+        meta = @()
+        preferences = [ordered]@{}
+        filters = @()
+        labels = [ordered]@{ protectedCards = @($commander); expectedAdds = @(); expectedCuts = @() }
+        source = "archidekt_popular"
+        sourceUrl = $deckUrl
+        capturedAt = $capturedAt
+        provenance = [ordered]@{ source = "archidekt_popular"; sourceUrl = $deckUrl; capturedAt = $capturedAt; views = $candidate.viewCount }
+    })
     Start-Sleep -Milliseconds 150
 }
 
@@ -72,4 +105,12 @@ if (-not (Test-Path $parent)) {
     decks = $selected
 } | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 $resolved
 
-Write-Output "Collected $($selected.Count) Archidekt candidates at $resolved"
+$snapshotResolved = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $SnapshotPath))
+[ordered]@{
+    source = "Archidekt"
+    capturedAt = $capturedAt
+    count = $snapshots.Count
+    cases = $snapshots
+} | ConvertTo-Json -Depth 12 | Set-Content -Encoding utf8 $snapshotResolved
+
+Write-Output "Collected $($selected.Count) Archidekt candidates at $resolved and full snapshots at $snapshotResolved"

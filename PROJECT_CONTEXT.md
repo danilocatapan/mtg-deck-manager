@@ -17,12 +17,12 @@ Ultima atualizacao: 2026-06-05
 
 | Capacidade | Estado | Evidencia e limite atual |
 | --- | --- | --- |
-| Quality gate, confianca e limitacoes | `pronto` | `StrategicRecommendationRun` e `StrategicRecommendationService` expoem confidence, coverage, freshness, fontes, limitacoes e `benchmarkStatus`; UI apresenta aviso em baixa confianca. |
+| Quality gate, confianca e limitacoes | `pronto` | `StrategicRecommendationRun` expoe confidence, coverage, freshness, fontes, limitacoes e `benchmarkEvidence` por comandante/bracket; a UI mostra "Por que confiar nesta analise" antes das trocas. |
 | Personalizacao por estrategia, orcamento e colecao | `pronto` | `strategy` altera scoring, `budget` filtra/penaliza candidatos e `ownedOnly` usa a colecao persistida; sem inventario, o quality gate cai para baixa confianca. |
 | TopDeck.gg e Meta Admin | `pronto` | TopDeck.gg e a unica fonte externa viva; `/meta/sync` busca, persiste na base canonica, reconstrói perfis e separa importados, descartados, snapshot preservado e erros operacionais. |
-| Benchmark GPT automatico | `em desenvolvimento` | Engine real offline, V15, jobs GPT-5.5, julgamento A/B cego e vetos objetivos implementados. Promocao bloqueada ate congelar 50 decks reais completos e distintos; `TOPDECK_API_KEY` ainda nao esta configurada. |
+| Benchmark GPT automatico | `em desenvolvimento` | Engine real offline, V15, jobs GPT-5.5, dois baselines, tres juizes, vetos, retomada por hashes e evidencia dinamica implementados. Promocao bloqueada ate congelar 50 decks reais completos e distintos. |
 
-Coleta do corpus popular: `tools/collect-archidekt-benchmark-candidates.ps1` gera manifesto auditavel com decks Commander completos, ordenados por visualizacoes e deduplicados por comandante. A parcela competitiva continua vindo do TopDeck.gg.
+Coleta do corpus: `tools/collect-archidekt-benchmark-candidates.ps1` congela manifesto/listas/catalogo; `tools/collect-topdeck-benchmark-candidates.ps1` seleciona a parcela competitiva e exige `TOPDECK_API_KEY`.
 | Benchmark contra GPT | `parcial` | Runner offline calcula metricas sobre 20 casos versionados e persiste rodadas/resultados; ainda faltam 50 casos e execucao direta do nucleo estrategico para prova mais forte. |
 | Baseline GPT e avaliacao humana | `parcial` | Baselines estruturados entram nos 20 casos e o Meta Admin oferece revisao A/B cega; ainda faltam 3 votos por caso para fechar o quorum. |
 | Cobertura meta por comandante | `parcial` | Perfis locais dedicados cobrem Xenagos, K'rrik, Grand Arbiter e Kess; ainda nao ha cobertura ampla de comandantes populares e long-tail. |
@@ -46,7 +46,7 @@ Estado da prova: a fundacao verificavel esta pronta, mas o produto ainda nao dem
 - Meta/TopDeck: comece em `TopDeckMetaAdapter`, `ExternalMetaIngestionJob`, `MetaDatasetService` e `MetaDeckSnapshot`; ingestao externa deve respeitar API, attribution, rate limit e preservacao do ultimo snapshot.
 - Colecao/privacidade: comece em `UserCollectionService`, `UserPrivacyController`, migration `V12__create_user_card_collection.sql` e `UserPrivacyControllerTest`; preserve isolamento por usuario e exportacao/exclusao LGPD.
 - Frontend: recomendacoes em `frontend/src/components/recommendations/`, Meta Admin em `frontend/src/pages/MetaAdminPage.jsx` e contratos HTTP em `frontend/src/services/api.js`.
-- Validacao conhecida em 2026-06-05: backend `./mvnw.cmd test` com JDK 25 passou com 195 testes e zero falhas; frontend lint, build, 12 cenarios E2E e 6 cenarios de acessibilidade passaram. O fluxo Meta Admin gerou 14 screenshots Playwright auditaveis em desktop/mobile. PostgreSQL local aguarda Docker daemon ativo.
+- Validacao conhecida em 2026-06-05: backend H2 passou com 197 testes; frontend lint/build, 14 cenarios E2E e 6 cenarios de acessibilidade passaram. Playwright gera screenshots do card de evidencia, funil e diagnostico em desktop/mobile. PostgreSQL local aguarda Docker daemon ativo.
 
 ## Objetivo
 
@@ -160,6 +160,10 @@ Controllers devem ficar finos. Regra de negocio deve viver em services/component
 - `POST /meta/recommendation-benchmark/run`
 - `GET /meta/recommendation-benchmark/reviews/next`
 - `POST /meta/recommendation-benchmark/reviews/{caseId}`
+- `POST /meta/recommendation-benchmark/ai-artifacts/preview`
+- `POST /meta/recommendation-benchmark/ai-artifacts/generate`
+- `GET /meta/recommendation-benchmark/ai-artifacts/jobs/{id}`
+- `GET /meta/recommendation-benchmark/cases/{caseId}/comparison`
 
 ### Auditoria, LGPD e Seguranca
 

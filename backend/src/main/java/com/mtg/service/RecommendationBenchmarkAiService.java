@@ -8,6 +8,7 @@ import com.mtg.client.OpenAiResponsesClient;
 import com.mtg.dto.RecommendationBenchmarkAiJobDTO;
 import com.mtg.dto.RecommendationBenchmarkAiPreviewDTO;
 import com.mtg.dto.RecommendationBenchmarkComparisonDTO;
+import com.mtg.domain.RecommendationBenchmarkEvidence;
 import com.mtg.model.RecommendationBenchmarkAiArtifact;
 import com.mtg.model.RecommendationBenchmarkAiJob;
 import com.mtg.model.RecommendationBenchmarkAiSet;
@@ -153,15 +154,44 @@ public class RecommendationBenchmarkAiService {
                 && baselineQualified(metrics.path("grounded"), expectedCases);
     }
 
+    public RecommendationBenchmarkEvidence evidence(String commander, String bracket, boolean lowConfidence) {
+        RecommendationBenchmarkAiSet promoted = setRepository.latestPromoted();
+        JsonNode root = fixtureRoot();
+        if (promoted == null || !isCurrent(promoted, root)) return RecommendationBenchmarkEvidence.notCovered();
+        JsonNode fixture = null;
+        for (JsonNode candidate : root.path("cases")) {
+            if (commander.equalsIgnoreCase(candidate.path("commander").asText())
+                    && bracket.equalsIgnoreCase(candidate.path("bracket").asText())) {
+                fixture = candidate;
+                break;
+            }
+        }
+        if (fixture == null) return RecommendationBenchmarkEvidence.notCovered();
+        String caseId = fixture.path("id").asText();
+        List<RecommendationBenchmarkAiArtifact> artifacts = artifactRepository.byJob(promoted.getJobId()).stream()
+                .filter(item -> caseId.equals(item.getCaseId()))
+                .toList();
+        double generic = caseSystemWinRate(artifacts, "generic");
+        double grounded = caseSystemWinRate(artifacts, "grounded");
+        boolean globallyQualified = hasCurrentQualifiedSet(root.path("cases").size());
+        String status = !lowConfidence && globallyQualified && generic > 0.5 && grounded > 0.5
+                ? "qualified_advantage"
+                : "covered_not_qualified";
+        return new RecommendationBenchmarkEvidence(
+                status,
+                generic,
+                grounded,
+                promoted.getFixtureVersion(),
+                promoted.getPromotedAt(),
+                "pending"
+        );
+    }
+
     public Map<String, Object> statusSummary() {
         RecommendationBenchmarkAiPreviewDTO preview = preview();
         RecommendationBenchmarkAiJob latest = jobRepository.latest();
         RecommendationBenchmarkAiSet promoted = setRepository.latestPromoted();
-        boolean current = promoted != null
-                && preview.fixtureVersion().equals(promoted.getFixtureVersion())
-                && preview.algorithmVersion().equals(promoted.getAlgorithmVersion())
-                && PROMPT_VERSION.equals(promoted.getPromptVersion())
-                && model.equals(promoted.getModel());
+        boolean current = promoted != null && isCurrent(promoted, fixtureRoot());
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("configured", preview.configured());
         result.put("model", model);
@@ -172,6 +202,7 @@ public class RecommendationBenchmarkAiService {
         result.put("promotedSetCurrent", current);
         result.put("metrics", promoted == null ? Map.of() : parseJson(promoted.getMetricsJson()));
         result.put("humanValidation", "pending");
+        result.put("caseSummaries", promoted == null ? List.of() : caseSummaries(promoted));
         return result;
     }
 
@@ -194,22 +225,30 @@ public class RecommendationBenchmarkAiService {
         String baselineType = "baseline_" + baselineKind;
         RecommendationBenchmarkAiArtifact baseline = artifactRepository.byJobCaseAndType(jobId, fixture.path("id").asText(), baselineType);
         if (baseline == null) {
-            JsonNode output = callStructured(baselinePrompt(fixture, grounded), baselineSchema());
-            persistArtifact(jobId, fixture, baselineType, output);
+            String hash = inputHash(fixture, baselineType);
+            RecommendationBenchmarkAiArtifact compatible = artifactRepository.latestCompatible(fixture.path("id").asText(), baselineType, hash);
+            JsonNode output = compatible == null ? callStructured(baselinePrompt(fixture, grounded), baselineSchema()) : parseJson(compatible.getOutputJson());
+            persistArtifact(jobId, fixture, baselineType, output, hash);
             baseline = artifactRepository.byJobCaseAndType(jobId, fixture.path("id").asText(), baselineType);
         }
         JsonNode systemOutput = scenarioService.execute(fixture).output();
+        JsonNode baselineOutput = parseJson(baseline.getOutputJson());
         for (int index = 1; index <= JUDGMENTS_PER_BASELINE; index++) {
             String judgeType = "judge_" + baselineKind + "_" + index;
             if (artifactRepository.byJobCaseAndType(jobId, fixture.path("id").asText(), judgeType) != null) continue;
+            String hash = inputHash(fixture, judgeType, systemOutput.toString() + "|" + baselineOutput.toString());
+            RecommendationBenchmarkAiArtifact compatible = artifactRepository.latestCompatible(fixture.path("id").asText(), judgeType, hash);
+            if (compatible != null) {
+                persistArtifact(jobId, fixture, judgeType, parseJson(compatible.getOutputJson()), hash);
+                continue;
+            }
             boolean systemIsA = Math.floorMod((fixture.path("id").asText() + baselineKind + index).hashCode(), 2) == 0;
-            JsonNode baselineOutput = parseJson(baseline.getOutputJson());
             JsonNode veto = deterministicVeto(fixture, systemOutput, baselineOutput, systemIsA);
             if (veto != null) {
-                persistArtifact(jobId, fixture, judgeType, veto);
+                persistArtifact(jobId, fixture, judgeType, veto, hash);
             } else {
                 JsonNode anonymousOutput = callStructured(judgePrompt(fixture, systemOutput, baselineOutput, systemIsA), judgeSchema());
-                persistArtifact(jobId, fixture, judgeType, mapAnonymousWinner(anonymousOutput, systemIsA));
+                persistArtifact(jobId, fixture, judgeType, mapAnonymousWinner(anonymousOutput, systemIsA), hash);
             }
         }
     }
@@ -248,7 +287,10 @@ public class RecommendationBenchmarkAiService {
     }
 
     private void persistArtifact(Long jobId, JsonNode fixture, String type, JsonNode output) {
-        String inputHash = sha256(fixture.toString() + "|" + type + "|" + model + "|" + PROMPT_VERSION);
+        persistArtifact(jobId, fixture, type, output, inputHash(fixture, type));
+    }
+
+    private void persistArtifact(Long jobId, JsonNode fixture, String type, JsonNode output, String inputHash) {
         QuarkusTransaction.requiringNew().run(() -> {
             RecommendationBenchmarkAiArtifact artifact = new RecommendationBenchmarkAiArtifact();
             artifact.setJobId(jobId);
@@ -312,6 +354,10 @@ public class RecommendationBenchmarkAiService {
                 .filter(item -> item.getArtifactType().startsWith("judge_" + kind + "_"))
                 .collect(Collectors.groupingBy(RecommendationBenchmarkAiArtifact::getCaseId));
         int system = 0, gpt = 0, ties = 0, consensus = 0;
+        Map<String, Double> scoreTotals = new LinkedHashMap<>();
+        Map<String, Integer> scoreSamples = new LinkedHashMap<>();
+        Map<String, Integer> problemCounts = new LinkedHashMap<>();
+        Map<String, Integer> improvementCounts = new LinkedHashMap<>();
         for (List<RecommendationBenchmarkAiArtifact> judges : byCase.values()) {
             long systemVotes = judges.stream().filter(item -> "system".equals(parseJson(item.getOutputJson()).path("winner").asText())).count();
             long gptVotes = judges.stream().filter(item -> "gpt".equals(parseJson(item.getOutputJson()).path("winner").asText())).count();
@@ -320,17 +366,70 @@ public class RecommendationBenchmarkAiService {
             else if (gptVotes > systemVotes && gptVotes > tieVotes) gpt++;
             else ties++;
             if (systemVotes == judges.size() || gptVotes == judges.size() || tieVotes == judges.size()) consensus++;
+            for (RecommendationBenchmarkAiArtifact judge : judges) {
+                JsonNode output = parseJson(judge.getOutputJson());
+                output.path("scores").fields().forEachRemaining(entry -> {
+                    scoreTotals.merge(entry.getKey(), entry.getValue().asDouble(), Double::sum);
+                    scoreSamples.merge(entry.getKey(), 1, Integer::sum);
+                });
+                output.path("criticalIssues").forEach(item -> problemCounts.merge(item.asText(), 1, Integer::sum));
+                output.path("suggestedImprovements").forEach(item -> improvementCounts.merge(item.asText(), 1, Integer::sum));
+            }
         }
         int cases = byCase.size();
-        return Map.of(
-                "cases", cases,
-                "systemWins", system,
-                "gptWins", gpt,
-                "ties", ties,
-                "consensusCases", consensus,
-                "systemWinRate", cases == 0 ? 0 : system / (double) cases,
-                "tieRate", cases == 0 ? 0 : ties / (double) cases
-        );
+        Map<String, Double> categoryScores = new LinkedHashMap<>();
+        scoreTotals.forEach((category, total) -> categoryScores.put(category, total / scoreSamples.get(category)));
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("cases", cases);
+        result.put("systemWins", system);
+        result.put("gptWins", gpt);
+        result.put("ties", ties);
+        result.put("consensusCases", consensus);
+        result.put("systemWinRate", cases == 0 ? 0 : system / (double) cases);
+        result.put("tieRate", cases == 0 ? 0 : ties / (double) cases);
+        result.put("categoryScores", categoryScores);
+        result.put("recurringProblems", rankedCounts(problemCounts));
+        result.put("suggestedImprovements", rankedCounts(improvementCounts));
+        return result;
+    }
+
+    private List<Map<String, Object>> caseSummaries(RecommendationBenchmarkAiSet promoted) {
+        Map<String, List<RecommendationBenchmarkAiArtifact>> artifactsByCase = artifactRepository.byJob(promoted.getJobId()).stream()
+                .filter(item -> item.getArtifactType().startsWith("judge_"))
+                .collect(Collectors.groupingBy(RecommendationBenchmarkAiArtifact::getCaseId));
+        List<Map<String, Object>> summaries = new ArrayList<>();
+        for (JsonNode fixture : fixtureRoot().path("cases")) {
+            String caseId = fixture.path("id").asText();
+            List<RecommendationBenchmarkAiArtifact> artifacts = artifactsByCase.getOrDefault(caseId, List.of());
+            Map<String, Object> summary = new LinkedHashMap<>();
+            summary.put("caseId", caseId);
+            summary.put("commander", fixture.path("commander").asText());
+            summary.put("bracket", fixture.path("bracket").asText());
+            summary.put("source", fixture.path("provenance").path("source").asText(fixture.path("source").asText("versioned")));
+            summary.put("genericWinner", majorityWinner(artifacts, "generic"));
+            summary.put("groundedWinner", majorityWinner(artifacts, "grounded"));
+            summary.put("problemCount", collectStrings(artifacts, "criticalIssues").size());
+            summaries.add(summary);
+        }
+        return summaries;
+    }
+
+    private String majorityWinner(List<RecommendationBenchmarkAiArtifact> artifacts, String kind) {
+        Map<String, Object> summary = aggregateJudges(artifacts, kind);
+        int system = ((Number) summary.get("systemWins")).intValue();
+        int gpt = ((Number) summary.get("gptWins")).intValue();
+        int ties = ((Number) summary.get("ties")).intValue();
+        if (system > gpt && system > ties) return "system";
+        if (gpt > system && gpt > ties) return "gpt";
+        return "tie";
+    }
+
+    private List<Map<String, Object>> rankedCounts(Map<String, Integer> counts) {
+        return counts.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(8)
+                .map(entry -> Map.<String, Object>of("label", entry.getKey(), "count", entry.getValue()))
+                .toList();
     }
 
     private Map<String, Object> comparisonSummary(List<RecommendationBenchmarkAiArtifact> artifacts, String kind) {
@@ -497,6 +596,31 @@ public class RecommendationBenchmarkAiService {
         return baseline.path("cases").asInt() == expectedCases
                 && baseline.path("systemWinRate").asDouble() >= 0.60
                 && baseline.path("tieRate").asDouble(1.0) <= 0.20;
+    }
+
+    private boolean isCurrent(RecommendationBenchmarkAiSet promoted, JsonNode root) {
+        return root.path("fixtureVersion").asText().equals(promoted.getFixtureVersion())
+                && root.path("algorithmVersion").asText().equals(promoted.getAlgorithmVersion())
+                && PROMPT_VERSION.equals(promoted.getPromptVersion())
+                && model.equals(promoted.getModel());
+    }
+
+    private double caseSystemWinRate(List<RecommendationBenchmarkAiArtifact> artifacts, String kind) {
+        long total = artifacts.stream().filter(item -> item.getArtifactType().startsWith("judge_" + kind + "_")).count();
+        if (total == 0) return 0;
+        long wins = artifacts.stream()
+                .filter(item -> item.getArtifactType().startsWith("judge_" + kind + "_"))
+                .filter(item -> "system".equals(parseJson(item.getOutputJson()).path("winner").asText()))
+                .count();
+        return wins / (double) total;
+    }
+
+    private String inputHash(JsonNode fixture, String type) {
+        return inputHash(fixture, type, "");
+    }
+
+    private String inputHash(JsonNode fixture, String type, String dependentOutputs) {
+        return sha256(fixture.toString() + "|" + type + "|" + model + "|" + PROMPT_VERSION + "|" + dependentOutputs);
     }
 
     private boolean configured() {

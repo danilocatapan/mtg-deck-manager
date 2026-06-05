@@ -1,6 +1,7 @@
 package com.mtg.service;
 
 import com.mtg.domain.RecommendationCoverage;
+import com.mtg.domain.RecommendationBenchmarkEvidence;
 import com.mtg.domain.RecommendationSourceSummary;
 import com.mtg.domain.StrategicRecommendation;
 import com.mtg.domain.StrategicRecommendationRun;
@@ -78,6 +79,9 @@ public class StrategicRecommendationService {
 
     @Inject
     UserCollectionService userCollectionService;
+
+    @Inject
+    RecommendationBenchmarkAiService recommendationBenchmarkAiService;
 
     public List<StrategicRecommendation> recommend(Long deckId, com.mtg.dto.RecommendationParamsDTO params) {
         return recommendRun(deckId, params, null).recommendations();
@@ -361,13 +365,17 @@ public class StrategicRecommendationService {
                 hasUsefulMeta,
                 fallbackUsed
         );
+        RecommendationBenchmarkEvidence benchmarkEvidence = recommendationBenchmarkAiService == null
+                ? RecommendationBenchmarkEvidence.notCovered()
+                : recommendationBenchmarkAiService.evidence(deck.getCommander(), bracket, "low_confidence".equals(confidence));
         return new StrategicRecommendationRun(
                 confidence,
                 coverage,
                 dataFreshness(metaProfile),
                 sourceSummary,
                 limitations,
-                benchmarkStatus(deck.getCommander(), bracket, confidence),
+                benchmarkStatus(benchmarkEvidence, confidence),
+                benchmarkEvidence,
                 auditId,
                 recommendations
         );
@@ -403,9 +411,6 @@ public class StrategicRecommendationService {
         } else if (params != null && Boolean.TRUE.equals(params.ownedOnly())) {
             limitations.add("Filtro 'apenas cartas que possuo' aplicado contra a colecao persistida do usuario.");
         }
-        if (!benchmarkedCommander(commander)) {
-            limitations.add("Este comandante ainda nao esta coberto pelo benchmark interno contra GPT.");
-        }
         if (limitations.isEmpty()) {
             limitations.add("Recomendacao coberta por dados suficientes para comparacao interna, ainda assim valide preco, disponibilidade e acordo da mesa.");
         }
@@ -434,24 +439,16 @@ public class StrategicRecommendationService {
         return "low_confidence";
     }
 
-    private String benchmarkStatus(String commander, String bracket, String confidence) {
-        if (!benchmarkedCommander(commander)) {
+    private String benchmarkStatus(RecommendationBenchmarkEvidence evidence, String confidence) {
+        if (evidence == null || "not_covered".equals(evidence.status())) {
             return "not_proven_against_gpt";
         }
         if ("low_confidence".equals(confidence)) {
             return "benchmark_reference_exists_but_current_run_is_low_confidence";
         }
-        return "covered_by_internal_benchmark_reference";
-    }
-
-    private boolean benchmarkedCommander(String commander) {
-        String normalized = normalize(commander);
-        return Set.of(
-                "xenagos, god of revels",
-                "k'rrik, son of yawgmoth",
-                "grand arbiter augustin iv",
-                "kess, dissident mage"
-        ).contains(normalized);
+        return "qualified_advantage".equals(evidence.status())
+                ? "qualified_advantage"
+                : "covered_by_internal_benchmark_reference";
     }
 
     private String dataFreshness(CommanderMetaProfile metaProfile) {

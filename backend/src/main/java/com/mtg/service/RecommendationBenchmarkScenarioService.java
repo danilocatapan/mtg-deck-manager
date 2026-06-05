@@ -53,6 +53,11 @@ public class RecommendationBenchmarkScenarioService {
     public Validation validate(JsonNode fixture, JsonNode output) {
         Set<String> deck = textSet(fixture.path("deck"));
         Set<String> protectedCards = textSet(fixture.path("labels").path("protectedCards"));
+        Set<String> commanderColors = textSet(fixture.path("colorIdentity"));
+        Set<String> collection = textSet(fixture.path("collection"));
+        Set<String> filters = textSet(fixture.path("filters"));
+        Map<String, JsonNode> catalog = catalogByName(fixture.path("catalog"));
+        Double budget = fixture.path("budget").isNumber() ? fixture.path("budget").asDouble() : null;
         protectedCards.add(normalize(fixture.path("commander").asText()));
         Set<String> seenAdds = new LinkedHashSet<>();
         List<String> violations = new ArrayList<>();
@@ -63,12 +68,36 @@ public class RecommendationBenchmarkScenarioService {
             if (!remove.isBlank() && !deck.contains(remove)) violations.add("cut_not_in_deck:" + remove);
             if (protectedCards.contains(remove)) violations.add("protected_cut:" + remove);
             if (deck.contains(add) || !seenAdds.add(add)) violations.add("illegal_duplicate:" + add);
-            if (item.path("offColor").asBoolean(false)) violations.add("off_color:" + add);
-            if (item.path("overBudget").asBoolean(false)) violations.add("budget_violation:" + add);
-            if (item.path("outsideCollection").asBoolean(false)) violations.add("collection_violation:" + add);
-            if (item.path("restrictionViolation").asBoolean(false)) violations.add("restriction_violation:" + add);
+            JsonNode card = catalog.get(add);
+            if (card == null) {
+                violations.add("add_not_in_frozen_catalog:" + add);
+                continue;
+            }
+            Set<String> cardColors = textSet(card.path("colorIdentity"));
+            if (!commanderColors.containsAll(cardColors)) violations.add("off_color:" + add);
+            if (budget != null && card.path("price").asDouble(0) > budget) violations.add("budget_violation:" + add);
+            if (filters.contains("ownedonly") && !collection.contains(add)) violations.add("collection_violation:" + add);
+            if (filters.contains("avoidtutors") && card.path("tutor").asBoolean(false)) violations.add("restriction_violation:tutor:" + add);
+            if (filters.contains("avoidsalt") && card.path("saltScore").asDouble(0) >= 2.0) violations.add("restriction_violation:salt:" + add);
         }
         return new Validation(List.copyOf(new LinkedHashSet<>(violations)));
+    }
+
+    public PreferenceCounts preferenceCounts(JsonNode fixture, JsonNode output) {
+        Set<String> filters = textSet(fixture.path("filters"));
+        if (filters.isEmpty()) return new PreferenceCounts(0, 0);
+        Validation validation = validate(fixture, output);
+        int met = 0;
+        for (String filter : filters) {
+            boolean violated = validation.violations().stream().anyMatch(value -> switch (filter) {
+                case "ownedonly" -> value.startsWith("collection_violation:");
+                case "avoidtutors" -> value.startsWith("restriction_violation:tutor:");
+                case "avoidsalt" -> value.startsWith("restriction_violation:salt:");
+                default -> false;
+            });
+            if (!violated) met++;
+        }
+        return new PreferenceCounts(met, filters.size());
     }
 
     public List<String> validateFixture(JsonNode fixture) {
@@ -86,6 +115,18 @@ public class RecommendationBenchmarkScenarioService {
         if (capturedAt.isBlank()) violations.add("missing_capture_date");
         if (fixture.path("commander").asText().isBlank()) violations.add("missing_commander");
         if (deckSize != 100) violations.add("deck_must_include_commander_plus_99");
+        if (fixture.path("bracket").asText().isBlank()) violations.add("missing_bracket");
+        if (!fixture.path("colorIdentity").isArray()) violations.add("missing_color_identity");
+        if (!fixture.path("catalog").isArray() || fixture.path("catalog").isEmpty()) violations.add("missing_frozen_catalog");
+        if (!fixture.path("meta").isArray()) violations.add("missing_frozen_meta");
+        fixture.path("catalog").forEach(card -> {
+            if (!card.isObject() || card.path("name").asText().isBlank()
+                    || !card.path("colorIdentity").isArray()
+                    || card.path("typeLine").asText().isBlank()
+                    || !card.path("cmc").isNumber()) {
+                violations.add("incomplete_catalog_card");
+            }
+        });
         return List.copyOf(violations);
     }
 
@@ -160,6 +201,12 @@ public class RecommendationBenchmarkScenarioService {
         return result;
     }
 
+    private Map<String, JsonNode> catalogByName(JsonNode node) {
+        Map<String, JsonNode> result = new HashMap<>();
+        node.forEach(item -> result.put(normalize(item.path("name").asText()), item));
+        return result;
+    }
+
     private String inferType(String name) {
         return name.toLowerCase(Locale.ROOT).contains("land") ? "Basic Land" : "Creature";
     }
@@ -180,4 +227,5 @@ public class RecommendationBenchmarkScenarioService {
     public record Validation(List<String> violations) {
         public boolean passed() { return violations.isEmpty(); }
     }
+    public record PreferenceCounts(int met, int declared) {}
 }

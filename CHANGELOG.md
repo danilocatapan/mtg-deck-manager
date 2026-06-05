@@ -8,6 +8,9 @@
 - Bloqueia geracao com `corpus_not_ready` ate existirem 50 decks reais completos, distintos e com procedencia.
 - Adiciona preview, progresso e estado qualificado ao Meta Admin.
 - Adiciona coletor reproduzivel e manifesto auditavel com 25 decks Commander populares reais do Archidekt, completos e deduplicados por comandante.
+- Adiciona coletores reproduziveis de snapshots Archidekt/TopDeck, retomada GPT por hashes dependentes das respostas e evidencia dinamica por comandante/bracket.
+- Recomendacoes exibem "Por que confiar nesta analise"; o Meta Admin ganha funil do corpus, bloqueadores traduzidos, resultados por baseline e diagnostico por caso.
+- Revisa toda a interface do Meta Admin para pt-BR correto e impede a exibicao de codigos/estados internos sem traducao.
 
 Todas as mudancas notaveis deste projeto serao documentadas aqui.
 

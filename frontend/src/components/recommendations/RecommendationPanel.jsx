@@ -46,6 +46,7 @@ export default function RecommendationPanel({
   const confidence = run?.confidence || (hasFallback ? 'low_confidence' : 'medium_confidence')
   const lowConfidence = confidence === 'low_confidence'
   const limitations = Array.isArray(run?.limitations) ? run.limitations : []
+  const evidence = run?.benchmarkEvidence
 
   useEffect(() => subscribeDiagnostics(() => {
     setDiagnostics(diagnosticsEnabled())
@@ -104,6 +105,31 @@ export default function RecommendationPanel({
           <strong>{shortConfidence(confidence)}</strong>
         </div>
       </div>
+
+      {run && (
+        <section className={`recommendation-trust-card ${evidence?.status === 'qualified_advantage' ? 'qualified' : ''}`} aria-labelledby="recommendation-trust-title">
+          <div className="recommendation-trust-heading">
+            <div>
+              <p className="eyebrow">Evidencia desta rodada</p>
+              <h4 id="recommendation-trust-title">Por que confiar nesta analise</h4>
+            </div>
+            {evidence?.status === 'qualified_advantage' && <span className="status-pill ready">Vantagem automatica qualificada</span>}
+          </div>
+          <div className="recommendation-evidence-rail">
+            <EvidenceStep label="Confianca atual" value={shortConfidence(confidence)} ready={!lowConfidence} />
+            <EvidenceStep label="Cartas resolvidas" value={`${run.coverage?.resolvedCards ?? 0}/${run.coverage?.requestedCards ?? 0}`} ready={(run.coverage?.resolutionRate ?? 0) >= 0.75} />
+            <EvidenceStep label="Amostra meta" value={`${run.coverage?.sampleSize ?? 0} decks`} ready={(run.coverage?.sampleSize ?? 0) >= 10} />
+            <EvidenceStep label="Contra GPT" value={evidenceLabel(evidence)} ready={evidence?.status === 'qualified_advantage'} />
+          </div>
+          {evidence?.status !== 'not_covered' && (
+            <p className="recommendation-evidence-summary">
+              Sistema venceu {formatPercent(evidence?.genericWinRate)} contra GPT generico e {formatPercent(evidence?.groundedWinRate)} contra GPT grounded.
+              Validacao humana: {evidence?.humanValidation === 'completed' ? 'concluida' : 'pendente'}.
+            </p>
+          )}
+          {limitations.length > 0 && <p className="recommendation-evidence-limit">Limite principal: {limitations[0]}</p>}
+        </section>
+      )}
 
       {lowConfidence && (
         <StateMessage tone="warning" title="Ainda nao e possivel prometer melhor qualidade que GPT">
@@ -298,4 +324,25 @@ function shortConfidence(confidence) {
 function formatFreshness(value) {
   if (!value || value === 'unknown') return 'desconhecido'
   return String(value).slice(0, 10)
+}
+
+function EvidenceStep({ label, value, ready }) {
+  return (
+    <div className={ready ? 'ready' : ''}>
+      <span aria-hidden="true" />
+      <small>{label}</small>
+      <strong>{value}</strong>
+    </div>
+  )
+}
+
+function evidenceLabel(evidence) {
+  if (evidence?.status === 'qualified_advantage') return 'Vantagem qualificada'
+  if (evidence?.status === 'covered_not_qualified') return 'Coberto, sem claim'
+  return 'Ainda nao coberto'
+}
+
+function formatPercent(value) {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? `${Math.round(numeric * 100)}%` : '0%'
 }

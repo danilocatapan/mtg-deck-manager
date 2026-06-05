@@ -233,9 +233,17 @@ export async function mockApi(page, { apiFailure = null, contactStatus = 200 } =
     if (path === '/decks/1/recommendations/strategic') {
       return json(route, {
         confidence: 'medium_confidence',
-        benchmarkStatus: 'covered_by_internal_benchmark_reference',
+        benchmarkStatus: 'qualified_advantage',
+        benchmarkEvidence: {
+          status: 'qualified_advantage',
+          genericWinRate: 0.67,
+          groundedWinRate: 0.67,
+          fixtureVersion: 'benchmark-real-v1',
+          evaluatedAt: '2026-06-05T10:00:00Z',
+          humanValidation: 'pending',
+        },
         auditId: 77,
-        coverage: { sampleSize: 12, resolvedCards: 28, requestedCards: 28 },
+        coverage: { sampleSize: 12, resolvedCards: 28, requestedCards: 28, resolutionRate: 1 },
         limitations: [],
         recommendations: [recommendation],
       })
@@ -297,10 +305,44 @@ export async function mockApi(page, { apiFailure = null, contactStatus = 200 } =
         reviewProgress: { completedCases: benchmarkVotes >= 3 ? 1 : 0, totalCases: 20, votes: benchmarkVotes, requiredVotes: 60 },
         feedback: { accepted: 1, rejected: 0, needsReview: 0 },
           feedbackBreakdown: { byCommander: { 'Xenagos, God of Revels': 1 }, byBracket: { casual: 1 }, byReason: {} },
-          aiArtifacts: { configured: true, model: 'gpt-5.5', promotedSetCurrent: false, humanValidation: 'pending', latestJob: null },
+          corpusStatus: {
+            candidatesFound: 25,
+            snapshotsComplete: 0,
+            validCases: 0,
+            targetCases: 50,
+            blockers: ['Faltam capturas completas e auditáveis para atingir 50 casos válidos.', 'A parcela competitiva TopDeck.gg ainda não possui 25 casos congelados.'],
+          },
+          pipeline: [
+            { id: 'candidates', completed: 25, target: 50, status: 'in_progress' },
+            { id: 'snapshots', completed: 0, target: 50, status: 'in_progress' },
+            { id: 'valid', completed: 0, target: 50, status: 'blocked' },
+            { id: 'offline', completed: benchmarkRun ? 20 : 0, target: 50, status: 'pending' },
+            { id: 'artifacts', completed: 0, target: 1, status: 'pending' },
+            { id: 'promoted', completed: 0, target: 1, status: 'blocked' },
+          ],
+          aiArtifacts: {
+            configured: true,
+            model: 'gpt-5.5',
+            promotedSetCurrent: false,
+            humanValidation: 'pending',
+            latestJob: null,
+            metrics: {
+              generic: { systemWins: 12, gptWins: 5, ties: 3, systemWinRate: 0.6 },
+              grounded: { systemWins: 11, gptWins: 6, ties: 3, systemWinRate: 0.55 },
+            },
+            caseSummaries: [{
+              caseId: 'xenagos-mid-budget-001',
+              commander: 'Xenagos, God of Revels',
+              bracket: 'mid',
+              source: 'archidekt_popular',
+              genericWinner: 'system',
+              groundedWinner: 'tie',
+              problemCount: 1,
+            }],
+          },
         nextActions: [
           { id: 'expand-corpus', title: 'Expandir corpus versionado', status: 'in_progress', actor: 'maintainer', description: 'Adicionar casos representativos.', completed: 20, target: 50 },
-          { id: 'human-review', title: 'Concluir avaliacao humana cega', status: 'in_progress', actor: 'reviewer', description: 'Registrar resultados cegos.', completed: benchmarkVotes >= 3 ? 1 : 0, target: 20 },
+          { id: 'human-review', title: 'Concluir avaliação humana cega', status: 'in_progress', actor: 'reviewer', description: 'Registrar resultados cegos.', completed: benchmarkVotes >= 3 ? 1 : 0, target: 20 },
         ],
       })
       }
@@ -320,6 +362,18 @@ export async function mockApi(page, { apiFailure = null, contactStatus = 200 } =
 
       if (path === '/meta/recommendation-benchmark/ai-artifacts/generate' && method === 'POST') {
         return json(route, { code: 'corpus_not_ready' }, 409)
+      }
+
+      if (path === '/meta/recommendation-benchmark/cases/xenagos-mid-budget-001/comparison' && method === 'GET') {
+        return json(route, {
+          caseId: 'xenagos-mid-budget-001',
+          commander: 'Xenagos, God of Revels',
+          bracket: 'mid',
+          status: 'automatic_qualified_without_human_validation',
+          generic: { systemWins: 2, gptWins: 1, ties: 0 },
+          grounded: { systemWins: 2, gptWins: 0, ties: 1 },
+          suggestedImprovements: ['Explicar melhor o risco de curva.'],
+        })
       }
 
     if (path === '/meta/recommendation-benchmark/run' && method === 'POST') {

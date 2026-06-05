@@ -27,6 +27,8 @@ Selecao:
 
 `RecommendationBenchmarkScenarioService` valida os snapshots. A geracao GPT retorna `corpus_not_ready` enquanto o corpus nao estiver completo e auditavel.
 
+Coletores: `tools/collect-archidekt-benchmark-candidates.ps1` congela manifesto/lista/catalogo; `tools/collect-topdeck-benchmark-candidates.ps1` seleciona listas competitivas distintas e exige `TOPDECK_API_KEY`. O catalogo TopDeck precisa ser enriquecido antes da qualificacao.
+
 ## Execucao Offline
 
 `RecommendationBenchmarkService` executa diretamente `StrategicRecommendationEngine`, sem rede, banco externo ou auditoria de usuario. O servico estrategico de runtime prepara dados persistidos e delega ao mesmo engine.
@@ -41,7 +43,9 @@ Cada caso recebe:
 - baseline grounded com o mesmo catalogo e meta congelados;
 - tres julgamentos cegos por baseline.
 
-O juiz recebe somente opcoes A/B. O backend mapeia a identidade depois da resposta. Violacoes objetivas de Commander causam veto deterministico antes do juiz. Conjuntos incompletos nunca substituem o ultimo conjunto promovido.
+O juiz recebe somente opcoes A/B. O backend mapeia a identidade depois da resposta. Violacoes objetivas de Commander causam veto deterministico antes do juiz. Artefatos compativeis sao retomados por hashes que incluem as respostas julgadas. Conjuntos incompletos nunca substituem o ultimo conjunto promovido.
+
+O conjunto promovido cria evidencia por comandante/bracket. O runtime retorna `benchmarkEvidence` como `qualified_advantage`, `covered_not_qualified` ou `not_covered`; nunca usa lista fixa de comandantes.
 
 ## Readiness
 

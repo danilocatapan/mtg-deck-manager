@@ -114,7 +114,7 @@ async function readErrorMessage(res) {
   const contentType = res.headers.get('content-type') || ''
   if (contentType.includes('application/json')) {
     const data = await res.json().catch(() => null)
-    return data?.message || data?.error || res.statusText
+    return data?.message || data?.error || data?.code || res.statusText
   }
 
   const text = await res.text().catch(() => '')

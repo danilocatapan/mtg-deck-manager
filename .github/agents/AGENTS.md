@@ -136,6 +136,7 @@ Invariantes globais do dominio
 - Decks privados nunca devem aparecer em listagens publicas nem ser consultados por anonimos/outros usuarios; expose somente DTOs publicos sanitizados para decks publicos.
 - Apply/undo de troca recomendada deve registrar auditoria suficiente para rastreabilidade sem gravar tokens, PII desnecessaria ou payloads sensiveis em logs.
 - Benchmark e revisao cega devem usar `docs/benchmark-operations.md` como ponto de entrada; nao reexplorar o pipeline antes de consultar estado, contratos e proximos passos documentados.
+- Claims de vantagem contra GPT dependem do conjunto promovido atual e de `benchmarkEvidence` por comandante/bracket; nunca criar allowlist fixa para comunicar superioridade.
 - Diagnostico no navegador deve ser opt-in por sessao e sanitizado; nunca registrar token, identidade, decklist completa ou notas privadas.
 - Meta top decks so deve influenciar recomendacoes quando a amostra minima e os filtros de formato/bracket/fonte forem respeitados.
 

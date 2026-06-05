@@ -18,6 +18,8 @@ Invariantes do grafo
 - O benchmark offline executa diretamente `StrategicRecommendationEngine` por `RecommendationBenchmarkScenarioService`; nao pode acessar rede, banco externo ou auditoria.
 - A geracao GPT exige 50 snapshots reais completos, um comandante por caso, procedencia HTTPS e fonte aprovada. Corpus incompleto deve retornar `corpus_not_ready`.
 - Julgamentos GPT recebem somente A/B. O backend mapeia a identidade depois e aplica vetos objetivos antes da chamada.
+- Claims no runtime dependem de `benchmarkEvidence` dinamico do conjunto promovido por comandante/bracket; nunca adicionar listas fixas de comandantes cobertos.
+- A UI comum mostra apenas resumo confiavel da evidencia. Diagnosticos e comparacoes completas ficam no Meta Admin.
 
 Pontos do codigo que merecem revisao explicita
 ----------------------------------------------

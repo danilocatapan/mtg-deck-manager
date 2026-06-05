@@ -29,6 +29,7 @@ Este documento resume o schema PostgreSQL atual do MTG Deck Manager e como ele s
 - `V12__create_user_card_collection.sql`: coleção mínima persistida por usuário.
 - `V13__create_canonical_meta_decks.sql`: snapshot canônico TopDeck.gg e remoção segura do fluxo manual legado.
 - `V14__create_recommendation_benchmark.sql`: rodadas, resultados por caso e avaliações humanas do benchmark.
+- `V15__create_benchmark_ai_artifacts.sql`: jobs resumiveis, artefatos GPT imutaveis e conjuntos promovidos.
 
 ## Entidades Persistidas
 
@@ -44,6 +45,7 @@ Este documento resume o schema PostgreSQL atual do MTG Deck Manager e como ele s
 - `RecommendationBenchmarkRun`: rodada calculada, versão do corpus, status, tempos e métricas agregadas.
 - `RecommendationBenchmarkCaseResult`: resultados, métricas e respostas cegas persistidas por caso.
 - `RecommendationBenchmarkReview`: voto único por administrador, rodada e caso.
+- `RecommendationBenchmarkAiJob`, `RecommendationBenchmarkAiArtifact` e `RecommendationBenchmarkAiSet`: progresso, hashes de compatibilidade e ultimo conjunto promovido.
 
 Registros auxiliares em `service/meta` como `MetaDeck`, `MetaCard`, `CommanderMetaProfile` e similares podem ser dados transitorios ou derivados; so viram tabela quando houver entidade JPA e migration correspondente.
 

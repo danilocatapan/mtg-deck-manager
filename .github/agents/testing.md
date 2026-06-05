@@ -36,7 +36,7 @@ Cobertura que merece atencao explicita
 - Decks publicos, likes, copia, privacidade e LGPD.
 - Persistencia PostgreSQL/Flyway quando entidade, indice, constraint ou query mudar.
 - A CI PostgreSQL deve manter o cenário legado V1-V12 -> dados preparados -> V13/V14 antes da suíte completa; não substitua essa validação por busca textual nas migrations.
-- Benchmark: 20 fixtures offline, formulas das metricas, concorrencia, preservacao da ultima rodada, anonimato A/B, voto unico e quorum de 3.
+- Benchmark: corpus diagnostico de 20 casos e meta qualificavel de 50 snapshots reais; validar formulas reais, hashes/retomada, concorrencia, preservacao da ultima rodada, anonimato A/B e vetos objetivos.
 - Auth/OIDC, CORS, headers e logs sanitizados quando seguranca for afetada.
 - Erros de contrato REST e respostas HTTP.
 - Acessibilidade frontend: WCAG 2.2 AA + AAA oportunista, teclado, foco, contraste, landmarks, dialogs, tabs, popovers, live regions e estados vazio/loading/erro.
@@ -74,7 +74,7 @@ Benchmark GPT automatico
 ------------------------
 - A CI PostgreSQL deve validar V1-V12 -> dados legados -> V13/V14/V15 antes da suite completa.
 - Teste o engine offline real, bloqueio `corpus_not_ready`, vetos objetivos, anonimato A/B, retry, concorrencia e preservacao do ultimo conjunto promovido.
-- Playwright deve cobrir preview GPT, bloqueio de corpus, job/progresso quando qualificavel e screenshots desktop/mobile.
+- Playwright deve cobrir preview GPT, funil/bloqueadores traduzidos, resultados por baseline, diagnostico por caso, recomendacao com/sem claim e screenshots desktop/mobile.
 
 Executando Maven nos testes (Windows PowerShell)
 ------------------------------------------------

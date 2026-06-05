@@ -233,7 +233,8 @@ class StrategicRecommendationServiceTest {
         StrategicRecommendationRun run = sut.recommendRun(1L, new RecommendationParamsDTO(null, "mid", null, null));
 
         assertEquals("low_confidence", run.confidence());
-        assertEquals("benchmark_reference_exists_but_current_run_is_low_confidence", run.benchmarkStatus());
+        assertEquals("not_proven_against_gpt", run.benchmarkStatus());
+        assertEquals("not_covered", run.benchmarkEvidence().status());
         assertTrue(run.coverage().fallbackUsed());
         assertFalse(run.coverage().usefulMeta());
         assertTrue(run.limitations().stream().anyMatch(limitation -> limitation.contains("Dados meta insuficientes")));

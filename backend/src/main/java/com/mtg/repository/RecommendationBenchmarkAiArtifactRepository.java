@@ -14,4 +14,8 @@ public class RecommendationBenchmarkAiArtifactRepository implements PanacheRepos
     public RecommendationBenchmarkAiArtifact byJobCaseAndType(Long jobId, String caseId, String artifactType) {
         return find("jobId = ?1 and caseId = ?2 and artifactType = ?3", jobId, caseId, artifactType).firstResult();
     }
+
+    public RecommendationBenchmarkAiArtifact latestCompatible(String caseId, String artifactType, String inputHash) {
+        return find("caseId = ?1 and artifactType = ?2 and inputHash = ?3 order by createdAt desc", caseId, artifactType, inputHash).firstResult();
+    }
 }
