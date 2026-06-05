@@ -71,6 +71,8 @@ A CI PostgreSQL aplica V1-V12, prepara uma projeção manual legada e um deck ex
 
 ## Validacao PostgreSQL Local
 
+V15 adiciona `recommendation_benchmark_ai_jobs`, `recommendation_benchmark_ai_artifacts` e `recommendation_benchmark_ai_sets`. A CI aplica V13/V14/V15 sobre o cenario legado antes da suite PostgreSQL completa; jobs incompletos nunca devem substituir o ultimo conjunto promovido.
+
 ```powershell
 docker compose up -d postgres
 cd backend

@@ -285,7 +285,7 @@ export async function mockApi(page, { apiFailure = null, contactStatus = 200 } =
 
     if (path === '/meta/recommendation-benchmark/summary') {
       return json(route, {
-        status: 'benchmark_in_progress',
+          status: 'automatic_benchmark_in_progress',
         lastRunId: benchmarkRun ? 9 : null,
         evaluatedCases: benchmarkRun ? 20 : 0,
         totalCases: 20,
@@ -296,13 +296,31 @@ export async function mockApi(page, { apiFailure = null, contactStatus = 200 } =
         ] : [],
         reviewProgress: { completedCases: benchmarkVotes >= 3 ? 1 : 0, totalCases: 20, votes: benchmarkVotes, requiredVotes: 60 },
         feedback: { accepted: 1, rejected: 0, needsReview: 0 },
-        feedbackBreakdown: { byCommander: { 'Xenagos, God of Revels': 1 }, byBracket: { casual: 1 }, byReason: {} },
+          feedbackBreakdown: { byCommander: { 'Xenagos, God of Revels': 1 }, byBracket: { casual: 1 }, byReason: {} },
+          aiArtifacts: { configured: true, model: 'gpt-5.5', promotedSetCurrent: false, humanValidation: 'pending', latestJob: null },
         nextActions: [
           { id: 'expand-corpus', title: 'Expandir corpus versionado', status: 'in_progress', actor: 'maintainer', description: 'Adicionar casos representativos.', completed: 20, target: 50 },
           { id: 'human-review', title: 'Concluir avaliacao humana cega', status: 'in_progress', actor: 'reviewer', description: 'Registrar resultados cegos.', completed: benchmarkVotes >= 3 ? 1 : 0, target: 20 },
         ],
       })
-    }
+      }
+
+      if (path === '/meta/recommendation-benchmark/ai-artifacts/preview' && method === 'POST') {
+        return json(route, {
+          configured: true,
+          model: 'gpt-5.5',
+          totalCases: 20,
+          baselineCalls: 40,
+          judgeCalls: 120,
+          totalCalls: 160,
+          maxConcurrency: 2,
+          status: 'corpus_not_ready',
+        })
+      }
+
+      if (path === '/meta/recommendation-benchmark/ai-artifacts/generate' && method === 'POST') {
+        return json(route, { code: 'corpus_not_ready' }, 409)
+      }
 
     if (path === '/meta/recommendation-benchmark/run' && method === 'POST') {
       benchmarkRun = true

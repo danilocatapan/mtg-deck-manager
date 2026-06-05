@@ -4,80 +4,59 @@ Ultima atualizacao: 2026-06-05
 
 ## Objetivo
 
-Definir quando o MTG Deck Manager pode afirmar que suas recomendacoes de upgrade Commander sao melhores que um prompt generico de GPT para o mesmo deck e usuario.
+Medir se o recomendador oferece vantagem automatica qualificada sobre GPT-5.5 sem confundir popularidade, julgamento automatico ou feedback com validacao humana.
 
-O sistema so deve afirmar superioridade quando houver evidencia no benchmark e a execucao atual estiver com `medium_confidence` ou `high_confidence`. Em execucoes `low_confidence`, a UI deve informar que ainda nao ha dados suficientes para superar uma analise GPT ampla.
+## Corpus Qualificavel
 
-## Corpus atual e meta de cobertura
+O arquivo `backend/src/main/resources/recommendation-benchmark/cases-v1.json` ainda possui 20 cenarios reduzidos e serve somente para diagnostico do runner.
 
-O corpus atual possui 20 casos completos em `backend/src/main/resources/recommendation-benchmark/cases-v1.json`, distribuídos entre Xenagos, K'rrik, Grand Arbiter, Kess, Atraxa, Yuriko, Muldrotha e Edgar Markov.
+A geracao e promocao GPT exigem exatamente 50 snapshots reais:
 
-Cada caso contém:
+- um comandante diferente por caso;
+- comandante mais 99 cartas;
+- `source`, `sourceUrl` HTTPS e `capturedAt`;
+- somente fontes `archidekt_popular` ou `topdeck_tournament`;
+- preferencias, restricoes, catalogo e meta congelados;
+- labels independentes apenas quando realmente existentes.
 
-- `commander`
-- `bracket`
-- `decklist`
-- `userIntent`
-- `constraints`: budget, ownedOnly, avoidSalt, avoidTutors, preserveTheme, lowerCurve, improveMana, moreInteraction
-- `expectedAdds`: lista curada por avaliacao humana
-- `expectedCuts`: lista curada por avaliacao humana
-- `protectedCards`: cartas que nao devem ser cortadas
-- `notes`: contexto de mesa, arquétipo e motivo dos labels
+Selecao:
 
-O runner atual é determinístico, offline e persistido. Ele calcula métricas sobre saídas estruturadas versionadas do sistema e do baseline GPT. A próxima evolução técnica é executar diretamente o núcleo estratégico extraído sobre cada fixture, ainda sem rede e sem criar auditorias de usuário.
+- casual/mid/popular: decks Commander publicos e completos do Archidekt, ordenados por visualizacoes e deduplicados por comandante;
+- high-power/cEDH: decks com resultado real de torneio via TopDeck.gg;
+- popularidade nunca deve ser tratada como evidencia de competitividade.
 
-O status `benchmark_ready` exige pelo menos 50 casos completos e quórum humano em todos eles.
+`RecommendationBenchmarkScenarioService` valida os snapshots. A geracao GPT retorna `corpus_not_ready` enquanto o corpus nao estiver completo e auditavel.
 
-## Baseline GPT
+## Execucao Offline
 
-Para cada caso, gerar uma resposta GPT manualmente com prompt fixo:
+`RecommendationBenchmarkService` executa diretamente `StrategicRecommendationEngine`, sem rede, banco externo ou auditoria de usuario. O servico estrategico de runtime prepara dados persistidos e delega ao mesmo engine.
 
-```text
-Improve this Magic: The Gathering Commander deck.
-Respect Commander legality, color identity, budget, bracket, user preferences and the exact decklist.
-Return concrete add/cut swaps with reasons.
+## Baselines e Juiz GPT
 
-[DECK_AND_USER_CONTEXT]
-```
+O fluxo administrativo usa Responses API, `store=false`, modelo fixo `gpt-5.5`, output estruturado e concorrencia maxima 2.
 
-Registrar a saída GPT estruturada no corpus versionado, sem integração OpenAI no runtime e sem usá-la como fonte de verdade. O julgamento final compara sistema e GPT contra labels humanos, invariantes e revisão cega.
+Cada caso recebe:
 
-## Metricas obrigatorias
+- baseline generico com deck e preferencias;
+- baseline grounded com o mesmo catalogo e meta congelados;
+- tres julgamentos cegos por baseline.
 
-- `commanderLegalityPassRate`: alvo 100%.
-- `offColorAddRate`: alvo 0%.
-- `duplicateAddRate`: alvo 0%.
-- `commanderCutRate`: alvo 0%.
-- `addPrecisionAt10`: proporcao de adds no top 10 aceitos pelo label humano.
-- `cutPrecisionAt10`: proporcao de cuts no top 10 aceitos pelo label humano.
-- `blindPreferenceWinRate`: avaliadores preferem o sistema ao GPT em teste cego; alvo inicial 60%+ nos casos cobertos.
-- `actionabilityRate`: recomendacoes com add, cut, motivo, risco e impacto suficiente para aplicar ou rejeitar.
-- `preferenceAdherenceRate`: aderencia a budget, ownedOnly, avoidSalt, avoidTutors e preserveTheme.
+O juiz recebe somente opcoes A/B. O backend mapeia a identidade depois da resposta. Violacoes objetivas de Commander causam veto deterministico antes do juiz. Conjuntos incompletos nunca substituem o ultimo conjunto promovido.
 
-Métricas sem amostra suficiente permanecem `not_ready`. Resultados nunca alteram pesos automaticamente.
+## Readiness
 
-## Revisao humana cega
+`automatic_benchmark_ready` exige:
 
-- O Meta Admin apresenta respostas A/B sem revelar qual pertence ao sistema.
-- Cada caso exige 3 avaliações; maioria simples define o resultado e empate permanece explícito.
-- Cada administrador possui um voto por rodada/caso, com atualização do voto existente.
+- 50 casos reais completos executados pelo engine;
+- nenhuma violacao Commander;
+- `actionabilityRate >= 90%`;
+- `preferenceAdherenceRate >= 80%`;
+- sistema vencedor em pelo menos 60% dos casos contra ambos os baselines;
+- empates de no maximo 20%;
+- artefatos GPT completos e atuais.
 
-## Status por execucao
+`addPrecisionAt10` e `cutPrecisionAt10` permanecem `not_ready` sem labels independentes suficientes. Resultados nunca alteram pesos automaticamente.
 
-- `covered_by_internal_benchmark_reference`: comandante coberto por fixture/benchmark e execucao nao e baixa confianca.
-- `benchmark_reference_exists_but_current_run_is_low_confidence`: existe referencia, mas falta cobertura/dados nesta execucao.
-- `not_proven_against_gpt`: comandante ou contexto ainda nao coberto.
+## Validacao Humana
 
-## Regra de produto
-
-- Com `high_confidence`, o produto pode apresentar a recomendacao como fortemente fundamentada por dados, mantendo ressalvas de preco/disponibilidade/mesa.
-- Com `medium_confidence`, o produto pode apresentar vantagem sobre GPT apenas se o comandante/bracket tiver benchmark coberto.
-- Com `low_confidence`, o produto deve dizer explicitamente que nao ha dados suficientes para prometer qualidade superior ao GPT e continuar apenas com sugestoes conservadoras.
-
-## Proximas acoes derivadas
-
-- O resumo administrativo calcula `nextActions` a partir do corpus, labels humanos e feedback persistido.
-- O Meta Admin e a fonte operacional dessas pendencias; nao existe checklist manual paralelo.
-- Usuarios podem avaliar cada rodada como `accepted`, `rejected` ou `needs_review`.
-- Feedback orienta investigacao e relatorios, mas nunca altera scoring automaticamente.
-- Operação, contratos, pontos de entrada e testes imediatos estão em `docs/benchmark-operations.md`.
+A revisao humana cega permanece disponivel e planejada, mas nao bloqueia a primeira fase automatica. Toda comunicacao deve dizer "vantagem automatica qualificada" e explicitar que a validacao humana ainda esta pendente.

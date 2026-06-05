@@ -18,6 +18,7 @@ public class RecommendationBenchmarkSummaryDTO {
     private java.time.OffsetDateTime lastRunAt;
     private java.util.Map<String, Object> reviewProgress;
     private java.util.Map<String, Object> feedbackBreakdown;
+    private java.util.Map<String, Object> aiArtifacts;
 
     public RecommendationBenchmarkSummaryDTO() {
     }
@@ -106,4 +107,6 @@ public class RecommendationBenchmarkSummaryDTO {
     public void setReviewProgress(java.util.Map<String, Object> reviewProgress) { this.reviewProgress = reviewProgress; }
     public java.util.Map<String, Object> getFeedbackBreakdown() { return feedbackBreakdown == null ? java.util.Map.of() : feedbackBreakdown; }
     public void setFeedbackBreakdown(java.util.Map<String, Object> feedbackBreakdown) { this.feedbackBreakdown = feedbackBreakdown; }
+    public java.util.Map<String, Object> getAiArtifacts() { return aiArtifacts == null ? java.util.Map.of() : aiArtifacts; }
+    public void setAiArtifacts(java.util.Map<String, Object> aiArtifacts) { this.aiArtifacts = aiArtifacts; }
 }

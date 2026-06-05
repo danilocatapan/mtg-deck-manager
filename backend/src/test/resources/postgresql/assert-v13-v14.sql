@@ -24,5 +24,11 @@ BEGIN
         OR to_regclass('public.recommendation_benchmark_reviews') IS NULL THEN
         RAISE EXCEPTION 'V14 did not create every recommendation benchmark table';
     END IF;
+
+    IF to_regclass('public.recommendation_benchmark_ai_jobs') IS NULL
+        OR to_regclass('public.recommendation_benchmark_ai_artifacts') IS NULL
+        OR to_regclass('public.recommendation_benchmark_ai_sets') IS NULL THEN
+        RAISE EXCEPTION 'V15 did not create every automatic GPT benchmark table';
+    END IF;
 END
 $migration_assertions$;

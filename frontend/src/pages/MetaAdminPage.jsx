@@ -5,7 +5,10 @@ import StateMessage from '../components/ui/StateMessage'
 import {
   getMetaSources,
   getNextRecommendationBenchmarkReview,
+  generateRecommendationBenchmarkAi,
+  getRecommendationBenchmarkAiJob,
   getRecommendationBenchmarkSummary,
+  previewRecommendationBenchmarkAi,
   runRecommendationBenchmark,
   submitRecommendationBenchmarkReview,
   syncMeta,
@@ -21,6 +24,9 @@ export default function MetaAdminPage({ onBack }) {
   const [loading, setLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [runningBenchmark, setRunningBenchmark] = useState(false)
+  const [aiPreview, setAiPreview] = useState(null)
+  const [aiJob, setAiJob] = useState(null)
+  const [generatingAi, setGeneratingAi] = useState(false)
   const [review, setReview] = useState(null)
   const [reviewing, setReviewing] = useState(false)
   const [diagnostics, setDiagnostics] = useState(() => diagnosticsEnabled())
@@ -45,12 +51,27 @@ export default function MetaAdminPage({ onBack }) {
       ])
       setSources(Array.isArray(loadedSources) ? loadedSources : [])
       setBenchmark(loadedBenchmark)
+      setAiJob(loadedBenchmark?.aiArtifacts?.latestJob || null)
     } catch (exception) {
       setError(adminErrorMessage(exception, 'Nao foi possivel carregar o estado do meta.'))
     } finally {
       setLoading(false)
     }
   }, [canAdmin])
+
+  useEffect(() => {
+    if (!aiJob?.id || aiJob.status !== 'running') return undefined
+    const timer = window.setInterval(async () => {
+      try {
+        const current = await getRecommendationBenchmarkAiJob(aiJob.id)
+        setAiJob(current)
+        if (current.status !== 'running') await loadStatus()
+      } catch {
+        window.clearInterval(timer)
+      }
+    }, 2000)
+    return () => window.clearInterval(timer)
+  }, [aiJob?.id, aiJob?.status, loadStatus])
 
   useEffect(() => {
     queueMicrotask(loadStatus)
@@ -83,6 +104,30 @@ export default function MetaAdminPage({ onBack }) {
       emitDiagnostic('event=benchmark.run.failed', { status: 'failed' })
     } finally {
       setRunningBenchmark(false)
+    }
+  }
+
+  async function handlePreviewAi() {
+    setError(null)
+    try {
+      setAiPreview(await previewRecommendationBenchmarkAi())
+    } catch (exception) {
+      setError(adminErrorMessage(exception, 'Nao foi possivel calcular a previsao da geracao GPT.'))
+    }
+  }
+
+  async function handleGenerateAi() {
+    setGeneratingAi(true)
+    setError(null)
+    try {
+      const job = await generateRecommendationBenchmarkAi()
+      setAiJob(job)
+      emitDiagnostic('event=benchmark.ai_job.started', { status: job.status, count: job.totalCalls })
+    } catch (exception) {
+      setError(adminErrorMessage(exception, 'Nao foi possivel iniciar a geracao GPT.'))
+      emitDiagnostic('event=benchmark.ai_job.failed', { status: 'failed' })
+    } finally {
+      setGeneratingAi(false)
     }
   }
 
@@ -230,11 +275,47 @@ export default function MetaAdminPage({ onBack }) {
         </div>
       </Card>
 
+      <Card className="zone zone-command">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Comparacao automatica qualificada</p>
+            <h2>Baselines e juiz GPT-5.5</h2>
+            <p>
+              Resultado automatico, versionado e sem validacao humana concluida. Nunca ajusta pesos automaticamente.
+            </p>
+          </div>
+          <div className="actions-row">
+            <Button variant="secondary" onClick={handlePreviewAi}>Visualizar previsao</Button>
+            <Button onClick={handleGenerateAi} loading={generatingAi || aiJob?.status === 'running'} loadingLabel="Gerando artefatos GPT...">Gerar comparacoes GPT</Button>
+          </div>
+        </div>
+        <div className="meta-admin-info-grid">
+          <article className="card action-card">
+            <span className={`status-pill ${benchmark?.aiArtifacts?.promotedSetCurrent ? 'ready' : ''}`}>
+              {benchmark?.aiArtifacts?.promotedSetCurrent ? 'atual' : 'pendente'}
+            </span>
+            <h3>Conjunto promovido</h3>
+            <p>Modelo: {benchmark?.aiArtifacts?.model || 'gpt-5.5'}</p>
+            <small>Validacao humana: {benchmark?.aiArtifacts?.humanValidation || 'pending'}</small>
+          </article>
+          <article className="card action-card">
+            <h3>Previsao operacional</h3>
+            <p>{aiPreview ? `${aiPreview.totalCalls} chamadas maximas para ${aiPreview.totalCases} casos.` : 'Visualize antes de iniciar para conferir escopo e configuracao.'}</p>
+            <small>{aiPreview ? `Status: ${aiPreview.status} | Baselines: ${aiPreview.baselineCalls} | Juizes: ${aiPreview.judgeCalls} | Concorrencia: ${aiPreview.maxConcurrency}` : 'A chave permanece somente no backend.'}</small>
+          </article>
+          <article className="card action-card">
+            <h3>Job atual</h3>
+            <p>{aiJob ? `${aiJob.completedCalls}/${aiJob.totalCalls} artefatos | ${aiJob.status}` : 'Nenhum job iniciado.'}</p>
+            <small>{aiJob?.errorCode ? `Falha: ${aiJob.errorCode}. O ultimo conjunto valido foi preservado.` : 'Jobs incompletos nunca substituem o ultimo conjunto valido.'}</small>
+          </article>
+        </div>
+      </Card>
+
       <Card className="zone zone-battlefield">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Avaliacao humana</p>
-            <h2>Revisao cega A/B</h2>
+            <p className="eyebrow">Validacao futura</p>
+            <h2>Revisao humana cega A/B</h2>
             <p>Progresso: {benchmark?.reviewProgress?.completedCases || 0}/{benchmark?.reviewProgress?.totalCases || benchmark?.totalCases || 20} casos com quorum.</p>
           </div>
           <Button variant="secondary" onClick={loadNextReview} loading={reviewing}>Carregar proximo caso</Button>

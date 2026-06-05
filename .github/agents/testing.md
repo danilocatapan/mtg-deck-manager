@@ -1,7 +1,7 @@
 # testing.md - Estrategia pratica de testes
 
-Versao: agents-2026-05-21
-Ultima atualizacao: 2026-05-21
+Versao: agents-2026-06-05
+Ultima atualizacao: 2026-06-05
 
 Quando usar
 -----------
@@ -69,6 +69,12 @@ Comandos atuais
 - CI frontend executa lint, build, e2e e a11y; se Playwright falhar, priorize corrigir o comportamento ou o mock em vez de remover cobertura.
 - Os testes Playwright autenticados devem simular `sessionStorage` com token fake e interceptar REST pelos contratos existentes; nao usar login Google real.
 - Violacoes axe so podem ser aceitas com comentario explicito no teste explicando o motivo, o escopo e o plano de remocao.
+
+Benchmark GPT automatico
+------------------------
+- A CI PostgreSQL deve validar V1-V12 -> dados legados -> V13/V14/V15 antes da suite completa.
+- Teste o engine offline real, bloqueio `corpus_not_ready`, vetos objetivos, anonimato A/B, retry, concorrencia e preservacao do ultimo conjunto promovido.
+- Playwright deve cobrir preview GPT, bloqueio de corpus, job/progresso quando qualificavel e screenshots desktop/mobile.
 
 Executando Maven nos testes (Windows PowerShell)
 ------------------------------------------------

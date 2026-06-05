@@ -1,7 +1,7 @@
 # workflow-graph.md - Guia do hotspot: pipeline de recomendacao
 
-Versao: agents-2026-05-21
-Ultima atualizacao: 2026-05-21
+Versao: agents-2026-06-05
+Ultima atualizacao: 2026-06-05
 
 Quando usar
 -----------
@@ -15,12 +15,15 @@ Invariantes do grafo
 - Sugestoes de corte nao devem remover comandante.
 - Meta top decks devem respeitar amostra minima, formato, bracket e sourceMode antes de influenciar ranking.
 - Apply/undo swap nao pode alterar carta errada nem quebrar quantidade total; deve preservar rastreabilidade da recomendacao aplicada.
-- O benchmark offline atual avalia artefatos versionados em `recommendation-benchmark/cases-v1.json`; consulte `docs/benchmark-operations.md` antes de evoluir para execucao direta do nucleo estrategico.
+- O benchmark offline executa diretamente `StrategicRecommendationEngine` por `RecommendationBenchmarkScenarioService`; nao pode acessar rede, banco externo ou auditoria.
+- A geracao GPT exige 50 snapshots reais completos, um comandante por caso, procedencia HTTPS e fonte aprovada. Corpus incompleto deve retornar `corpus_not_ready`.
+- Julgamentos GPT recebem somente A/B. O backend mapeia a identidade depois e aplica vetos objetivos antes da chamada.
 
 Pontos do codigo que merecem revisao explicita
 ----------------------------------------------
 - `RecommendationService` - orquestracao das recomendacoes heuristicas.
 - `StrategicRecommendationService` - recomendacoes estrategicas e criterios de decisao.
+- `StrategicRecommendationEngine`, `RecommendationBenchmarkScenarioService` e `RecommendationBenchmarkAiService` - decisao offline, validacao do corpus e comparacao automatica.
 - `MetaProvider`, `MetaProviderImpl`, `MetaDatasetLoader`, `MetaDatasetService` - validacao de dados e normalizacao de nomes.
 - `TopDeckMetaAdapter`, `ExternalMetaIngestionJob`, `MetaDatasetService`, `BracketMetaPolicy` - sync automatico, persistencia canonica e politica de uso no ranking.
 - `ColorIdentityMatcher`, `CandidateAddSelector`, `CandidateCutSelector` - regras de cor, duplicidade e elegibilidade.

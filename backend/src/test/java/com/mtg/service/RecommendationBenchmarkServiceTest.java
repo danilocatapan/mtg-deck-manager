@@ -1,5 +1,6 @@
 package com.mtg.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mtg.dto.RecommendationBenchmarkReviewRequestDTO;
 import com.mtg.dto.RecommendationBenchmarkSummaryDTO;
 import com.mtg.repository.RecommendationBenchmarkCaseRepository;
@@ -11,6 +12,8 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,6 +24,9 @@ class RecommendationBenchmarkServiceTest {
     @Inject RecommendationBenchmarkRunRepository runRepository;
     @Inject RecommendationBenchmarkCaseRepository caseRepository;
     @Inject RecommendationBenchmarkReviewRepository reviewRepository;
+    @Inject RecommendationBenchmarkAiService aiService;
+    @Inject RecommendationBenchmarkScenarioService scenarioService;
+    @Inject ObjectMapper objectMapper;
 
     @BeforeEach
     @Transactional
@@ -56,5 +62,26 @@ class RecommendationBenchmarkServiceTest {
         assertEquals(1, summary.getReviewProgress().get("completedCases"));
         assertEquals(3, summary.getReviewProgress().get("votes"));
         assertTrue(summary.getMetrics().stream().anyMatch(metric -> "blindPreferenceWinRate".equals(metric.getName()) && metric.getSampleSize() == 1));
+    }
+
+    @Test
+    void blocksAiGenerationPreviewUntilCorpusHasFiftyRealCompleteDecks() {
+        var preview = aiService.preview();
+
+        assertEquals(20, preview.totalCases());
+        assertEquals("corpus_not_ready", preview.status());
+    }
+
+    @Test
+    void reportsWhyLegacyFixtureDoesNotQualifyAsRealCorpus() throws Exception {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("recommendation-benchmark/cases-v1.json")) {
+            var fixture = objectMapper.readTree(input).path("cases").get(0);
+            var violations = scenarioService.validateFixture(fixture);
+
+            assertTrue(violations.contains("unapproved_source"));
+            assertTrue(violations.contains("missing_source_url"));
+            assertTrue(violations.contains("missing_capture_date"));
+            assertTrue(violations.contains("deck_must_include_commander_plus_99"));
+        }
     }
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## Em desenvolvimento - Benchmark GPT automatico
+
+- Extrai o `StrategicRecommendationEngine` e faz o benchmark executar o nucleo real offline.
+- Adiciona V15, jobs GPT-5.5, baselines generico/grounded e tres julgamentos cegos por comparacao.
+- Aplica vetos objetivos antes do juiz e preserva o ultimo conjunto promovido em falhas.
+- Bloqueia geracao com `corpus_not_ready` ate existirem 50 decks reais completos, distintos e com procedencia.
+- Adiciona preview, progresso e estado qualificado ao Meta Admin.
+- Adiciona coletor reproduzivel e manifesto auditavel com 25 decks Commander populares reais do Archidekt, completos e deduplicados por comandante.
+
 Todas as mudancas notaveis deste projeto serao documentadas aqui.
 
 O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e atualizado a partir das tags Git e mensagens de commit da release.

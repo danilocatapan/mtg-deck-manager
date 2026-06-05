@@ -7,6 +7,7 @@ import com.mtg.service.AuthenticatedUserService;
 import com.mtg.service.CommanderSpellbookComboSyncService;
 import com.mtg.service.ExternalDeckImportService;
 import com.mtg.service.RecommendationBenchmarkService;
+import com.mtg.service.RecommendationBenchmarkAiService;
 import com.mtg.service.meta.CommanderMetaProfile;
 import com.mtg.service.meta.CommanderMetaProfileService;
 import com.mtg.service.meta.ExternalMetaIngestionJob;
@@ -61,6 +62,9 @@ public class MetaController {
 
     @Inject
     RecommendationBenchmarkService recommendationBenchmarkService;
+
+    @Inject
+    RecommendationBenchmarkAiService recommendationBenchmarkAiService;
 
     @Inject
     AuthenticatedUserService authenticatedUserService;
@@ -184,6 +188,48 @@ public class MetaController {
         validateLength(caseId, 120, "caseId");
         recommendationBenchmarkService.review(caseId, request, currentAdminId());
         return Response.noContent().build();
+    }
+
+    @POST
+    @Path("/recommendation-benchmark/ai-artifacts/preview")
+    public Response recommendationBenchmarkAiPreview(@HeaderParam("X-Admin-Key") String adminKey) {
+        if (!isTopDeckAdminAuthorized(adminKey)) return Response.status(Response.Status.FORBIDDEN).build();
+        return Response.ok(recommendationBenchmarkAiService.preview()).build();
+    }
+
+    @POST
+    @Path("/recommendation-benchmark/ai-artifacts/generate")
+    public Response generateRecommendationBenchmarkAiArtifacts(@HeaderParam("X-Admin-Key") String adminKey) {
+        if (!isTopDeckAdminAuthorized(adminKey)) return Response.status(Response.Status.FORBIDDEN).build();
+        try {
+            return Response.accepted(recommendationBenchmarkAiService.start()).build();
+        } catch (IllegalStateException exception) {
+            if ("openai_not_configured".equals(exception.getMessage())) {
+                return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(Map.of("code", "openai_not_configured")).build();
+            }
+            if ("corpus_not_ready".equals(exception.getMessage())) {
+                return Response.status(Response.Status.CONFLICT).entity(Map.of("code", "corpus_not_ready")).build();
+            }
+            if ("ai_artifact_job_already_running".equals(exception.getMessage())) {
+                return Response.status(Response.Status.CONFLICT).entity(Map.of("code", "ai_artifact_job_already_running")).build();
+            }
+            throw exception;
+        }
+    }
+
+    @GET
+    @Path("/recommendation-benchmark/ai-artifacts/jobs/{id}")
+    public Response recommendationBenchmarkAiJob(@HeaderParam("X-Admin-Key") String adminKey, @PathParam("id") Long id) {
+        if (!isTopDeckAdminAuthorized(adminKey)) return Response.status(Response.Status.FORBIDDEN).build();
+        return Response.ok(recommendationBenchmarkAiService.job(id)).build();
+    }
+
+    @GET
+    @Path("/recommendation-benchmark/cases/{caseId}/comparison")
+    public Response recommendationBenchmarkComparison(@HeaderParam("X-Admin-Key") String adminKey, @PathParam("caseId") String caseId) {
+        if (!isTopDeckAdminAuthorized(adminKey)) return Response.status(Response.Status.FORBIDDEN).build();
+        validateLength(caseId, 120, "caseId");
+        return Response.ok(recommendationBenchmarkAiService.comparison(caseId)).build();
     }
 
     @GET

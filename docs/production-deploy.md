@@ -113,6 +113,9 @@ APP_LOG_LEVEL=INFO
 QUARKUS_FLYWAY_MIGRATE_AT_START=false
 META_TOPDECK_ENABLED=true
 TOPDECK_API_KEY=<optional-topdeck-key>
+OPENAI_API_KEY=<backend-only-openai-key>
+BENCHMARK_OPENAI_ENABLED=false
+BENCHMARK_OPENAI_MODEL=gpt-5.5
 META_ADMIN_EMAILS=<comma-separated-admin-emails>
 SECURITY_ADMIN_SUBJECTS=<comma-separated-admin-google-subjects>
 ```
@@ -144,6 +147,7 @@ QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://<host>:5432/<database>
 QUARKUS_DATASOURCE_USERNAME=<database-user>
 QUARKUS_DATASOURCE_PASSWORD=<database-password>
 TOPDECK_API_KEY=<optional-topdeck-key>
+OPENAI_API_KEY=<backend-only-openai-key>
 STAGING_BEARER_TOKEN=<short-lived-google-id-token-for-smoke-tests>
 ```
 

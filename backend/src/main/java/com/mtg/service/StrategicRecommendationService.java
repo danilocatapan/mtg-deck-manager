@@ -62,6 +62,9 @@ public class StrategicRecommendationService {
     StrategicDeckAnalyzer strategicDeckAnalyzer;
 
     @Inject
+    StrategicRecommendationEngine strategicRecommendationEngine;
+
+    @Inject
     BracketMetaPolicy bracketMetaPolicy;
 
     @Inject
@@ -159,10 +162,25 @@ public class StrategicRecommendationService {
 
         Map<String, CardResponseDTO> knownCards = preloadCards(deck, metaCards);
         int requestedCardCount = requestedCardCount(deck, metaCards);
-        CardResponseDTO commanderCard = knownCards.get(normalize(deck.getCommander()));
-        DeckRoleSummary roles = deckRoleAnalyzer.analyze(deck, knownCards, bracket);
-        CommanderArchetypeProfile profile = archetypeDetector.detect(deck.getCommander(), commanderCard, roles, persistedColors(deck.getColorIdentity()));
-        StrategicDeckAssessment assessment = analyzer().assess(deck, knownCards, profile, roles, bracket);
+        StrategicRecommendationEngine.Result engineResult = engine().recommend(new StrategicRecommendationEngine.Scenario(
+                deck,
+                metaCards,
+                knownCards,
+                persistedColors(deck.getColorIdentity()),
+                bracket,
+                hasUsefulMeta,
+                recommendationMode,
+                budget,
+                filters,
+                ownedCardNames,
+                maxRecommendations,
+                metaProfile.sampleSize(),
+                metaProfile.sourcesUsed(),
+                currentGameChangers(deck)
+        ));
+        DeckRoleSummary roles = engineResult.roles();
+        CommanderArchetypeProfile profile = engineResult.profile();
+        StrategicDeckAssessment assessment = engineResult.assessment();
         LOG.infov(
                 "event=recommendation.strategy.context deckId={0} commander=\"{1}\" colors={2} bracket={3} archetype={4} gaps={5} issues={6} weakCards={7}",
                 deckId,
@@ -174,9 +192,6 @@ public class StrategicRecommendationService {
                 assessment.issues(),
                 assessment.weakCards()
         );
-
-        List<StrategicCandidate> adds = addSelector.select(deck, metaCards, knownCards, profile, roles, bracket, hasUsefulMeta, recommendationMode, budget, filters, assessment, ownedCardNames);
-        List<StrategicCandidate> cuts = cutSelector.select(deck, knownCards, profile, roles, bracket, assessment);
 
         LOG.infov(
                 "event=strategic.recommendation.context deckId={0} commander=\"{1}\" bracket={2} sourceMode={3} sampleSize={4} sources={5} fallback={6}",
@@ -190,24 +205,12 @@ public class StrategicRecommendationService {
         );
         LOG.infov(
                 "event=recommendation.add_candidates.generated count={0} source={1}",
-                adds.size(),
+                engineResult.addCandidates(),
                 hasUsefulMeta ? "meta_profile" : "heuristic"
         );
-        LOG.infov("event=recommendation.cut_candidates.generated count={0}", cuts.size());
+        LOG.infov("event=recommendation.cut_candidates.generated count={0}", engineResult.cutCandidates());
 
-        List<StrategicRecommendation> recommendations = pairer.pair(
-                adds,
-                cuts,
-                profile,
-                roles,
-                maxRecommendations,
-                bracket,
-                metaProfile.sampleSize(),
-                metaProfile.sourcesUsed(),
-                recommendationMode,
-                budget,
-                currentGameChangers(deck)
-        );
+        List<StrategicRecommendation> recommendations = engineResult.recommendations();
         LOG.infov(
                 "event=recommendation.strategic.completed deckId={0} recommendations={1}",
                 deckId,
@@ -283,6 +286,20 @@ public class StrategicRecommendationService {
             strategicDeckAnalyzer.roleClassifier = new CardRoleClassifier();
         }
         return strategicDeckAnalyzer;
+    }
+
+    private StrategicRecommendationEngine engine() {
+        if (strategicRecommendationEngine == null) {
+            StrategicRecommendationEngine fallback = new StrategicRecommendationEngine();
+            fallback.deckRoleAnalyzer = deckRoleAnalyzer;
+            fallback.archetypeDetector = archetypeDetector;
+            fallback.addSelector = addSelector;
+            fallback.cutSelector = cutSelector;
+            fallback.pairer = pairer;
+            fallback.strategicDeckAnalyzer = analyzer();
+            strategicRecommendationEngine = fallback;
+        }
+        return strategicRecommendationEngine;
     }
 
     private String normalizeRecommendationMode(String strategy) {

@@ -20,6 +20,9 @@ Ultima atualizacao: 2026-06-05
 | Quality gate, confianca e limitacoes | `pronto` | `StrategicRecommendationRun` e `StrategicRecommendationService` expoem confidence, coverage, freshness, fontes, limitacoes e `benchmarkStatus`; UI apresenta aviso em baixa confianca. |
 | Personalizacao por estrategia, orcamento e colecao | `pronto` | `strategy` altera scoring, `budget` filtra/penaliza candidatos e `ownedOnly` usa a colecao persistida; sem inventario, o quality gate cai para baixa confianca. |
 | TopDeck.gg e Meta Admin | `pronto` | TopDeck.gg e a unica fonte externa viva; `/meta/sync` busca, persiste na base canonica, reconstrói perfis e separa importados, descartados, snapshot preservado e erros operacionais. |
+| Benchmark GPT automatico | `em desenvolvimento` | Engine real offline, V15, jobs GPT-5.5, julgamento A/B cego e vetos objetivos implementados. Promocao bloqueada ate congelar 50 decks reais completos e distintos; `TOPDECK_API_KEY` ainda nao esta configurada. |
+
+Coleta do corpus popular: `tools/collect-archidekt-benchmark-candidates.ps1` gera manifesto auditavel com decks Commander completos, ordenados por visualizacoes e deduplicados por comandante. A parcela competitiva continua vindo do TopDeck.gg.
 | Benchmark contra GPT | `parcial` | Runner offline calcula metricas sobre 20 casos versionados e persiste rodadas/resultados; ainda faltam 50 casos e execucao direta do nucleo estrategico para prova mais forte. |
 | Baseline GPT e avaliacao humana | `parcial` | Baselines estruturados entram nos 20 casos e o Meta Admin oferece revisao A/B cega; ainda faltam 3 votos por caso para fechar o quorum. |
 | Cobertura meta por comandante | `parcial` | Perfis locais dedicados cobrem Xenagos, K'rrik, Grand Arbiter e Kess; ainda nao ha cobertura ampla de comandantes populares e long-tail. |

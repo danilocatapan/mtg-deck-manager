@@ -455,6 +455,36 @@ export async function submitRecommendationBenchmarkReview(caseId, payload, admin
   })
 }
 
+export async function previewRecommendationBenchmarkAi(adminKey = '') {
+  return await request('/meta/recommendation-benchmark/ai-artifacts/preview', {
+    method: 'POST',
+    retryOnStartup: false,
+    headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+  })
+}
+
+export async function generateRecommendationBenchmarkAi(adminKey = '') {
+  return await request('/meta/recommendation-benchmark/ai-artifacts/generate', {
+    method: 'POST',
+    retryOnStartup: false,
+    headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+  })
+}
+
+export async function getRecommendationBenchmarkAiJob(jobId, adminKey = '') {
+  return await request(`/meta/recommendation-benchmark/ai-artifacts/jobs/${encodeURIComponent(jobId)}`, {
+    retryOnStartup: false,
+    headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+  })
+}
+
+export async function getRecommendationBenchmarkComparison(caseId, adminKey = '') {
+  return await request(`/meta/recommendation-benchmark/cases/${encodeURIComponent(caseId)}/comparison`, {
+    retryOnStartup: false,
+    headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
+  })
+}
+
 export async function importDeck(data) {
   try {
     return await request('/decks/import', {

@@ -197,6 +197,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f src/test/resources/postgresql/prepare-v13-v14.sql
           psql -v ON_ERROR_STOP=1 -f src/main/resources/db/migration/V13__replace_manual_top_decks_with_canonical_meta.sql
           psql -v ON_ERROR_STOP=1 -f src/main/resources/db/migration/V14__create_recommendation_benchmark.sql
+          psql -v ON_ERROR_STOP=1 -f src/main/resources/db/migration/V15__create_benchmark_ai_artifacts.sql
           psql -v ON_ERROR_STOP=1 -f src/test/resources/postgresql/assert-v13-v14.sql
           psql -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 

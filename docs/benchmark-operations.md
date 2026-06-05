@@ -4,50 +4,66 @@ Ultima atualizacao: 2026-06-05
 
 ## Estado Atual
 
-- Corpus executavel: `backend/src/main/resources/recommendation-benchmark/cases-v1.json`.
-- Tamanho atual: 20 casos em 8 comandantes.
-- Meta para `benchmark_ready`: pelo menos 50 casos e 3 avaliacoes cegas por caso.
-- Runner: `RecommendationBenchmarkService`.
-- UI operacional: `frontend/src/pages/MetaAdminPage.jsx`.
-- Persistencia: migration V14 e tabelas `recommendation_benchmark_*`.
+- Corpus diagnostico: 20 cenarios reduzidos em `recommendation-benchmark/cases-v1.json`.
+- Meta qualificavel: 50 decks reais completos e comandantes distintos.
+- Runner offline: `RecommendationBenchmarkService`.
+- Engine: `StrategicRecommendationEngine`.
+- Conversao e validacao: `RecommendationBenchmarkScenarioService`.
+- Artefatos GPT: `RecommendationBenchmarkAiService`.
+- UI: `frontend/src/pages/MetaAdminPage.jsx`.
+- Persistencia: migrations V14/V15.
 
-O runner atual e offline e calcula metricas sobre saidas estruturadas e baselines GPT versionados. Ele nao chama Scryfall, TopDeck.gg ou OpenAI. Proxima evolucao tecnica: extrair o nucleo estrategico para executar diretamente cada fixture sem mudar os contratos administrativos.
+O runner offline continua utilizavel durante a coleta. A geracao GPT bloqueia com `corpus_not_ready` ate os 50 snapshots auditaveis estarem congelados.
 
 ## Fluxo Operacional
 
-1. Administrador Google autorizado abre Meta Admin.
-2. `Executar benchmark` chama `POST /meta/recommendation-benchmark/run`.
-3. A rodada persiste versoes, resultados por caso e metricas.
-4. A revisao A/B nunca revela qual opcao pertence ao sistema.
-5. Cada caso exige 3 votos independentes; maioria simples define sistema, GPT ou empate.
-6. Feedback de usuarios permanece separado e nao altera pesos automaticamente.
+1. Execute o benchmark offline no Meta Admin.
+2. Consulte a previsao GPT para conferir modelo, configuracao e quantidade maxima de chamadas.
+3. Gere comparacoes somente quando o corpus estiver qualificavel e `OPENAI_API_KEY` estiver configurada.
+4. A geracao cria baseline generico, baseline grounded e tres julgamentos A/B cegos por baseline.
+5. Vetos objetivos de Commander ocorrem antes do juiz GPT.
+6. Somente um conjunto completo pode ser promovido; falhas preservam o anterior.
+7. Revisao humana e feedback permanecem separados e nunca ajustam pesos automaticamente.
 
-## Metricas
+## Fontes do Corpus
 
-- `addPrecisionAt10` e `cutPrecisionAt10`: acertos sobre recomendacoes avaliadas.
-- `preferenceAdherenceRate`: preferencias atendidas sobre preferencias declaradas.
-- `actionabilityRate`: trocas com add, cut, justificativa e risco.
-- `offColorDuplicateProtectedViolationRate`: violacoes de cor, duplicata ou corte protegido.
-- `blindPreferenceWinRate`: casos completos em que a maioria preferiu o sistema.
+- Archidekt: ranking publico por visualizacoes para popularidade/casual/mid.
+- TopDeck.gg: resultados e decklists de torneios para high-power/cEDH; exige `TOPDECK_API_KEY` e atribuicao.
+- Cada snapshot registra fonte, URL e data de captura.
+- Pular listas incompletas, comandantes repetidos e listas sem procedencia.
+
+Para atualizar o manifesto popular sem alterar automaticamente o corpus:
+
+```powershell
+./tools/collect-archidekt-benchmark-candidates.ps1 -Target 25
+```
+
+O resultado fica em `backend/src/main/resources/recommendation-benchmark/archidekt-candidates.json`. Revise e congele os snapshots completos antes de incorporá-los a `cases-v1.json`.
+
+## APIs
+
+- `POST /meta/recommendation-benchmark/run`
+- `GET /meta/recommendation-benchmark/summary`
+- `POST /meta/recommendation-benchmark/ai-artifacts/preview`
+- `POST /meta/recommendation-benchmark/ai-artifacts/generate`
+- `GET /meta/recommendation-benchmark/ai-artifacts/jobs/{id}`
+- `GET /meta/recommendation-benchmark/cases/{caseId}/comparison`
 
 ## Logs e Diagnostico
 
-Backend registra `benchmark.run.started`, `benchmark.run.completed`, `benchmark.run.failed`, `benchmark.review.recorded` e agregacoes em debug. Use apenas IDs, versoes, status, tempos e contagens.
+Backend registra somente IDs, versoes, hashes, status, tempos e contagens. O diagnostico frontend e opt-in e dura somente a sessao. Nunca registrar chaves, identidade, prompts completos ou decklists completas.
 
-O modo diagnostico frontend e desligado por padrao e dura somente a sessao. Quando ativado, escreve eventos sanitizados no painel e console. Nunca registrar token, identidade, decklist completa, notas privadas ou listas extensas de cartas.
+## Validacao
 
-## Teste Imediato
+- Backend H2 completo e migration PostgreSQL V1-V15.
+- Smoke OpenAI real somente opt-in.
+- Frontend lint/build.
+- Playwright desktop/mobile para preview, job, progresso, falha preservada, comparacao, claim qualificado e screenshots.
+- `git diff --check`.
 
-1. Ative Docker Desktop e rode a suite PostgreSQL descrita em `docs/postgresql-schema.md`.
-2. Em `backend`, rode a suite completa com JDK 25.
-3. Em `frontend`, rode lint, build, E2E e acessibilidade.
-4. O Playwright deve validar executar benchmark, visualizar metricas, concluir quorum mockado, coletar feedback e acompanhar diagnostico sanitizado em desktop/mobile.
-5. O fluxo de sucesso anexa screenshots dos marcos principais em `frontend/test-results`; os artefatos complementam os asserts e ajudam na auditoria visual.
+## Pendencias
 
-## Proximos Passos
-
-1. Expandir de 20 para 50 casos.
-2. Extrair o nucleo estrategico para execucao direta das fixtures.
-3. Completar 3 votos humanos por caso.
-4. Investigar metricas abaixo da meta.
-5. Propor calibracao somente com evidencia e sem regressao Commander.
+1. Congelar 50 decks reais completos e distintos.
+2. Configurar `TOPDECK_API_KEY` para a parcela competitiva.
+3. Executar smoke OpenAI e promover o primeiro conjunto.
+4. Completar validacao humana posterior.

@@ -46,6 +46,8 @@ public class RecommendationBenchmarkService {
     @Inject RecommendationBenchmarkRunRepository runRepository;
     @Inject RecommendationBenchmarkCaseRepository caseRepository;
     @Inject RecommendationBenchmarkReviewRepository reviewRepository;
+    @Inject RecommendationBenchmarkAiService aiService;
+    @Inject RecommendationBenchmarkScenarioService scenarioService;
 
     @Transactional
     public RecommendationBenchmarkSummaryDTO run() {
@@ -103,16 +105,25 @@ public class RecommendationBenchmarkService {
         Map<String, Object> feedbackBreakdown = feedbackBreakdown();
         int totalCases = root.path("cases").size();
         int reviewedCases = ((Number) reviewProgress.getOrDefault("completedCases", 0)).intValue();
+        boolean objectiveReady = latest != null
+                && latest.getEvaluatedCases() >= TARGET_CASES
+                && metricReady(calculated, "commanderLegalityPassRate")
+                && metricReady(calculated, "actionabilityRate")
+                && metricReady(calculated, "preferenceAdherenceRate");
+        boolean automaticReady = totalCases >= TARGET_CASES
+                && objectiveReady
+                && aiService != null
+                && aiService.hasCurrentQualifiedSet(totalCases);
         RecommendationBenchmarkSummaryDTO result = new RecommendationBenchmarkSummaryDTO(
-                totalCases >= TARGET_CASES && reviewedCases >= totalCases ? "benchmark_ready" : "benchmark_in_progress",
-                "manual_gpt_fixtures_versioned_not_source_of_truth",
+                automaticReady ? "automatic_benchmark_ready" : "automatic_benchmark_in_progress",
+                "gpt_5_5_artifacts_required_human_validation_pending",
                 totalCases,
                 TARGET_CASES,
                 coverage,
                 calculated,
                 List.of(
-                        "Corpus atual valida o mecanismo, mas a meta de 50 casos ainda nao foi atingida.",
-                        "Feedback e revisao humana orientam investigacao; pesos nunca mudam automaticamente."
+                        "A vantagem automatica so pode ser comunicada como qualificada e ainda nao possui validacao humana.",
+                        "Feedback, julgamentos e revisao humana orientam investigacao; pesos nunca mudam automaticamente."
                 ),
                 latest == null ? 0 : latest.getEvaluatedCases(),
                 reviewedCases,
@@ -123,6 +134,7 @@ public class RecommendationBenchmarkService {
         result.setLastRunAt(latest == null ? null : latest.getFinishedAt());
         result.setReviewProgress(reviewProgress);
         result.setFeedbackBreakdown(feedbackBreakdown);
+        result.setAiArtifacts(aiService == null ? Map.of() : aiService.statusSummary());
         return result;
     }
 
@@ -177,7 +189,8 @@ public class RecommendationBenchmarkService {
         Set<String> expectedAdds = textSet(fixture.path("labels").path("expectedAdds"));
         Set<String> expectedCuts = textSet(fixture.path("labels").path("expectedCuts"));
         Set<String> protectedCards = textSet(fixture.path("labels").path("protectedCards"));
-        JsonNode system = fixture.path("system");
+        JsonNode system = scenarioService.execute(fixture).output();
+        RecommendationBenchmarkScenarioService.Validation validation = scenarioService.validate(fixture, system);
         int addHits = 0;
         int cutHits = 0;
         int actionable = 0;
@@ -187,12 +200,8 @@ public class RecommendationBenchmarkService {
             if (expectedCuts.contains(normalize(item.path("remove").asText()))) cutHits++;
             boolean complete = hasText(item, "add") && hasText(item, "remove") && hasText(item, "reasoning") && hasText(item, "risk");
             if (complete) actionable++;
-            if (item.path("offColor").asBoolean() || item.path("duplicate").asBoolean()
-                    || protectedCards.contains(normalize(item.path("remove").asText()))
-                    || normalize(fixture.path("commander").asText()).equals(normalize(item.path("remove").asText()))) {
-                violations++;
-            }
         }
+        violations += validation.violations().size();
         int declared = fixture.path("labels").path("preferencesDeclared").asInt();
         int met = fixture.path("labels").path("preferencesMet").asInt();
         totals.addHits += addHits;
@@ -213,7 +222,7 @@ public class RecommendationBenchmarkService {
         result.setCaseId(fixture.path("id").asText());
         result.setCommander(fixture.path("commander").asText());
         result.setBracket(fixture.path("bracket").asText());
-        String system = toJson(fixture.path("system"));
+        String system = toJson(scenarioService.execute(fixture).output());
         String gpt = toJson(fixture.path("gpt"));
         boolean systemIsA = Math.floorMod(result.getCaseId().hashCode(), 2) == 0;
         result.setSystemOutputJson(system);
@@ -306,9 +315,14 @@ public class RecommendationBenchmarkService {
         long feedbackTotal = feedback.values().stream().mapToLong(Long::longValue).sum();
         return List.of(
                 new RecommendationBenchmarkNextActionDTO("expand-corpus", "Expandir corpus versionado", totalCases >= TARGET_CASES ? "ready" : "in_progress", "maintainer", "Ampliar de 20 para pelo menos 50 casos completos.", totalCases, TARGET_CASES, "documentation"),
-                new RecommendationBenchmarkNextActionDTO("human-review", "Concluir avaliacao humana cega", reviewedCases >= totalCases ? "ready" : "in_progress", "reviewer", "Obter tres avaliacoes independentes por caso.", reviewedCases, totalCases, "human_review"),
+                new RecommendationBenchmarkNextActionDTO("generate-ai-artifacts", "Gerar comparacoes GPT-5.5", aiService != null && aiService.hasCurrentQualifiedSet(totalCases) ? "ready" : "pending", "maintainer", "Gerar dois baselines e tres julgamentos cegos por comparacao.", 0, totalCases, "automatic_benchmark"),
+                new RecommendationBenchmarkNextActionDTO("human-review", "Validacao humana posterior", reviewedCases >= totalCases ? "ready" : "deferred", "reviewer", "Obter tres avaliacoes independentes por caso sem bloquear a fase automatica.", reviewedCases, totalCases, "human_review"),
                 new RecommendationBenchmarkNextActionDTO("collect-feedback", "Coletar feedback de recomendacoes", feedbackTotal > 0 ? "in_progress" : "pending", "user", "Acompanhar utilidade sem ajustar pesos automaticamente.", Math.toIntExact(feedbackTotal), null, "product_feedback")
         );
+    }
+
+    private boolean metricReady(List<RecommendationBenchmarkMetricDTO> metrics, String name) {
+        return metrics.stream().anyMatch(metric -> name.equals(metric.getName()) && "ready".equals(metric.getStatus()));
     }
 
     private List<RecommendationBenchmarkCoverageDTO> coverage(JsonNode cases) {
