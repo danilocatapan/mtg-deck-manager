@@ -1,6 +1,9 @@
 import RecommendationCard from './RecommendationCard'
 import RecommendationBadge from './RecommendationBadge'
 import StateMessage from '../ui/StateMessage'
+import Button from '../ui/Button'
+import { useState } from 'react'
+import { submitRecommendationFeedback } from '../../services/api'
 
 function profileSource(metaProfile, recommendations) {
   if (recommendations?.some((item) => item.source === 'meta_profile')) return 'meta'
@@ -29,6 +32,9 @@ export default function RecommendationPanel({
   comparison = null,
   history = [],
 }) {
+  const [feedbackStatus, setFeedbackStatus] = useState(null)
+  const [feedbackLoading, setFeedbackLoading] = useState(null)
+  const [feedbackError, setFeedbackError] = useState(null)
   const run = Array.isArray(recommendations) ? null : recommendations
   const items = Array.isArray(recommendations) ? recommendations : recommendations?.recommendations || []
   const hasGenerated = Array.isArray(recommendations) || Boolean(recommendations?.recommendations)
@@ -37,6 +43,20 @@ export default function RecommendationPanel({
   const confidence = run?.confidence || (hasFallback ? 'low_confidence' : 'medium_confidence')
   const lowConfidence = confidence === 'low_confidence'
   const limitations = Array.isArray(run?.limitations) ? run.limitations : []
+
+  async function handleFeedback(status) {
+    if (!run?.auditId || feedbackLoading) return
+    setFeedbackLoading(status)
+    setFeedbackError(null)
+    try {
+      await submitRecommendationFeedback(run.auditId, status)
+      setFeedbackStatus(status)
+    } catch {
+      setFeedbackError('Nao foi possivel registrar sua avaliacao.')
+    } finally {
+      setFeedbackLoading(null)
+    }
+  }
 
   return (
     <section className="recommendation-panel" aria-live="polite">
@@ -127,6 +147,23 @@ export default function RecommendationPanel({
             />
           ))}
         </div>
+      )}
+
+      {run?.auditId && items.length > 0 && (
+        <section className="card action-card recommendation-feedback" aria-live="polite">
+          <div>
+            <span className="rec-label">Ajude a melhorar</span>
+            <h4>Esta rodada foi util?</h4>
+            <p>O feedback entra no acompanhamento de qualidade e nao altera pesos automaticamente.</p>
+          </div>
+          <div className="actions-row">
+            <Button variant={feedbackStatus === 'accepted' ? 'primary' : 'secondary'} loading={feedbackLoading === 'accepted'} onClick={() => handleFeedback('accepted')}>Util</Button>
+            <Button variant={feedbackStatus === 'rejected' ? 'primary' : 'secondary'} loading={feedbackLoading === 'rejected'} onClick={() => handleFeedback('rejected')}>Nao util</Button>
+            <Button variant={feedbackStatus === 'needs_review' ? 'primary' : 'secondary'} loading={feedbackLoading === 'needs_review'} onClick={() => handleFeedback('needs_review')}>Precisa revisao</Button>
+          </div>
+          {feedbackStatus && <span className="status-pill ready">Feedback registrado</span>}
+          {feedbackError && <span className="status error">{feedbackError}</span>}
+        </section>
       )}
 
       {(comparison?.metrics?.length > 0 || history.length > 0 || metaSources.length > 0 || run) && (

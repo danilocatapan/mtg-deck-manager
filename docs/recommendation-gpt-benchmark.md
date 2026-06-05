@@ -59,3 +59,10 @@ Registrar a saida GPT como artefato de benchmark, sem usa-la como fonte de verda
 - Com `high_confidence`, o produto pode apresentar a recomendacao como fortemente fundamentada por dados, mantendo ressalvas de preco/disponibilidade/mesa.
 - Com `medium_confidence`, o produto pode apresentar vantagem sobre GPT apenas se o comandante/bracket tiver benchmark coberto.
 - Com `low_confidence`, o produto deve dizer explicitamente que nao ha dados suficientes para prometer qualidade superior ao GPT e continuar apenas com sugestoes conservadoras.
+
+## Proximas acoes derivadas
+
+- O resumo administrativo calcula `nextActions` a partir do corpus, labels humanos e feedback persistido.
+- O Meta Admin e a fonte operacional dessas pendencias; nao existe checklist manual paralelo.
+- Usuarios podem avaliar cada rodada como `accepted`, `rejected` ou `needs_review`.
+- Feedback orienta investigacao e relatorios, mas nunca altera scoring automaticamente.

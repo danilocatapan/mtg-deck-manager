@@ -393,64 +393,28 @@ export async function getCommanderMeta(commander, { bracket = 'casual', sourceMo
   }
 }
 
-export async function fetchMetaTopDecks(filters = {}, adminKey = '') {
+export async function syncMeta(adminKey = '') {
   try {
-    const query = new URLSearchParams()
-    Object.entries(filters || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && String(value).trim()) {
-        query.set(key, String(value))
-      }
-    })
-    const suffix = query.toString() ? `?${query}` : ''
-    return await request(`/meta/top-decks${suffix}`, {
-      retryOnStartup: false,
-      headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
-    })
-  } catch (e) {
-    logApiError('fetchMetaTopDecks error', e)
-    throw e
-  }
-}
-
-export async function getMetaTopDeck(id, adminKey = '') {
-  try {
-    if (id === undefined || id === null || isNaN(Number(id))) {
-      throw new Error('Invalid top deck id')
-    }
-    return await request(`/meta/top-decks/${id}`, {
-      retryOnStartup: false,
-      headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
-    })
-  } catch (e) {
-    logApiError('getMetaTopDeck error', e)
-    throw e
-  }
-}
-
-export async function importMetaTopDecks(payload, adminKey = '') {
-  try {
-    return await request('/meta/top-decks/import', {
+    return await request('/meta/sync', {
       method: 'POST',
       retryOnStartup: false,
       headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
-      body: JSON.stringify(payload || {}),
     })
   } catch (e) {
-    logApiError('importMetaTopDecks error', e)
+    logApiError('syncMeta error', e)
     throw e
   }
 }
 
-export async function syncMetaTopDecks(payload, adminKey = '') {
+export async function submitRecommendationFeedback(auditId, status) {
   try {
-    return await request('/meta/top-decks/sync', {
+    return await request(`/recommendation-audits/${auditId}/feedback`, {
       method: 'POST',
       retryOnStartup: false,
-      headers: adminKey ? { 'X-Admin-Key': adminKey } : {},
-      body: JSON.stringify(payload || {}),
+      body: JSON.stringify({ status }),
     })
   } catch (e) {
-    logApiError('syncMetaTopDecks error', e)
+    logApiError('submitRecommendationFeedback error', e)
     throw e
   }
 }
@@ -524,10 +488,8 @@ export default {
   getSimilarDeckComparison,
   getMetaSources,
   getCommanderMeta,
-  fetchMetaTopDecks,
-  getMetaTopDeck,
-  importMetaTopDecks,
-  syncMetaTopDecks,
+  syncMeta,
+  submitRecommendationFeedback,
   getRecommendationBenchmarkSummary,
   getAppInfo,
   exportUserData,

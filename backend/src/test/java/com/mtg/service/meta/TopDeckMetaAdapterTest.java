@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TopDeckMetaAdapterTest {
 
@@ -38,6 +40,9 @@ class TopDeckMetaAdapterTest {
         assertEquals("Thassa's Oracle", imported.getFirst().cards().getFirst().name());
         assertEquals(1, adapter.fetchDecks("cedh").size());
         assertEquals(0, adapter.fetchDecks("casual").size());
+        assertTrue(adapter.lastSyncSuccessful());
+        assertEquals(0, adapter.lastDiscardedDecks());
+        assertEquals(null, adapter.lastSyncError());
     }
 
     @Test
@@ -57,6 +62,7 @@ class TopDeckMetaAdapterTest {
         assertEquals("Kess, Dissident Mage", imported.getFirst().commander());
         assertEquals("Brain Freeze", imported.getFirst().cards().getFirst().name());
         assertEquals(1, imported.getFirst().cards().size());
+        assertTrue(adapter.lastSyncSuccessful());
     }
 
     @Test
@@ -72,6 +78,9 @@ class TopDeckMetaAdapterTest {
 
         assertEquals(0, adapter.sync().size());
         assertEquals(0, adapter.fetchDecks("cedh").size());
+        assertFalse(adapter.lastSyncSuccessful());
+        assertEquals(0, adapter.lastDiscardedDecks());
+        assertEquals("topdeck_http_429", adapter.lastSyncError());
     }
 
     static class FakeTopDeckClient implements TopDeckClient {

@@ -110,7 +110,7 @@ Snapshot do projeto (contexto rapido)
 - Stack principal: Java 25 / Quarkus 3.35.2 (backend).
 - Frontend: Vite 8 + React 19 (separado em `frontend/`, base path `/mtg-deck-manager/`).
 - Persistencia: Hibernate ORM / Panache, H2 para `%dev`/`%test`, PostgreSQL/Flyway para `%pg` e `%prod`.
-- Integracoes: Scryfall REST, Spicerack, TopDeck.gg, dataset local EDHREC/meta em `backend/src/main/resources/meta`, regras Commander em `backend/src/main/resources/rules`.
+- Integracoes: Scryfall REST, TopDeck.gg como unica fonte externa viva de meta, dataset local de fallback em `backend/src/main/resources/meta`, regras Commander em `backend/src/main/resources/rules`.
 - Autenticacao: Google OIDC via ID token Bearer; frontend guarda sessao apenas em `sessionStorage`.
 - Privacidade: decks privados por padrao, DTOs publicos sanitizados, exportacao/exclusao LGPD em `/users/me`.
 - CI/CD: GitHub Actions em `.github/workflows/ci.yml`, com testes backend H2, testes backend PostgreSQL, lint/build frontend, imagem backend GHCR, deploy backend por hook opcional, smoke tests manuais e deploy GitHub Pages.
@@ -120,7 +120,7 @@ Hotspots obrigatorios do dominio
 - Recommendation engine (pipeline: meta -> candidates -> score -> completer -> cuts).
 - Strategic recommendations (`StrategicRecommendationService`) e recomendacoes heuristicas (`RecommendationService`).
 - Auditoria/aplicacao de recomendacoes (`RecommendationAuditService`, apply/undo swap, feedback).
-- Meta dataset ingestion (`MetaDatasetLoader`, `MetaProviderImpl`, `MetaDatasetService`, `MetaTopDeckService`, adapters em `service/meta`).
+- Meta dataset ingestion (`MetaDatasetLoader`, `MetaProviderImpl`, `MetaDatasetService`, `ExternalMetaIngestionJob`, `TopDeckMetaAdapter`).
 - Color identity / Commander rules (`ColorIdentityMatcher`, `DeckCompleter`, selectors de add/cut).
 - Importacao de deck (`DeckImportService`) e normalizacao de listas.
 - Decks publicos, likes e copia (`PublicDeckController`, `DeckLikeRepository`, DTOs publicos).
@@ -228,7 +228,7 @@ Endpoints principais atuais
 - `POST /decks/{id}/recommendations`, `POST /decks/{id}/recommendations/strategic`, `POST /decks/{id}/recommendations/apply-swap`, `POST /decks/{id}/recommendations/undo-swap`.
 - `GET /public/decks`, `GET /public/decks/top`, `GET /public/decks/{id}`, `POST /public/decks/{id}/copy`, `POST /public/decks/{id}/like`, `DELETE /public/decks/{id}/like`.
 - `GET /meta/sources`, `POST /meta/sync`, `GET /meta/decks`, `POST /meta/rebuild-profiles`, `GET /meta/commanders/{commander}`.
-- `POST /meta/external-decks/import`, `POST /meta/top-decks/import`, `GET /meta/top-decks`, `GET /meta/top-decks/{id}`, `POST /meta/top-decks/sync`, `POST /meta/combos/sync`.
+- `POST /meta/external-decks/import`, `POST /meta/combos/sync`; top decks para recomendacao entram exclusivamente pelo sync automatico `POST /meta/sync`.
 - `POST /recommendation-audits/{id}/feedback`.
 - `GET /users/me/export` e `DELETE /users/me`.
 - `POST /security/status/check` para diagnostico read-only de seguranca; exige usuario autenticado com role `admin` ou subject configurado em `SECURITY_ADMIN_SUBJECTS`, nao deve expor secrets/dados pessoais e deve manter logs sem valores sensiveis.

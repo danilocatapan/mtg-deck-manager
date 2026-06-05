@@ -19,11 +19,11 @@ Ultima atualizacao: 2026-06-05
 | --- | --- | --- |
 | Quality gate, confianca e limitacoes | `pronto` | `StrategicRecommendationRun` e `StrategicRecommendationService` expoem confidence, coverage, freshness, fontes, limitacoes e `benchmarkStatus`; UI apresenta aviso em baixa confianca. |
 | Personalizacao por estrategia, orcamento e colecao | `pronto` | `strategy` altera scoring, `budget` filtra/penaliza candidatos e `ownedOnly` usa a colecao persistida; sem inventario, o quality gate cai para baixa confianca. |
-| TopDeck.gg e Meta Admin | `pronto` | Adapter suporta `deckObj` e decklist textual, degrada para cache em erros conhecidos, preserva attribution e possui sync/status no Meta Admin. |
+| TopDeck.gg e Meta Admin | `pronto` | TopDeck.gg e a unica fonte externa viva; `/meta/sync` busca, persiste na base canonica, reconstrói perfis e separa importados, descartados, snapshot preservado e erros operacionais. |
 | Benchmark contra GPT | `parcial` | Existem protocolo, 8 fixtures seed e endpoint de resumo; `RecommendationBenchmarkService` ainda retorna cobertura/metas estaticas e nao calcula precision@k ou vitoria contra GPT. |
 | Baseline GPT e avaliacao humana | `parcial` | O prompt fixo existe, mas `gpt-baseline.md` ainda contem placeholders e nao ha labels suficientes de `systemWins`, `gptWins` ou `tie`. |
 | Cobertura meta por comandante | `parcial` | Perfis locais dedicados cobrem Xenagos, K'rrik, Grand Arbiter e Kess; ainda nao ha cobertura ampla de comandantes populares e long-tail. |
-| Feedback agregado e calibracao automatica | `planejado` | Feedback `accepted`/`rejected`/`needs_review` e persistido, mas nao existe relatorio agregado por comandante/bracket/fonte nem ajuste de pesos baseado nele. |
+| Feedback agregado e calibracao automatica | `parcial` | Usuario envia feedback simples por rodada e o Meta Admin mostra contagens/proximas acoes; ainda nao existe relatorio por comandante/bracket nem ajuste de pesos. |
 | Pet cards e cartas intocaveis | `planejado` | Pecas de combo e valor estrategico recebem protecao, mas o usuario ainda nao pode marcar explicitamente cartas intocaveis. |
 
 Estado da prova: a fundacao verificavel esta pronta, mas o produto ainda nao demonstrou superioridade global sobre GPT. Claims devem permanecer restritos a execucoes com cobertura e benchmark suficientes.
@@ -33,17 +33,17 @@ Estado da prova: a fundacao verificavel esta pronta, mas o produto ainda nao dem
 1. Implementar runner real do benchmark e calcular invariantes, `addPrecisionAt10`, `cutPrecisionAt10`, `preferenceAdherenceRate` e actionability.
 2. Preencher respostas GPT versionadas, realizar avaliacao humana cega e medir `systemWins`, `gptWins` e `tie`.
 3. Ampliar corpus e cobertura de meta para comandantes populares, brackets diferentes e casos long-tail.
-4. Criar relatorios agregados de feedback por comandante, bracket, fonte e motivo de rejeicao.
+4. Expandir relatorios agregados de feedback por comandante, bracket, fonte e motivo de rejeicao.
 5. Calibrar scoring somente quando o benchmark demonstrar melhora sem regressao dos invariantes Commander.
 
 ## Mapa Rapido para Agentes
 
 - Recomendacao: comece em `backend/src/main/java/com/mtg/service/StrategicRecommendationService.java`, depois selectors/pairer e `backend/src/test/java/com/mtg/service/StrategicRecommendationServiceTest.java`; preserve o grafo descrito em `.github/agents/workflow-graph.md`.
 - Benchmark: consulte `docs/recommendation-gpt-benchmark.md`, `backend/src/test/resources/recommendation-benchmark/` e `RecommendationBenchmarkService`; trate o resumo atual como seed, nao como prova calculada.
-- Meta/TopDeck: comece em `TopDeckMetaAdapter`, `MetaTopDeckService`, `MetaTopDeckSignalBuilder` e `MetaTopDeckControllerTest`; ingestao externa deve respeitar API, attribution, rate limit e cache.
+- Meta/TopDeck: comece em `TopDeckMetaAdapter`, `ExternalMetaIngestionJob`, `MetaDatasetService` e `MetaDeckSnapshot`; ingestao externa deve respeitar API, attribution, rate limit e preservacao do ultimo snapshot.
 - Colecao/privacidade: comece em `UserCollectionService`, `UserPrivacyController`, migration `V12__create_user_card_collection.sql` e `UserPrivacyControllerTest`; preserve isolamento por usuario e exportacao/exclusao LGPD.
-- Frontend: recomendacoes em `frontend/src/components/recommendations/`, Meta Admin em `frontend/src/pages/MetaTopDeckAdminPage.jsx` e contratos HTTP em `frontend/src/services/api.js`.
-- Validacao conhecida em 2026-06-05: backend `./mvnw.cmd test` com JDK 25 passou com 201 testes e zero falhas; frontend `npm run lint` e `npm run build` passaram.
+- Frontend: recomendacoes em `frontend/src/components/recommendations/`, Meta Admin em `frontend/src/pages/MetaAdminPage.jsx` e contratos HTTP em `frontend/src/services/api.js`.
+- Validacao conhecida em 2026-06-05: backend `./mvnw.cmd test` com JDK 25 passou com 192 testes e zero falhas; frontend lint, build, 12 cenarios E2E e 6 cenarios de acessibilidade passaram.
 
 ## Objetivo
 
@@ -53,14 +53,14 @@ MTG Deck Manager e uma aplicacao para gerenciar, importar, consultar, analisar e
 
 - `backend/`: API REST em Java/Quarkus.
 - `frontend/`: SPA em React/Vite publicada com base path `/mtg-deck-manager/`.
-- `tools/meta-importer/`: scripts offline para gerar/importar dados de meta; scraping/coleta externa nao deve acontecer em runtime de API quando puder ser feito offline.
+- `tools/`: scripts operacionais; meta competitivo entra somente pela API documentada TopDeck.gg e o fallback local permanece versionado em resources.
 
 ## Stack Atual
 
 - Backend: Java 25, Quarkus 3.35.2, RESTEasy Reactive/Quarkus REST, Jackson, SmallRye OpenAPI.
 - Persistencia: Hibernate ORM + Panache; H2 em `%dev`/`%test`; PostgreSQL 16+ em `%pg`/`%prod`; Flyway em `backend/src/main/resources/db/migration`.
 - Auth: Google OIDC via ID token Bearer. A API nao usa cookie de sessao.
-- Integracoes: Scryfall, Spicerack, TopDeck.gg, Commander Spellbook para cache local de combos, dataset local de meta e regras Commander em resources.
+- Integracoes: Scryfall, TopDeck.gg como unica fonte externa viva de meta, Commander Spellbook para cache local de combos, dataset local de fallback e regras Commander em resources.
 - Frontend: React 19.2, Vite 8, ESLint 10, estado local React, sem router dedicado.
 - CI/CD: GitHub Actions com backend H2, backend PostgreSQL, lint/build frontend, versionamento por tag, imagem backend GHCR, deploy backend por hook, smoke manual e GitHub Pages.
 
@@ -72,7 +72,7 @@ Camadas principais:
 - `dto`: payloads publicos e administrativos.
 - `model`/`repository`: entidades Panache/Hibernate e consultas.
 - `service`: regras de negocio, decks, analise, recomendacoes, auditoria, privacidade e integracoes.
-- `service/meta`: dataset local, top decks, adapters Spicerack/TopDeck/EDHREC, normalizacao e agregacao.
+- `service/meta`: dataset local de fallback, adapter TopDeck.gg, persistencia canonica, normalizacao e agregacao.
 - `service/synergy`: tags e motor de sinergia.
 - `service/rules`: banlist, brackets e game changers Commander.
 - `client`: REST clients externos.
@@ -98,8 +98,8 @@ Controllers devem ficar finos. Regra de negocio deve viver em services/component
 - Vitrine publica com consulta read-only, filtro por comandante, copia de deck, likes e ranking.
 - Analise de deck: curva auditavel por cartas, CMC, roles, combos, probabilidade, mana base, comparacao e legalidade Commander.
 - Recomendacoes heuristicas e estrategicas com justificativas, score detalhado, adds/cuts, apply/undo swap e feedback/auditoria.
-- Ingestao de meta local, decks externos, top decks rankeados e combos conhecidos cacheados para grounding deterministico.
-- Admin de meta top decks no frontend para usuario Google autorizado.
+- Ingestao automatica TopDeck.gg em snapshot canonico, fallback local embarcado, decks externos da vitrine e combos conhecidos cacheados para grounding deterministico.
+- Meta Admin operacional para usuario Google autorizado, sem importacao manual de decklists.
 - Exportacao e exclusao de dados do usuario autenticado.
 - Diagnostico administrativo read-only de postura de seguranca.
 - Paginas publicas de contato, privacidade, release notes e Sobre.
@@ -152,10 +152,6 @@ Controllers devem ficar finos. Regra de negocio deve viver em services/component
 - `POST /meta/rebuild-profiles`
 - `GET /meta/commanders/{commander}`
 - `POST /meta/external-decks/import`
-- `POST /meta/top-decks/import`
-- `GET /meta/top-decks`
-- `GET /meta/top-decks/{id}`
-- `POST /meta/top-decks/sync`
 - `POST /meta/combos/sync`
 - `GET /meta/recommendation-benchmark/summary`
 
@@ -192,8 +188,9 @@ Invariantes:
 
 ## Persistencia e Dados
 
-- Migrations Flyway vivem em `backend/src/main/resources/db/migration` e hoje cobrem schema de decks, historico, auditoria, visibilidade, decks externos, likes, meta top decks e cache local de combos.
-- Dados locais de meta:
+- Migrations Flyway vivem em `backend/src/main/resources/db/migration` e hoje cobrem schema de decks, historico, auditoria, visibilidade, decks externos, likes, snapshot canonico de meta e cache local de combos.
+- Dados de meta:
+  - tabelas `meta_decks` e `meta_deck_cards` para snapshots TopDeck.gg normalizados;
   - `backend/src/main/resources/meta_dataset.json`
   - `backend/src/main/resources/meta/commanders/`
 - Regras Commander:
@@ -249,5 +246,6 @@ Quando mudar recomendacoes, importacao, persistencia, privacidade ou UI principa
 ## Manutencao Documental
 
 - `AGENTS.md` da raiz e `.github/copilot-instructions.md` sao pontos de entrada; a fonte canonica e `.github/agents/AGENTS.md`.
+- O Meta Admin deriva proximas acoes do benchmark e nunca solicita importacao manual de top decks.
 - Atualizar este arquivo quando mudarem objetivo, stack, endpoints, arquitetura, CI/CD, persistencia, seguranca, privacidade ou fluxos principais.
 - Atualizar `CHANGELOG.md` para mudancas relevantes. Release notes publicas so recebem itens que afetam usuarios/suporte.

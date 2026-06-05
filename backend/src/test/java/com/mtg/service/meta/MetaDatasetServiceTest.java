@@ -1,48 +1,48 @@
 package com.mtg.service.meta;
 
+import com.mtg.repository.MetaDeckSnapshotRepository;
+import io.quarkus.narayana.jta.QuarkusTransaction;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@QuarkusTest
 class MetaDatasetServiceTest {
 
-    @TempDir
-    Path tempDir;
+    @Inject
+    MetaDatasetService service;
+
+    @Inject
+    MetaDeckSnapshotRepository repository;
+
+    @BeforeEach
+    void clean() {
+        QuarkusTransaction.requiringNew().run(repository::deleteSnapshots);
+    }
 
     @Test
-    void savesAndLoadsDecksFromJsonFile() {
-        Path file = tempDir.resolve("meta-decks.json");
+    void persistsAndReloadsCanonicalDecks() {
+        service.replaceBySource("TopDeck", List.of(deck("TopDeck", "1")));
 
-        MetaDatasetService writer = new MetaDatasetService();
-        writer.datasetFile = file;
-        writer.load();
-        writer.replaceBySource("Spicerack", List.of(deck("Spicerack", "1")));
-
-        MetaDatasetService reader = new MetaDatasetService();
-        reader.datasetFile = file;
-        reader.load();
-
-        assertEquals(1, reader.findAll().size());
-        assertEquals("Xenagos, God of Revels", reader.findAll().getFirst().commander());
+        assertEquals(1, service.findAll().size());
+        assertEquals("Xenagos, God of Revels", service.findAll().getFirst().commander());
     }
 
     @Test
     void replacesOnlyDecksFromSameSource() {
-        MetaDatasetService service = new MetaDatasetService();
-        service.datasetFile = tempDir.resolve("meta-decks.json");
-        service.load();
-
-        service.replaceBySource("Spicerack", List.of(deck("Spicerack", "1")));
-        service.replaceBySource("TopDeck.gg", List.of(deck("TopDeck.gg", "2")));
-        service.replaceBySource("Spicerack", List.of(deck("Spicerack", "3")));
+        service.replaceBySource("TopDeck", List.of(deck("TopDeck", "1")));
+        service.replaceBySource("LOCAL_TEST", List.of(deck("LOCAL_TEST", "2")));
+        service.replaceBySource("TopDeck", List.of(deck("TopDeck", "3")));
 
         assertEquals(2, service.findAll().size());
-        assertEquals(1, service.findAll().stream().filter(deck -> deck.source().equals("Spicerack")).count());
+        assertEquals(1, service.findAll().stream().filter(deck -> deck.source().equals("TopDeck")).count());
+        assertEquals("3", service.findAll().stream().filter(deck -> deck.source().equals("TopDeck")).findFirst().orElseThrow().externalId());
     }
 
     private MetaDeck deck(String source, String id) {
@@ -51,14 +51,14 @@ class MetaDatasetServiceTest {
                 id,
                 "Xenagos, God of Revels",
                 List.of(),
-                List.of(),
-                "mid",
+                List.of("R", "G"),
+                "high-power",
                 List.of(),
                 List.of(new MetaDeckCard("Sol Ring", 1, List.of(), null, null, List.of())),
                 null,
                 null,
-                null,
-                null,
+                1,
+                64,
                 null,
                 OffsetDateTime.now()
         );

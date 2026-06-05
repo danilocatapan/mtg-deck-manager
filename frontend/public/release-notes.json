@@ -1,37 +1,32 @@
 [
   {
     "version": "0.0.0-local",
-    "date": "2026-06-03",
-    "title": "Decks publicos e curadoria da comunidade",
+    "date": "2026-06-05",
+    "title": "Meta automatico e recomendacoes verificaveis",
     "changes": {
       "added": [
-        "Recomendacoes agora mostram um quality gate com confianca, cobertura de dados e limitacoes antes de afirmar que superam uma analise GPT.",
-        "Meta Admin ganhou resumo de benchmark vs GPT com cobertura inicial, metricas-alvo e status de prova por comandante/bracket.",
-        "Usuarios autenticados podem importar uma colecao textual; ela entra no export/delete de privacidade e prepara recomendacoes ownedOnly reais.",
-        "Cache local de combos via Commander Spellbook melhora deteccao, recomendacoes e protecao de pecas-chave sem depender de API externa durante a analise.",
-        "Aba Curva agora permite abrir cada custo de mana e conferir quais cartas compoem a soma exibida no grafico.",
-        "Benchmark local de K'rrik em cEDH melhora recomendacoes de rituais, tutors, fast mana, Necropotence e combos.",
-        "Importacoes preservam edicao, numero de colecao, foil e imagem correta quando a lista traz dados de impressao."
+        "Meta Admin ganhou sincronizacao automatica TopDeck.gg, cobertura por bracket e proximas acoes derivadas.",
+        "Usuarios podem avaliar cada rodada de recomendacoes como util, nao util ou precisa revisao.",
+        "Recomendacoes mostram quality gate com confianca, cobertura e limitacoes antes de afirmar vantagem contra GPT.",
+        "Colecao textual autenticada prepara recomendacoes ownedOnly reais e participa do fluxo de privacidade.",
+        "Cache local de combos via Commander Spellbook melhora deteccao e protecao de pecas-chave."
       ],
       "changed": [
-        "A tela de recomendacoes avisa quando faltam dados para prometer qualidade superior ao GPT e segue com sugestoes conservadoras.",
-        "ownedOnly agora filtra adds pela colecao persistida quando existe inventario; sem colecao, a recomendacao segue conservadora e sem claim contra GPT.",
-        "Meta Admin mostra status TopDeck.gg, attribution e benchmark, e a acao principal deixa claro quando registra sincronizacao TopDeck.gg.",
-        "TopDeck.gg aceita deckObj estruturado, cai para decklist textual quando necessario e trata falhas 401/403/429 sem derrubar o cache local.",
-        "Orcamento e estrategia passam a influenciar ranking e filtragem das trocas sugeridas.",
-        "Analise de combos agora considera o comandante junto com o main deck para detectar linhas e proteger pecas presentes.",
-        "Fallback de recomendacoes usa staples por cor, papel e bracket quando nao ha perfil meta suficiente, mantendo filtros de legalidade.",
-        "Telas de importacao, edicao, analise e recomendacoes receberam baseline WCAG 2.2 AA, testes Playwright/axe no CI, previa publica, rotas compartilhaveis e explicacoes de seguranca das trocas."
+        "TopDeck.gg passa a ser a unica fonte externa viva de meta; o dataset local permanece como fallback sem trabalho manual.",
+        "Meta Admin deixa de solicitar JSON ou decklists e passa a acompanhar apenas sincronizacao, cobertura e progresso.",
+        "Falhas e rate limits do TopDeck.gg preservam o ultimo snapshot valido.",
+        "ownedOnly filtra adds pela colecao persistida quando existe inventario.",
+        "Orcamento e estrategia influenciam ranking e filtragem das trocas sugeridas."
       ],
       "fixed": [
-        "Recomendacoes de K'rrik deixam de sugerir remover Vilis quando ele atua como engine central de compra por perda de vida.",
-        "Preview de importacao desconta o comandante quando ele aparece dentro da lista, mantendo 99 cartas no main deck.",
+        "Botao de sincronizacao do Meta Admin agora busca dados reais em vez de apenas registrar um lote.",
+        "Recomendacoes de K'rrik deixam de sugerir remover Vilis quando ele atua como engine central.",
+        "Preview de importacao desconta o comandante quando ele aparece dentro da lista.",
         "Terrenos que produzem mana deixam de ser classificados como ramp.",
-        "Cartas dupla face/MDFC usam nome, tipo, custo, texto e imagem da face principal ao resolver dados no Scryfall.",
-        "Botao de login Google aguarda o script externo carregar, permite o estilo oficial do Google Identity e deixa de depender de F5 para aparecer."
+        "Cartas dupla face/MDFC usam dados da face principal."
       ],
       "security": [
-        "Tela Meta Admin e endpoints de top decks exigem Google autorizado por allowlist de e-mail, mantendo chave admin apenas para uso tecnico.",
+        "Meta Admin e sincronizacao automatica exigem Google autorizado por allowlist de e-mail, mantendo chave admin apenas para uso tecnico.",
         "Fluxo Google documentado para escopos minimos openid, email e profile, sem persistencia de access_token ou refresh_token.",
         "Logs de fluxos autenticados deixam de registrar payloads de decks, nomes de cartas em validacoes e detalhes de troca de recomendacao.",
         "Endpoint administrativo de diagnostico de seguranca e sessao frontend reforcada com validacao de token e limpeza automatica em acesso nao autorizado."

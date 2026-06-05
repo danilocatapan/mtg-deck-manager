@@ -43,7 +43,7 @@ Hotspots do repositorio (onde revisar primeiro)
 - `RecommendationAuditService`, `RecommendationAuditRepository`, apply/undo swap e feedback - rastreabilidade de trocas recomendadas.
 - `DeckCompleter`, `RecommendationScoring`, `RecommendationPairer`, `CandidateAddSelector`, `CandidateCutSelector` - pipeline de completar, pontuar e parear sugestoes.
 - `CardService` e `ScryfallClient` - integracao Scryfall, cache e queries.
-- `service/meta`, `MetaTopDeckService`, `MetaTopDeckSignalBuilder` - ingestao, adapters, top decks, normalizacao e dataset local.
+- `service/meta`, `ExternalMetaIngestionJob`, `MetaDatasetService`, `TopDeckMetaAdapter` - ingestao automatica, persistencia canonica, normalizacao e fallback local.
 - `DeckImportService` e `service/meta/DecklistNormalizer` - parsing e normalizacao de listas.
 - `PublicDeckController`, `DeckLikeRepository`, `UserPrivacyController` - decks publicos, likes, copia e LGPD.
 - `service/rules` - banlist, brackets e game changers Commander.

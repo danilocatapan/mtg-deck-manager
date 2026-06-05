@@ -55,15 +55,13 @@ public class BracketMetaPolicy {
     public List<String> sourcesFor(String bracket, String sourceMode) {
         String normalizedMode = normalizeSourceMode(sourceMode);
         if ("local_only".equals(normalizedMode)) return List.of("LOCAL");
-        if ("casual_meta".equals(normalizedMode)) return List.of("EDHREC", "LOCAL", "SCRYFALL_CACHE");
-        if ("competitive_meta".equals(normalizedMode)) return List.of("TOPDECK", "SPICERACK", "EDHTOP16", "LOCAL");
-        if ("cedh_only".equals(normalizedMode)) return List.of("EDHTOP16", "TOPDECK", "SPICERACK");
+        if ("casual_meta".equals(normalizedMode)) return List.of("LOCAL", "SCRYFALL_CACHE");
+        if ("competitive_meta".equals(normalizedMode) || "cedh_only".equals(normalizedMode)) return List.of("TOPDECK", "LOCAL");
 
         return switch (normalizeBracket(bracket)) {
-            case "cedh" -> List.of("EDHTOP16", "TOPDECK", "SPICERACK", "LOCAL");
-            case "high-power" -> List.of("TOPDECK", "SPICERACK", "EDHTOP16", "EDHREC", "LOCAL");
-            case "mid" -> List.of("EDHREC", "TOPDECK", "SPICERACK", "LOCAL");
-            default -> List.of("EDHREC", "LOCAL", "SCRYFALL_CACHE");
+            case "cedh", "high-power" -> List.of("TOPDECK", "LOCAL");
+            case "mid" -> List.of("LOCAL", "TOPDECK");
+            default -> List.of("LOCAL", "SCRYFALL_CACHE");
         };
     }
 
@@ -71,9 +69,6 @@ public class BracketMetaPolicy {
         OffsetDateTime now = OffsetDateTime.now();
         return List.of(
                 new MetaSourceStatus("TopDeck.gg", true, now, List.of("high-power", "cedh"), "competitive_meta"),
-                new MetaSourceStatus("Spicerack", true, now, List.of("mid", "high-power", "cedh"), "competitive_meta"),
-                new MetaSourceStatus("EDHTop16", true, now, List.of("cedh"), "cedh_only"),
-                new MetaSourceStatus("EDHREC", true, now, List.of("casual", "mid"), "casual_meta"),
                 new MetaSourceStatus("LOCAL", true, now, List.of("casual", "mid", "high-power", "cedh"), "fallback")
         );
     }

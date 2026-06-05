@@ -21,7 +21,7 @@ Pontos do codigo que merecem revisao explicita
 - `RecommendationService` - orquestracao das recomendacoes heuristicas.
 - `StrategicRecommendationService` - recomendacoes estrategicas e criterios de decisao.
 - `MetaProvider`, `MetaProviderImpl`, `MetaDatasetLoader`, `MetaDatasetService` - validacao de dados e normalizacao de nomes.
-- `MetaTopDeckService`, `MetaTopDeckSignalBuilder`, `BracketMetaPolicy` - top decks persistidos e politica de uso no ranking.
+- `TopDeckMetaAdapter`, `ExternalMetaIngestionJob`, `MetaDatasetService`, `BracketMetaPolicy` - sync automatico, persistencia canonica e politica de uso no ranking.
 - `ColorIdentityMatcher`, `CandidateAddSelector`, `CandidateCutSelector` - regras de cor, duplicidade e elegibilidade.
 - `DeckCompleter` e `RecommendationPairer` - completar deck e parear adds/cuts.
 - `SynergyEngine`, `CardTagger` e `RecommendationScoring` - tags, pesos e combinacoes (meta vs synergy).

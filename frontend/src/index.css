@@ -791,6 +791,18 @@ textarea {
   margin-bottom: 16px;
 }
 
+.meta-admin-action-list {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.recommendation-feedback {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
 .meta-admin-info-card {
   min-height: 100%;
 }

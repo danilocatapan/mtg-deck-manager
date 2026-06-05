@@ -9,7 +9,7 @@ Aplicacao para cadastrar, importar, consultar, analisar e otimizar decks Command
 
 - `backend/`: API REST Java 25 + Quarkus 3.35.2.
 - `frontend/`: SPA React 19 + Vite 8, publicada em `/mtg-deck-manager/`.
-- `tools/meta-importer/`: scripts offline de apoio a dados de meta.
+- `tools/`: scripts operacionais de seguranca e migracao.
 - `.github/agents/`: instrucoes canonicas para Codex/Copilot.
 
 ## Funcionalidades

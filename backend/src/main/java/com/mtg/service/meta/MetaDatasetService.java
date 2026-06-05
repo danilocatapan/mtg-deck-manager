@@ -1,70 +1,94 @@
 package com.mtg.service.meta;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import jakarta.annotation.PostConstruct;
+import com.mtg.model.MetaDeckSnapshot;
+import com.mtg.model.MetaDeckSnapshotCard;
+import com.mtg.repository.MetaDeckSnapshotRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Locale;
 
 @ApplicationScoped
 public class MetaDatasetService {
     private static final Logger LOG = Logger.getLogger(MetaDatasetService.class);
 
-    private final ObjectMapper mapper = JsonMapper.builder().findAndAddModules().build();
-    private final List<MetaDeck> decks = new CopyOnWriteArrayList<>();
+    @Inject
+    MetaDeckSnapshotRepository repository;
 
-    @ConfigProperty(name = "meta.dataset.file", defaultValue = "data/meta-decks.json")
-    Path datasetFile;
-
-    @PostConstruct
-    public void load() {
-        decks.clear();
-        if (!Files.exists(datasetFile)) {
-            LOG.infov("event=meta.dataset.loaded decks=0 file={0}", datasetFile);
-            return;
-        }
-
-        try {
-            decks.addAll(mapper.readValue(datasetFile.toFile(), new TypeReference<List<MetaDeck>>() {}));
-            LOG.infov("event=meta.dataset.loaded decks={0} file={1}", decks.size(), datasetFile);
-        } catch (Exception exception) {
-            LOG.errorv(exception, "event=meta.dataset.load_failed file={0}", datasetFile);
-        }
-    }
-
+    @Transactional
     public void replaceBySource(String source, List<MetaDeck> importedDecks) {
         if (source == null || source.isBlank()) {
             return;
         }
-        decks.removeIf(deck -> source.equalsIgnoreCase(deck.source()));
-        if (importedDecks != null) {
-            decks.addAll(importedDecks);
+        repository.deleteBySource(source);
+        if (importedDecks != null && !importedDecks.isEmpty()) {
+            repository.persist(importedDecks.stream().map(this::toEntity).toList());
         }
-        save();
+        LOG.infov("event=meta.dataset.replaced source={0} decks={1}", source, importedDecks == null ? 0 : importedDecks.size());
     }
 
     public List<MetaDeck> findAll() {
-        return new ArrayList<>(decks);
+        return repository == null
+                ? List.of()
+                : repository.listAllOrdered().stream().map(this::toDomain).toList();
     }
 
-    public void save() {
-        try {
-            Path parent = datasetFile.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
-            mapper.writerWithDefaultPrettyPrinter().writeValue(datasetFile.toFile(), decks);
-            LOG.infov("event=meta.dataset.saved decks={0} file={1}", decks.size(), datasetFile);
-        } catch (Exception exception) {
-            LOG.errorv(exception, "event=meta.dataset.save_failed file={0}", datasetFile);
-        }
+    private MetaDeckSnapshot toEntity(MetaDeck deck) {
+        MetaDeckSnapshot entity = new MetaDeckSnapshot();
+        entity.setSource(deck.source());
+        entity.setExternalId(deck.externalId());
+        entity.setCommander(deck.commander());
+        entity.setCommanderNormalized(normalize(deck.commander()));
+        entity.setColorIdentity(String.join("", deck.colorIdentity()));
+        entity.setBracket(deck.bracket());
+        entity.setEventName(deck.eventName());
+        entity.setEventDate(deck.eventDate());
+        entity.setPlacement(deck.placement());
+        entity.setPlayerCount(deck.playerCount());
+        entity.setUrl(deck.url());
+        entity.setFetchedAt(deck.fetchedAt());
+        entity.setCards(deck.cards().stream().map(card -> {
+            MetaDeckSnapshotCard persisted = new MetaDeckSnapshotCard();
+            persisted.setName(card.name());
+            persisted.setQuantity(Math.max(1, card.quantity()));
+            return persisted;
+        }).toList());
+        return entity;
+    }
+
+    private MetaDeck toDomain(MetaDeckSnapshot entity) {
+        return new MetaDeck(
+                entity.getSource(),
+                entity.getExternalId(),
+                entity.getCommander(),
+                List.of(),
+                colorList(entity.getColorIdentity()),
+                entity.getBracket(),
+                List.of(),
+                entity.getCards().stream()
+                        .map(card -> new MetaDeckCard(card.getName(), card.getQuantity(), List.of(), null, null, List.of()))
+                        .toList(),
+                entity.getEventName(),
+                entity.getEventDate(),
+                entity.getPlacement(),
+                entity.getPlayerCount(),
+                entity.getUrl(),
+                entity.getFetchedAt()
+        );
+    }
+
+    private List<String> colorList(String colors) {
+        if (colors == null || colors.isBlank()) return List.of();
+        List<String> result = new ArrayList<>();
+        colors.chars().mapToObj(value -> String.valueOf((char) value)).forEach(result::add);
+        return result;
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 }

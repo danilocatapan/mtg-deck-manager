@@ -7,6 +7,9 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 ## [0.0.0-local] - 2026-06-05
 
 ### Added
+- Base canonica PostgreSQL `meta_decks`/`meta_deck_cards` para snapshots TopDeck.gg normalizados, com substituicao idempotente por fonte e preservacao do ultimo snapshot valido.
+- Meta Admin passa a mostrar proximas acoes derivadas do benchmark, cobertura da fonte e feedback agregado sem checklist manual paralelo.
+- Rodadas estrategicas expoem `auditId` e permitem feedback simples `Util`, `Nao util` ou `Precisa revisao`.
 - Endpoint admin read-only `GET /meta/recommendation-benchmark/summary` expoe cobertura inicial, metricas-alvo e status do benchmark sistema vs GPT.
 - Fixtures seed em `backend/src/test/resources/recommendation-benchmark/` iniciam o corpus com Xenagos, K'rrik, Grand Arbiter e Kess, preparando avaliacao curada sem usar GPT como fonte de verdade.
 - Colecao minima por usuario com importacao textual em `POST /users/me/collection/import`, listagem em `GET /users/me/collection` e exportacao/remocao junto aos dados LGPD.
@@ -20,7 +23,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Inventario `docs/codex-skills.md` documentando skills Codex instaladas, ganhos esperados, exemplos de uso e candidatos avaliados para backend, frontend, UX, seguranca, documentacao e recomendacoes.
 - Configuracao compartilhada `.codex/config.toml` para padronizar approvals conservadores, sandbox de workspace, busca cacheada, snapshot de shell e multi-agent em sessoes confiaveis do Codex.
 - Tela `Meta Admin` no frontend para usuario Google autorizado importar JSON de top decks, consultar snapshots, abrir detalhes e registrar sync manual com orientacoes objetivas sobre impacto nas recomendacoes.
-- API administrativa `POST /meta/top-decks/import`, consultas e sync manual para top decks externos rankeados, com upsert idempotente, historico mensal, projecao em decks publicos e atualizacao imediata dos perfis de meta usados nas recomendacoes.
+- API administrativa de meta iniciou suporte a snapshots rankeados; o fluxo manual correspondente foi removido nesta mesma entrega em favor de `POST /meta/sync`.
 - Avaliacao automatizada dos sinais de top decks garante amostra minima, rastreabilidade `meta_top_decks` e invariantes de recomendacao antes de privilegiar cartas recorrentes.
 - Analise de decks passa a expor as cartas por papel em `roleCards`, permitindo detalhar Ramp, Compra, Interacao, Protecao, Limpa-mesa, Vitoria e Terrenos na UI.
 - Likes em todos os decks publicos, com voto unico por usuario autenticado e ranking interno por periodo em `GET /public/decks/top`.
@@ -37,6 +40,9 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Script `tools/security-setup-guide.ps1` para orientar configuracao segura de variaveis, secrets e uso do diagnostico sem exibir valores sensiveis.
 
 ### Changed
+- `POST /meta/sync` passa a executar o fluxo completo TopDeck.gg: buscar, normalizar, persistir e reconstruir perfis por comandante/bracket.
+- TopDeck.gg passa a ser a unica fonte externa viva de meta; dataset local permanece como fallback embarcado para cobertura sem operacao manual.
+- Meta Admin deixa de importar JSON/decklists e passa a oferecer apenas sincronizacao automatica e acompanhamento operacional.
 - `PROJECT_CONTEXT.md` passa a funcionar como snapshot operacional de leitura em 60 segundos, com estado verificado, limites atuais, prioridades, mapa rapido para agentes e validacoes conhecidas; os arquivos `AGENTS.md` agora exigem sua leitura antes de reexplorar tarefas nao triviais.
 - `ownedOnly=true` passa a filtrar cartas sugeridas contra a colecao persistida do usuario; sem inventario valido, o quality gate continua `low_confidence` e explica a limitacao.
 - Meta Admin troca a acao generica por `Sincronizar TopDeck.gg` e exibe status de fonte, attribution e resumo do benchmark sem expor API key.
@@ -86,6 +92,12 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Exclusao de decks no frontend passa a usar um dialogo proprio, mantendo a experiencia visual consistente.
 
 ### Fixed
+- Botao de sincronizacao do Meta Admin deixa de apenas registrar um lote e passa a buscar dados reais do TopDeck.gg.
+- Migration de remocao do fluxo manual preserva decks curados por `POST /meta/external-decks/import`, removendo apenas projecoes ligadas aos registros legados.
+
+### Removed
+- Endpoints, DTOs, entidades, tabelas e UI de importacao manual de top decks, incluindo projecoes automaticas desses decks na vitrine publica.
+- Adapters ativos Spicerack/EDHREC e o placeholder offline de importacao EDHREC.
 - Recomendacoes de K'rrik deixam de sugerir remover `Vilis, Broker of Blood` quando ele atua como engine de compra por perda de vida no plano turbo-combo.
 - Importacao e preview agora descontam o comandante quando ele aparece dentro da lista, preservando o formato Commander de 99 cartas no main deck mais comandante.
 - Terrenos que produzem mana deixam de ser classificados como ramp; ramp agora cobre apenas aceleracao alem do land drop normal.
@@ -102,7 +114,7 @@ O formato segue Keep a Changelog e Semantic Versioning. Em CI/CD, este arquivo e
 - Auditorias de recomendacao passam a mapear JSONs persistidos como `TEXT` comum no Hibernate, evitando erro de Large Object nos testes PostgreSQL do CI.
 
 ### Security
-- Endpoints `/meta/top-decks/*` aceitam JWT Google allowlistado por e-mail para uso seguro da tela admin, mantendo `X-Admin-Key` para Swagger e operacao tecnica.
+- Endpoint `POST /meta/sync` e resumo administrativo aceitam JWT Google allowlistado por e-mail, mantendo `X-Admin-Key` para Swagger e operacao tecnica.
 - Formulario de contato usa endpoint externo configuravel sem persistir mensagens no banco da aplicacao, sem anexos e sem envio automatico de tokens ou dados da sessao.
 - Fluxo Google documentado para escopos minimos `openid`, `email` e `profile`, sem persistencia de `access_token` ou `refresh_token`.
 - Logs de fluxos autenticados deixam de registrar payloads de decks, nomes de cartas em validacoes e detalhes de troca de recomendacao.

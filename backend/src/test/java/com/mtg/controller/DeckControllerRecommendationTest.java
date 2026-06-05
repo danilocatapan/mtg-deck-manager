@@ -63,6 +63,7 @@ class DeckControllerRecommendationTest {
                 new RecommendationSourceSummary("auto", 0, List.of(), "Sem fonte meta suficiente; heuristicas locais e regras Commander.", false, true),
                 List.of("Dados meta insuficientes para este comandante/bracket; a recomendacao usa heuristicas conservadoras."),
                 "not_proven_against_gpt",
+                42L,
                 recommendations
         ));
 
@@ -74,6 +75,7 @@ class DeckControllerRecommendationTest {
                 .body("confidence", org.hamcrest.Matchers.equalTo("medium_confidence"))
                 .body("coverage.fallbackUsed", org.hamcrest.Matchers.equalTo(true))
                 .body("limitations[0]", org.hamcrest.Matchers.containsString("Dados meta insuficientes"))
+                .body("auditId", org.hamcrest.Matchers.equalTo(42))
                 .body("recommendations.size()", org.hamcrest.Matchers.equalTo(3))
                 .body("recommendations[0].add", org.hamcrest.Matchers.equalTo("Greater Good"))
                 .body("recommendations[0].remove", org.hamcrest.Matchers.equalTo("Arcane Encyclopedia"))

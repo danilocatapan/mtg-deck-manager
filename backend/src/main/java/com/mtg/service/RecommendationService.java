@@ -164,7 +164,7 @@ public class RecommendationService {
         final Set<String> finalCommanderTags = new HashSet<>(commanderTags);
         final Set<String> finalDeckTags = new HashSet<>(deckTags);
 
-        // For each gap role, attempt to fetch candidates from EDHREC first, fallback to Scryfall
+        // For each gap role, use the active meta profile first and fall back to Scryfall.
         for (Map.Entry<String, Integer> gap : gaps.entrySet()) {
             String role = gap.getKey();
             int need = gap.getValue();

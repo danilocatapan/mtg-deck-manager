@@ -42,10 +42,10 @@ Cobertura que merece atencao explicita
 Exemplos uteis do projeto
 -------------------------
 - `DeckControllerTest`, `DeckControllerRecommendationTest`, `DeckControllerAnalysisTest`.
-- `MetaTopDeckControllerTest`, `MetaExternalDeckImportTest`, `PublicDeckControllerLikeTest`, `UserPrivacyControllerTest`.
+- `MetaControllerSecurityTest`, `MetaExternalDeckImportTest`, `PublicDeckControllerLikeTest`, `UserPrivacyControllerTest`.
 - `RecommendationServiceTest`, `StrategicRecommendationServiceTest`, `RecommendationScoringTest`.
 - `DeckCompleterTest`, `DeckAnalysisServiceTest`, `ClassificationServiceTest`.
-- `MetaDatasetLoaderTest`, `MetaDatasetServiceTest`, `MetaProviderImplTest`, `MetaTopDeckSignalBuilderTest`.
+- `MetaDatasetLoaderTest`, `MetaDatasetServiceTest`, `ExternalMetaIngestionJobTest`, `MetaProviderImplTest`, `TopDeckMetaAdapterTest`.
 - `SynergyEngineTest`, `CardTaggerTest`.
 - `CommanderBracketServiceTest`, `CommanderGameChangerServiceTest`, `DeckLegalityRegressionTest`.
 

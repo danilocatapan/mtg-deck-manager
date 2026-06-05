@@ -33,9 +33,9 @@ Este documento resume o schema PostgreSQL atual do MTG Deck Manager e como ele s
 - `DeckCard`: linhas de cartas do deck e quantidades.
 - `DeckLike`: voto unico por usuario em deck publico.
 - `RecommendationAuditRun`: auditoria de recomendacoes geradas, trocas aplicadas/desfeitas e feedback.
-- `MetaTopDeck`: snapshot persistido de top deck externo/rankeado.
-- `MetaTopDeckCard`: cartas do top deck por secao/quantidade.
-- `MetaTopDeckImportBatch`: lote/status de importacao de top decks.
+- `MetaDeckSnapshot` (`meta_decks`): snapshot canonico normalizado da unica fonte externa viva, TopDeck.gg.
+- `MetaDeckSnapshotCard` (`meta_deck_cards`): cartas do snapshot canonico.
+- A migration V13 remove tabelas/lotes do fluxo manual de top decks e somente as projecoes publicas ligadas por `meta_top_decks.public_deck_id`, preservando decks curados por `POST /meta/external-decks/import`.
 - `MetaCombo`: definicao persistida de combo conhecida por fonte externa/local.
 - `MetaComboCard`: cartas normalizadas que compoem cada combo, incluindo slot de comandante quando aplicavel.
 

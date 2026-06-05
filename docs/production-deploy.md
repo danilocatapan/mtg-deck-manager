@@ -23,7 +23,7 @@ Flyway migrations live in:
 backend/src/main/resources/db/migration
 ```
 
-Current migrations cover deck schema, Commander contract fields, recommendation audit, deck visibility/public authorship, external/public deck likes, and meta top decks.
+Current migrations cover deck schema, Commander contract fields, recommendation audit, deck visibility/public authorship, external/public deck likes, and the canonical TopDeck.gg meta snapshot.
 
 For the first staging migration, enable:
 
@@ -193,7 +193,7 @@ Validate with an authorized Google account:
 - open the frontend `Meta Admin` screen
 - list top decks
 - import a small JSON payload in staging
-- confirm `POST /meta/top-decks/import` updates profiles without exposing secrets in logs
+- confirm `POST /meta/sync` consulta TopDeck.gg, persiste o snapshot canonico, reconstrói perfis e preserva o snapshot anterior em falhas sem expor secrets
 - confirm strategic recommendations mention/use `meta_top_decks` only when the sample is sufficient
 
 ## Promotion Checklist

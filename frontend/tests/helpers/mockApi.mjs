@@ -146,23 +146,6 @@ export async function installAuth(page, { email = 'tester@example.com' } = {}) {
 export async function mockApi(page, { apiFailure = null, contactStatus = 200 } = {}) {
   let currentUserDeck = structuredClone(userDeck)
   let publicDeckState = structuredClone(publicDeck)
-  const topDeck = {
-    id: 501,
-    rank: 1,
-    name: 'Top Xenagos Pressure',
-    commander: 'Xenagos, God of Revels',
-    source: 'MOXFIELD',
-    rankingDate: '2026-05-01',
-    bracket: 'BRACKET_4',
-    archetype: 'AGGRO',
-    cardsCount: 3,
-    cards: [
-      { name: 'Xenagos, God of Revels', quantity: 1, section: 'COMMANDER' },
-      { name: 'Sol Ring', quantity: 1, section: 'MAIN' },
-      { name: 'Beast Whisperer', quantity: 1, section: 'MAIN' },
-    ],
-  }
-
   await page.route(/http:\/\/(localhost|127\.0\.0\.1):8080\/.*/, async (route) => {
     const request = route.request()
     const url = new URL(request.url())
@@ -246,7 +229,14 @@ export async function mockApi(page, { apiFailure = null, contactStatus = 200 } =
     }
 
     if (path === '/decks/1/recommendations/strategic') {
-      return json(route, [recommendation])
+      return json(route, {
+        confidence: 'medium_confidence',
+        benchmarkStatus: 'covered_by_internal_benchmark_reference',
+        auditId: 77,
+        coverage: { sampleSize: 12, resolvedCards: 28, requestedCards: 28 },
+        limitations: [],
+        recommendations: [recommendation],
+      })
     }
 
     if (path === '/decks/1/recommendations/apply-swap') {
@@ -274,23 +264,37 @@ export async function mockApi(page, { apiFailure = null, contactStatus = 200 } =
     }
 
     if (path === '/meta/sources') {
-      return json(route, { sources: [{ name: 'top_decks', enabled: true }] })
+      return json(route, { sources: [{ name: 'TopDeck', enabled: true, lastSync: '2026-06-05T10:00:00Z', supportedBrackets: ['high-power', 'cedh'] }] })
     }
 
-    if (path === '/meta/top-decks' && method === 'GET') {
-      return json(route, [topDeck])
+    if (path === '/meta/sync' && method === 'POST') {
+      return json(route, {
+        status: 'success',
+        importedDecks: 24,
+        discardedDecks: 0,
+        snapshotDecks: 24,
+        commandersCovered: 8,
+        coverageByBracket: { cedh: 18, 'high-power': 6 },
+        errors: [],
+        profilesBuilt: 8,
+        limitations: [],
+      })
     }
 
-    if (path === '/meta/top-decks/501' && method === 'GET') {
-      return json(route, topDeck)
+    if (path === '/meta/recommendation-benchmark/summary') {
+      return json(route, {
+        status: 'benchmark_seed',
+        totalCases: 8,
+        targetCases: 50,
+        nextActions: [
+          { id: 'expand-corpus', title: 'Expandir corpus versionado', status: 'in_progress', actor: 'maintainer', description: 'Adicionar casos representativos.', completed: 8, target: 50 },
+          { id: 'human-review', title: 'Realizar avaliacao humana cega', status: 'blocked', actor: 'reviewer', description: 'Registrar resultados cegos.' },
+        ],
+      })
     }
 
-    if (path === '/meta/top-decks/sync' && method === 'POST') {
-      return json(route, { message: 'Sincronizacao registrada com sucesso.' })
-    }
-
-    if (path === '/meta/top-decks/import' && method === 'POST') {
-      return json(route, { status: 'OK', importedDecks: 1, updatedDecks: 0, ignoredDecks: 0, warnings: [] })
+    if (path === '/recommendation-audits/77/feedback' && method === 'POST') {
+      return route.fulfill({ status: 204 })
     }
 
     if (path.startsWith('/meta/commanders/')) {

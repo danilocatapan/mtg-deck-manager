@@ -45,6 +45,8 @@ test('authenticated import, analysis, recommendation, undo and delete stay keybo
   await page.getByRole('button', { name: /Recomenda/i }).last().click()
   await page.getByRole('button', { name: /Gerar trocas/i }).click()
   await expect(page.getByText('Por que esta troca e segura')).toBeVisible()
+  await page.getByRole('button', { name: 'Util', exact: true }).click()
+  await expect(page.getByText('Feedback registrado')).toBeVisible()
 
   await page.getByRole('button', { name: /Aplicar troca/i }).first().click()
   await expect(page.getByRole('dialog', { name: /Aplicar troca/i })).toBeVisible()
@@ -117,10 +119,10 @@ test('meta admin handles authorization states with mocks', async ({ page }) => {
 
   await installAuth(page, { email: 'dcatapan@gmail.com' })
   await page.goto('./#/meta-admin')
-  await expect(page.getByRole('heading', { name: /Top decks externos/i })).toBeVisible()
-  await expect(page.getByText('Top Xenagos Pressure')).toBeVisible()
-  await page.getByRole('button', { name: /Top Xenagos Pressure/i }).click()
-  await expect(page.getByText(/Beast Whisperer/i)).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Meta automatico/i })).toBeVisible()
+  await expect(page.getByText(/Expandir corpus versionado/i)).toBeVisible()
+  await page.getByRole('button', { name: /Sincronizar meta agora/i }).click()
+  await expect(page.getByText(/24 decks persistidos/i)).toBeVisible()
 })
 
 test('shared deck editor routes and card popovers support keyboard dismissal', async ({ page }) => {

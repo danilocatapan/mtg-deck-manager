@@ -53,7 +53,7 @@ Hotspots do repositorio (onde revisar primeiro)
 -----------------------------------------------
 - `src/services/api.js` - integracao com backend e formatacao de payloads.
 - `src/services/auth.js`, `src/components/AuthStatus.jsx` - login Google, sessao, perfil publico e admin meta.
-- `src/pages/Home.jsx`, `src/pages/DeckConsultPage.jsx`, `src/pages/MetaTopDeckAdminPage.jsx` - vitrine publica, consulta, copia/like e admin de top decks.
+- `src/pages/Home.jsx`, `src/pages/DeckConsultPage.jsx`, `src/pages/MetaAdminPage.jsx` - vitrine publica, consulta, copia/like e painel operacional do meta automatico.
 - `src/pages/DeckEditorPage.jsx`, `src/pages/ImportDeckPage.jsx`, `src/components/RecommendationForm.jsx` - fluxo de importacao, edicao e recomendacao.
 - `src/components/Recommendations.jsx`, `src/components/DeckAnalysis.jsx` - renderizacao dos resultados do backend.
 - `src/components/recommendations/*` - cards, badges, painel e configuracoes de recomendacao.

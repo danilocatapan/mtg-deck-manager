@@ -32,6 +32,9 @@ public class TopDeckMetaAdapter extends AbstractCachedMetaSourceAdapter {
     @Inject
     DecklistNormalizer normalizer;
 
+    @Inject
+    MetaDatasetService datasetService;
+
     @ConfigProperty(name = "meta.topdeck.enabled", defaultValue = "false")
     boolean enabled;
 
@@ -49,6 +52,9 @@ public class TopDeckMetaAdapter extends AbstractCachedMetaSourceAdapter {
 
     private volatile List<MetaDeck> cachedDecks = List.of();
     private volatile OffsetDateTime lastSync;
+    private volatile boolean lastSyncSuccessful;
+    private volatile int lastDiscardedDecks;
+    private volatile String lastSyncError;
 
     @Override
     public String sourceName() {
@@ -62,11 +68,17 @@ public class TopDeckMetaAdapter extends AbstractCachedMetaSourceAdapter {
 
     @Override
     public List<MetaDeck> sync() {
+        lastDiscardedDecks = 0;
+        lastSyncError = null;
         if (!enabled) {
+            lastSyncSuccessful = false;
+            lastSyncError = "topdeck_disabled";
             LOG.infov("event=meta.source.disabled source={0}", SOURCE);
             return cachedDecks;
         }
         if (apiKey.isEmpty() || apiKey.get().isBlank()) {
+            lastSyncSuccessful = false;
+            lastSyncError = "missing_api_key";
             LOG.infov("event=meta.sync.skipped source={0} reason=missing_api_key", SOURCE);
             return cachedDecks;
         }
@@ -85,16 +97,29 @@ public class TopDeckMetaAdapter extends AbstractCachedMetaSourceAdapter {
                     )
             );
         } catch (WebApplicationException exception) {
+            lastSyncSuccessful = false;
             int status = exception.getResponse() == null ? 0 : exception.getResponse().getStatus();
+            lastSyncError = status > 0 ? "topdeck_http_" + status : "topdeck_http_error";
             LOG.warnv(exception, "event=meta.sync.failed source={0} httpStatus={1}", SOURCE, status);
             return cachedDecks;
         } catch (RuntimeException exception) {
+            lastSyncSuccessful = false;
+            lastSyncError = "topdeck_unavailable";
             LOG.warnv(exception, "event=meta.sync.failed source={0}", SOURCE);
             return cachedDecks;
         }
         List<MetaDeck> imported = toMetaDecks(tournaments);
+        int received = tournaments == null ? 0 : tournaments.stream()
+                .limit(maxTournaments)
+                .filter(java.util.Objects::nonNull)
+                .map(TopDeckTournamentDTO::standings)
+                .filter(java.util.Objects::nonNull)
+                .mapToInt(List::size)
+                .sum();
+        lastDiscardedDecks = Math.max(0, received - imported.size());
         cachedDecks = imported;
         lastSync = OffsetDateTime.now();
+        lastSyncSuccessful = true;
         LOG.infov("event=meta.sync.completed source={0} decks={1}", SOURCE, imported.size());
         return imported;
     }
@@ -112,7 +137,31 @@ public class TopDeckMetaAdapter extends AbstractCachedMetaSourceAdapter {
 
     @Override
     public MetaSourceStatus status() {
-        return new MetaSourceStatus(SOURCE, enabled && apiKey.isPresent() && !apiKey.get().isBlank(), lastSync, supportedBrackets(), "competitive_meta");
+        OffsetDateTime persistedLastSync = datasetService == null ? null : datasetService.findAll().stream()
+                .filter(deck -> SOURCE.equalsIgnoreCase(deck.source()))
+                .map(MetaDeck::fetchedAt)
+                .filter(java.util.Objects::nonNull)
+                .max(OffsetDateTime::compareTo)
+                .orElse(null);
+        return new MetaSourceStatus(
+                SOURCE,
+                enabled && apiKey.isPresent() && !apiKey.get().isBlank(),
+                lastSync == null ? persistedLastSync : lastSync,
+                supportedBrackets(),
+                "competitive_meta"
+        );
+    }
+
+    boolean lastSyncSuccessful() {
+        return lastSyncSuccessful;
+    }
+
+    int lastDiscardedDecks() {
+        return lastDiscardedDecks;
+    }
+
+    String lastSyncError() {
+        return lastSyncError;
     }
 
     private List<MetaDeck> toMetaDecks(List<TopDeckTournamentDTO> tournaments) {

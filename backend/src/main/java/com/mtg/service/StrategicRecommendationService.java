@@ -213,7 +213,7 @@ public class StrategicRecommendationService {
                 deckId,
                 recommendations.size()
         );
-        persistAudit(deck, ownerId, params, bracket, profile, roles, assessment, recommendations);
+        Long auditId = persistAudit(deck, ownerId, params, bracket, profile, roles, assessment, recommendations);
         return buildRun(
                 deck,
                 params,
@@ -225,6 +225,7 @@ public class StrategicRecommendationService {
                 requestedCardCount,
                 mainDeckCount,
                 collectionAvailable,
+                auditId,
                 recommendations
         );
     }
@@ -312,6 +313,7 @@ public class StrategicRecommendationService {
             int requestedCardCount,
             int mainDeckCount,
             boolean collectionAvailable,
+            Long auditId,
             List<StrategicRecommendation> recommendations
     ) {
         double resolutionRate = requestedCardCount <= 0 ? 0.0 : knownCards.size() / (double) requestedCardCount;
@@ -349,6 +351,7 @@ public class StrategicRecommendationService {
                 sourceSummary,
                 limitations,
                 benchmarkStatus(deck.getCommander(), bracket, confidence),
+                auditId,
                 recommendations
         );
     }
@@ -513,7 +516,7 @@ public class StrategicRecommendationService {
         return deck.getCards();
     }
 
-    private void persistAudit(
+    private Long persistAudit(
             Deck deck,
             String ownerId,
             com.mtg.dto.RecommendationParamsDTO params,
@@ -524,10 +527,10 @@ public class StrategicRecommendationService {
             List<StrategicRecommendation> recommendations
     ) {
         if (recommendationAuditService == null) {
-            return;
+            return null;
         }
         try {
-            recommendationAuditService.persistRun(
+            return recommendationAuditService.persistRun(
                     deck,
                     ownerId,
                     params,
@@ -537,9 +540,10 @@ public class StrategicRecommendationService {
                     assessment,
                     recommendations,
                     auditContext
-            );
+            ).getId();
         } catch (Exception exception) {
             LOG.warnv(exception, "event=recommendation.audit.failed deckId={0}", deck == null ? null : deck.getId());
+            return null;
         }
     }
 }

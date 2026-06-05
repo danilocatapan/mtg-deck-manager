@@ -9,6 +9,7 @@ public record StrategicRecommendationRun(
         RecommendationSourceSummary sourceSummary,
         List<String> limitations,
         String benchmarkStatus,
+        Long auditId,
         List<StrategicRecommendation> recommendations
 ) {
     public StrategicRecommendationRun {

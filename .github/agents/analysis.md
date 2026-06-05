@@ -33,7 +33,7 @@ Checklist operacional de conformidade arquitetural
 - Verifique contratos REST expostos e testes de controller.
 - Verifique mudancas em entidades persistidas e impacto de schema.
 - Verifique configuracoes de cache, CORS, auth/OIDC e headers de seguranca quando afetadas.
-- Confirme compatibilidade de integracoes externas (Scryfall, Spicerack, TopDeck.gg, fontes/adapters de meta).
+- Confirme compatibilidade de integracoes externas (Scryfall, TopDeck.gg, Commander Spellbook e adapters ativos).
 - Confirme que frontend e backend continuam alinhados em payloads JSON.
 - Para dados publicos/LGPD, confirme isolamento por `owner_id`, visibilidade, DTOs sanitizados, exportacao/exclusao e ausencia de PII em logs.
 - Para PostgreSQL, confirme migration Flyway, constraints/indices, teste `%pg`/CI quando entidade persistida mudar.

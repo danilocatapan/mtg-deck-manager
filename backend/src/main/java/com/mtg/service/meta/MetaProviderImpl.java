@@ -85,10 +85,10 @@ public class MetaProviderImpl implements MetaProvider {
             source = sources.get(0);
         }
         double bracketWeight = switch (bracket) {
-            case "cedh" -> source.equalsIgnoreCase("EDHTOP16") ? 1.2 : source.equalsIgnoreCase("TOPDECK") ? 1.1 : 1.0;
-            case "high-power" -> source.equalsIgnoreCase("TOPDECK") || source.equalsIgnoreCase("SPICERACK") ? 1.15 : 0.8;
-            case "mid" -> source.equalsIgnoreCase("EDHREC") ? 1.1 : 0.9;
-            default -> source.equalsIgnoreCase("EDHREC") || source.equalsIgnoreCase("LOCAL") ? 1.1 : 0.65;
+            case "cedh" -> source.equalsIgnoreCase("TOPDECK") ? 1.2 : 0.85;
+            case "high-power" -> source.equalsIgnoreCase("TOPDECK") ? 1.15 : 0.8;
+            case "mid" -> source.equalsIgnoreCase("LOCAL") ? 1.1 : 0.9;
+            default -> source.equalsIgnoreCase("LOCAL") ? 1.1 : 0.65;
         };
         double performanceWeight = switch (bracket) {
             case "cedh" -> 0.35;

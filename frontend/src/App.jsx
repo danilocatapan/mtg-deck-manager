@@ -3,7 +3,7 @@ import Home from './pages/Home'
 import Layout from './components/Layout'
 import ContactPage from './pages/ContactPage'
 import ReleaseNotesPage from './pages/ReleaseNotesPage'
-import MetaTopDeckAdminPage from './pages/MetaTopDeckAdminPage'
+import MetaAdminPage from './pages/MetaAdminPage'
 import { HASH_ROUTES, pageViewForRoute, parseHashRoute, routeToHash, titleForRoute } from './services/hashRoutes'
 
 function App() {
@@ -66,7 +66,7 @@ function App() {
     <Layout onOpenReleaseNotes={openReleaseNotes} onOpenContact={openContact} onOpenMetaAdmin={openMetaAdmin}>
       {view === 'release-notes' && <ReleaseNotesPage onBack={backHome} />}
       {view === 'contact' && <ContactPage onBack={backHome} />}
-      {view === 'meta-admin' && <MetaTopDeckAdminPage onBack={backHome} />}
+      {view === 'meta-admin' && <MetaAdminPage onBack={backHome} />}
       {view === 'home' && <Home route={route} onNavigate={navigate} />}
     </Layout>
   )
